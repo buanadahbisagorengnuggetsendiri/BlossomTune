@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: stereonism-debug-apk
-          path: app/build/outputs/apk/foss/debug/*universal*.apk
+          path: app/build/outputs/apk/universalFoss/debug/*.apk
           if-no-files-found: error
           # APK debug dibuat di setiap push. Retensi panjang menumpuk sampai
           # kuota artefak akun habis — dan kuota itu dipakai bersama semua repo
@@ -135,7 +135,8 @@ jobs:
       - name: Verify APK is a real release build
         run: |
           set -euo pipefail
-          APK=$(ls app/build/outputs/apk/foss/release/*universal*.apk | head -1)
+          APK=$(ls app/build/outputs/apk/universalFoss/release/*.apk 2>/dev/null | head -1)
+          [ -n "$APK" ] || { echo "::error::APK tidak ada di outputs/apk; isinya:"; find app/build/outputs/apk -name '*.apk'; exit 1; }
           echo "APK: $APK"
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
           BADGING=$("$AAPT" dump badging "$APK")
@@ -151,6 +152,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: stereonism-release-apk
-          path: app/build/outputs/apk/foss/release/*universal*.apk
+          path: app/build/outputs/apk/universalFoss/release/*.apk
           if-no-files-found: error
           retention-days: 7

@@ -77,7 +77,8 @@ jobs:
       - name: Verify APK is a real release build
         run: |
           set -euo pipefail
-          APK=$(ls app/build/outputs/apk/foss/release/*universal*.apk | head -1)
+          APK=$(ls app/build/outputs/apk/universalFoss/release/*.apk 2>/dev/null | head -1)
+          [ -n "$APK" ] || { echo "::error::APK tidak ada di outputs/apk; isinya:"; find app/build/outputs/apk -name '*.apk'; exit 1; }
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
           if "$AAPT" dump badging "$APK" | grep -q 'application-debuggable'; then
             echo "::error::$APK is debuggable — release build tidak boleh debuggable"
@@ -91,7 +92,7 @@ jobs:
           set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p dist
-          cp "$(ls app/build/outputs/apk/foss/release/*universal*.apk | head -1)" \
+          cp "$(ls app/build/outputs/apk/universalFoss/release/*.apk | head -1)" \
              "dist/Stereonism-$VERSION-universal.apk"
           (cd dist && sha256sum "Stereonism-$VERSION-universal.apk" > "Stereonism-$VERSION-universal.apk.sha256")
           python3 - "$VERSION" <<'EOF'
