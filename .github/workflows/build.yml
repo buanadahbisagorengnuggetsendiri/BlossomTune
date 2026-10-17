@@ -125,7 +125,21 @@ jobs:
             -alias androiddebugkey \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
+      # Kalau secret rilis ada, job ini ikut menandatangani dengan kunci rilis —
+      # jadi jalur itu terbukti di setiap push, bukan cuma saat rilis.
+      - name: Decode release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_B64" ]; then exit 0; fi
+          mkdir -p app/keystore
+          echo "$KEYSTORE_B64" | base64 -d > app/keystore/release.keystore
       - name: Build release APK
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew :app:assembleUniversalFossRelease --stacktrace
 
       # Tanpa kunci rilis (secrets STORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD +

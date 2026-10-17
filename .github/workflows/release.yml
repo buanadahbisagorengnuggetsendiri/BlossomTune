@@ -69,9 +69,28 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      # Kunci rilis asli dari secret. Tanpa ini build.gradle.kts jatuh ke debug
+      # keystore, dan debug keystore di runner dibuat baru tiap run — APK rilis
+      # berikutnya jadi tidak bisa menimpa yang sudah terpasang.
+      - name: Decode release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::RELEASE_KEYSTORE_B64 kosong — APK akan ditandatangani debug keystore"
+            exit 0
+          fi
+          mkdir -p app/keystore
+          echo "$KEYSTORE_B64" | base64 -d > app/keystore/release.keystore
+
       - run: ./gradlew :app:lintUniversalFossDebug
       - run: ./gradlew :app:testUniversalFossDebugUnitTest
       - name: Build release APK
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew :app:assembleUniversalFossRelease --stacktrace
 
       - name: Verify APK is a real release build
@@ -85,7 +104,15 @@ jobs:
             exit 1
           fi
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
-          "$APKSIGNER" verify --print-certs "$APK" | grep -E 'certificate DN|SHA-256 digest'
+          CERTS=$("$APKSIGNER" verify --print-certs "$APK" | grep -E 'certificate DN|SHA-256 digest')
+          echo "$CERTS"
+          # Rilis publik tidak boleh ditandatangani debug keystore: tanda tangan
+          # itu dibuat baru tiap run, jadi tidak ada APK berikutnya yang bisa
+          # menimpanya di perangkat pengguna.
+          if echo "$CERTS" | grep -q 'CN=Android Debug'; then
+            echo "::error::APK rilis ditandatangani debug keystore — periksa secrets RELEASE_KEYSTORE_B64/STORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD"
+            exit 1
+          fi
 
       - name: Prepare APK, checksum and changelog
         run: |

@@ -52,6 +52,7 @@ app/*.json
 
 # Keystores
 app/persistent-debug.keystore
+app/keystore/
 
 # Native & C++ build outputs
 .externalNativeBuild
