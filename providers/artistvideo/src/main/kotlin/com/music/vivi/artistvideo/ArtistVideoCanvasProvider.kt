@@ -1,6 +1,6 @@
 // ArtistVideoCanvasProvider.kt
 
-package com.example.musicfy.artistvideo
+package com.meowlabs.stereonism.artistvideo
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body

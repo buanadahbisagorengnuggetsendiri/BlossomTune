@@ -6,20 +6,20 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # WEB_REMIX Streaming - WebView JavaScript interfaces
--keepclassmembers class com.example.musicfy.utils.sabr.EjsNTransformSolver$SolverWebView {
+-keepclassmembers class com.meowlabs.stereonism.utils.sabr.EjsNTransformSolver$SolverWebView {
     @android.webkit.JavascriptInterface public *;
 }
--keepclassmembers class com.example.musicfy.utils.cipher.CipherWebView {
+-keepclassmembers class com.meowlabs.stereonism.utils.cipher.CipherWebView {
     @android.webkit.JavascriptInterface public *;
 }
--keepclassmembers class com.example.musicfy.utils.potoken.PoTokenWebView {
+-keepclassmembers class com.meowlabs.stereonism.utils.potoken.PoTokenWebView {
     @android.webkit.JavascriptInterface public *;
 }
 
 # Keep streaming utility classes
--keep class com.example.musicfy.utils.cipher.** { *; }
--keep class com.example.musicfy.utils.sabr.** { *; }
--keep class com.example.musicfy.utils.potoken.** { *; }
+-keep class com.meowlabs.stereonism.utils.cipher.** { *; }
+-keep class com.meowlabs.stereonism.utils.sabr.** { *; }
+-keep class com.meowlabs.stereonism.utils.potoken.** { *; }
 
 # Keep coroutine continuation for WebView callbacks
 -keepclassmembers class * {
@@ -117,11 +117,11 @@
 
 ## Queue Persistence Rules
 # Keep queue-related classes to prevent serialization issues in release builds
--keep class com.example.musicfy.models.PersistQueue { *; }
--keep class com.example.musicfy.models.PersistPlayerState { *; }
--keep class com.example.musicfy.models.QueueData { *; }
--keep class com.example.musicfy.models.QueueType { *; }
--keep class com.example.musicfy.playback.queues.** { *; }
+-keep class com.meowlabs.stereonism.models.PersistQueue { *; }
+-keep class com.meowlabs.stereonism.models.PersistPlayerState { *; }
+-keep class com.meowlabs.stereonism.models.QueueData { *; }
+-keep class com.meowlabs.stereonism.models.QueueType { *; }
+-keep class com.meowlabs.stereonism.playback.queues.** { *; }
 
 # Keep serialization methods for queue persistence
 -keepclassmembers class * implements java.io.Serializable {
@@ -135,7 +135,7 @@
 -keep interface com.yalantis.ucrop** { *; }
 
 ## Google Cast Rules
--keep class com.example.musicfy.cast.** { *; }
+-keep class com.meowlabs.stereonism.cast.** { *; }
 -keep class com.google.android.gms.cast.** { *; }
 -keep class androidx.mediarouter.** { *; }
 
@@ -143,8 +143,8 @@
 -dontwarn com.google.re2j.**
 
 # Vibra fingerprint library
--keep class com.example.musicfy.recognition.VibraSignature { *; }
--keepclassmembers class com.example.musicfy.recognition.VibraSignature {
+-keep class com.meowlabs.stereonism.recognition.VibraSignature { *; }
+-keepclassmembers class com.meowlabs.stereonism.recognition.VibraSignature {
     native <methods>;
 }
 

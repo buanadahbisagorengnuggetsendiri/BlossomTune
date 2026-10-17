@@ -1,8 +1,8 @@
 // AppleMusicCanvasProvider.kt
 
-package com.example.musicfy.applecanvas
+package com.meowlabs.stereonism.applecanvas
 
-import com.example.musicfy.canvas.CanvasArtwork
+import com.meowlabs.stereonism.canvas.CanvasArtwork
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp

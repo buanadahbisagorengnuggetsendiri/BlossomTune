@@ -1,61 +1,131 @@
-name: CI & Debug Build
+name: Build
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ '**' ]
-    paths-ignore:
-      - 'README.md'
-      - 'fastlane/**'
-      - 'assets/**'
-      - '.github/**/*.md'
+    branches: [main]
   pull_request:
-    branches: [ '**' ]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Satu run per ref: push berturut-turut membatalkan yang lama, bukan menumpuk
+# runner dan artefak.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false
 
 jobs:
-  build_debug:
-    name: Build Universal GMS Debug
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    if: github.actor != 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '21'
-          distribution: 'temurin'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x ./gradlew
+      # Varian FOSS universal: satu-satunya yang dipakai job build di bawah,
+      # jadi lint-nya pun yang itu — bukan seluruh belasan kombinasi abi × variant.
+      - run: ./gradlew :app:lintUniversalFossDebug
 
-      - name: Set Up Gradle
-        uses: gradle/actions/setup-gradle@v4
+  test:
+    name: Unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          cache-disabled: true
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Generate debug.keystore
-        run: |
-          mkdir -p ~/.android
-          keytool -genkey -v \
-            -keystore ~/.android/debug.keystore \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US"
-
-      - name: Build Debug APK
-        env:
-          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
-          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
-        run: |
-          ./gradlew assembleUniversalGmsDebug --no-configuration-cache --console=plain --warning-mode summary
-
-      - name: Upload Debug APK
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x ./gradlew
+      # Modul JVM murni (:modules:*) punya task `test` sendiri. Task per-varian
+      # `:app:test...UnitTest` hanya menjalankan tes app, jadi keduanya dipanggil.
+      - run: ./gradlew :app:testUniversalFossDebugUnitTest :modules:api:test :modules:monochrome:test :modules:applemusic:test
+      - name: Upload test report
+        if: always()
+        # Laporan tes adalah alat bantu, bukan hasil: kegagalan unggah tidak
+        # boleh memerahkan job yang tesnya lulus.
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: app-universal-gms-debug
-          path: app/build/outputs/apk/universalGms/debug/*.apk
+          name: stereonism-test-report
+          path: |
+            app/build/reports/tests/
+            modules/*/build/reports/tests/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build-debug:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x ./gradlew
+      - name: Build debug APK
+        run: ./gradlew :app:assembleUniversalFossDebug --stacktrace
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: stereonism-debug-apk
+          path: app/build/outputs/apk/foss/debug/*universal*.apk
+          if-no-files-found: error
+          # APK debug dibuat di setiap push. Retensi panjang menumpuk sampai
+          # kuota artefak akun habis — dan kuota itu dipakai bersama semua repo
+          # di akun ini, jadi yang mati bukan cuma job ini.
+          retention-days: 3
+
+  build-release:
+    name: Build release APK
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x ./gradlew
+      - name: Build release APK
+        run: ./gradlew :app:assembleUniversalFossRelease --stacktrace
+
+      # Tanpa kunci rilis (secrets STORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD +
+      # keystore/release.keystore) build.gradle.kts jatuh ke debug keystore.
+      # Job ini membuktikan hasilnya tetap rilis sungguhan: R8 jalan dan
+      # aplikasinya tidak debuggable.
+      - name: Verify APK is a real release build
+        run: |
+          set -euo pipefail
+          APK=$(ls app/build/outputs/apk/foss/release/*universal*.apk | head -1)
+          echo "APK: $APK"
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
+          BADGING=$("$AAPT" dump badging "$APK")
+          echo "$BADGING" | grep -E '^package:'
+          if echo "$BADGING" | grep -q 'application-debuggable'; then
+            echo "::error::$APK is debuggable — release build tidak boleh debuggable"
+            exit 1
+          fi
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs "$APK" | grep -E 'certificate DN|SHA-256 digest'
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: stereonism-release-apk
+          path: app/build/outputs/apk/foss/release/*universal*.apk
+          if-no-files-found: error
+          retention-days: 7

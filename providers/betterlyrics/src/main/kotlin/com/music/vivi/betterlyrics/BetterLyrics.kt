@@ -1,8 +1,8 @@
 // BetterLyrics.kt
 
-package com.example.musicfy.betterlyrics
+package com.meowlabs.stereonism.betterlyrics
 
-import com.example.musicfy.betterlyrics.models.TTMLResponse
+import com.meowlabs.stereonism.betterlyrics.models.TTMLResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO

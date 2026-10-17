@@ -1,6 +1,6 @@
 // ArtistVideo.kt
 
-package com.example.musicfy.artistvideo
+package com.meowlabs.stereonism.artistvideo
 
 import android.view.TextureView
 import android.view.ViewGroup

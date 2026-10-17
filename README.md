@@ -1,129 +1,68 @@
-<img width="1799" height="927" alt="Frame 116" src="https://github.com/user-attachments/assets/a18020a7-ba05-4bb4-83bb-ada35ac57338" />
+# Stereonism
 
----
-<div align="center">
+> Pemutar musik Android. Dibangun dari basis [Musicfy](https://github.com/realidkroo/musicfy), di-rebrand jadi aplikasi sendiri.
 
-  Sleek modern cool music player for android, open source, packed with features and doesn’t collect ur data >_<
-  <br/>
-<p align="center">
-  <a href="https://github.com/realidkroo/musicfy/releases">
-    <img src="https://shieldcn.dev/github/downloads/realidkroo/musicfy.svg?mode=dark&radius=999&font=geist&split=true&height=28&fontSize=13&labelColor=1e1e2e&labelTextColor=ffffff&color=313244&valueColor=ffffff&logoColor=fab387" alt="Downloads">
-  </a>
-  <a href="https://github.com/realidkroo/musicfy/stargazers">
-    <img src="https://shieldcn.dev/github/stars/realidkroo/musicfy.svg?mode=dark&radius=999&font=geist&split=true&height=28&fontSize=13&labelColor=1e1e2e&labelTextColor=ffffff&color=313244&valueColor=ffffff&logoColor=f9e2af" alt="Stars">
-  </a>
-  <a href="https://github.com/realidkroo/musicfy/network/members">
-    <img src="https://shieldcn.dev/github/forks/realidkroo/musicfy.svg?mode=dark&radius=999&font=geist&split=true&height=28&fontSize=13&labelColor=1e1e2e&labelTextColor=ffffff&color=313244&valueColor=ffffff&logoColor=89b4fa" alt="Forks">
-      <a href="https://github.com/realidkroo/musicfy/releases">
-    <img src="https://shieldcn.dev/badge/Android-8.0%2B-313244.svg?mode=dark&radius=999&font=geist&split=true&height=28&fontSize=13&labelColor=1e1e2e&labelTextColor=ffffff&color=313244&valueColor=ffffff&logo=android&logoColor=94e2d5" alt="Android 8.0+">
-  </a>
-  </a>
-  <a href="https://github.com/realidkroo/musicfy/commits">
-    <img src="https://shieldcn.dev/github/commits/realidkroo/musicfy.svg?mode=dark&radius=999&font=geist&split=true&height=28&fontSize=13&labelColor=1e1e2e&labelTextColor=ffffff&color=313244&valueColor=ffffff&logoColor=a6e3a1" alt="Commits">
-  </a>
-  <a href="https://github.com/realidkroo/musicfy/releases/latest">
-    <img src="https://shieldcn.dev/github/release/realidkroo/musicfy.svg?mode=dark&radius=999&font=geist&split=true&height=28&fontSize=13&labelColor=1e1e2e&labelTextColor=ffffff&color=313244&valueColor=ffffff&logoColor=cba6f7" alt="Release">
-  </a>
-  <a href="https://github.com/realidkroo/musicfy/issues">
-    <img src="https://shieldcn.dev/github/issues/realidkroo/musicfy.svg?mode=dark&radius=999&font=geist&split=true&height=28&fontSize=13&labelColor=1e1e2e&labelTextColor=ffffff&color=313244&valueColor=ffffff&logoColor=f38ba8" alt="Issues">
-  </a>
-  <a href="https://github.com/realidkroo/musicfy/blob/main/LICENSE">
-    <img src="https://shieldcn.dev/github/license/realidkroo/musicfy.svg?mode=dark&radius=999&font=geist&split=true&height=28&fontSize=13&labelColor=1e1e2e&labelTextColor=ffffff&color=313244&valueColor=ffffff&logoColor=b4befe" alt="License">
-  </a>
-  <a href="https://github.com/realidkroo/musicfy/blob/main/Roadmap.md">
-    <img src="https://shieldcn.dev/badge/Roadmap-View-313244.svg?mode=dark&radius=999&font=geist&split=true&height=28&fontSize=13&labelColor=1e1e2e&labelTextColor=ffffff&color=313244&valueColor=ffffff&logoColor=b4befe" alt="Roadmap">
-  </a>
-</p>
-</div>
+| | |
+|---|---|
+| Package | `com.meowlabs.stereonism` |
+| Versi | `0.1.0` (`versionCode` 1) |
+| Lisensi | GPL-3.0 (lihat [`LICENSE`](LICENSE) dan [`NOTICE.md`](NOTICE.md)) |
+| Min SDK | 26 (Android 8.0) |
+| Compile / Target SDK | 36 |
+| Stack | Kotlin 2.3, Jetpack Compose, Media3, Room 2.8, Hilt, KSP |
+| Basis | Musicfy `8.0.0 build#1150` (GPL-3.0) |
+| Status | Rebrand tahap awal. Kode, paket, nama, CI, dan struktur rilis sudah milik sendiri; ikon dan palet **belum** diganti. Belum pernah diuji di perangkat. |
 
----
+## Keadaan sekarang
 
-> [!WARNING]
-> Support for android 8+ is available but won’t get many features as on android 13+.
+Sudah dikerjakan:
 
-> [!WARNING]
-> This app still on beta! or developer preview, expect some bugs! reporting it will be useful too.
+- Nama paket `com.example.musicfy` → `com.meowlabs.stereonism`, termasuk kode,
+  resource, manifest, skema Room, dan ketiga flavor (`foss`, `gms`, `fdroid`).
+- Nama app `Stereonism`, nama proyek Gradle `stereonism`, versi direset ke `0.1.0`.
+- Berkas khas basis dihapus: `build.sh`, `crowdin.yml`, `fastlane/`, `assets/`,
+  `Roadmap.md`, `docs/`, `Frame 201.png`, serta workflow `build_pr.yml` dan `stale.yml`.
+- CI sendiri: lint, unit test, APK debug, APK rilis, plus job rilis berbasis tag.
+- Tautan akun basis dibersihkan: Instagram dan kanal donasi (Ko-fi, Sociabuzz,
+  Buy Me a Coffee) dihapus; layar Tentang/Dukungan/Donasi menunjuk
+  `buanadahbisagorengnuggetsendiri/stereonism`.
+- Atribusi dan catatan lisensi ditulis ulang di [`NOTICE.md`](NOTICE.md).
 
+Belum dikerjakan:
 
-> [!WARNING]
-> Thanks for sharing the app, but PLEASE share this repo instead of sharing your own app download in a mediafire or smth, and this app is not for monetized, please dont upload it/gate keep it with a ads!!! i dont want my app to get monetized.
+- Ikon aplikasi, splash, dan palet masih milik basis.
+- Avatar di kartu Tentang masih foto pengembang basis.
+- Belum ada rilis. Belum ada build yang pernah jalan.
 
-> [!WARNING]
-> I dont support forks, please do not commit issue from forked apps here.
+Fitur yang ikut dari basis — Audio Lab, lirik multi-sumber, impor/ekspor,
+Cast, equalizer — semuanya masih kode basis, bukan hasil tulis ulang. Lihat
+`app/src/main/kotlin/com/meowlabs/stereonism/` dan `providers/`.
 
----
-## How to install? 
-**Go to https://github.com/realidkroo/musicfy/releases/latest
-Pick the latest version, and the correct architecture of your phone, normally it will be arm64**
+## Build
 
----
-## Other notes
-you can straightly compile using build.sh type build.sh --help for more info.
-its a script to make the day easier.
-you can fork it but I dont support unofficial fork
+Build tidak dijalankan di mesin pengembangan proyek ini (host bersama, RAM
+kecil — Gradle pernah mematikan proses lain). Compiler-nya GitHub Actions:
 
-oh also thanks to [monochrome](https://github.com/monochrome-music/monochrome) we have FLAC streams!
+- **Build** — `:app:lintUniversalFossDebug`, unit test app dan modul, APK debug
+  (`assembleUniversalFossDebug`), APK rilis (`assembleUniversalFossRelease`)
+  beserta pemeriksaan "bukan debuggable" dan verifikasi tanda tangan.
+- **Release** — dipicu tag `0.1.0` atau `v0.1.0`: memeriksa tag == `versionName`
+  di `app/build.gradle.kts`, membangun APK rilis, lalu menerbitkan GitHub
+  Release berisi APK, checksum, dan `changelog.json`. Berkas terakhir itu yang
+  dibaca pemeriksa pembaruan di app.
 
----
-## Wants to help? bug report? report it on issues!
+```bash
+git tag 0.1.0 && git push origin 0.1.0
+```
 
-Or read contribute.md there
+Varian build: dua dimensi flavor (`abi` × `variant`), jadi nama task-nya
+panjang — CI memakai `universalFossDebug` dan `universalFossRelease`. Tanda
+tangan rilis memakai kunci sendiri bila `STORE_PASSWORD`, `KEY_ALIAS`,
+`KEY_PASSWORD`, dan `keystore/release.keystore` tersedia; kalau tidak,
+`app/build.gradle.kts` jatuh ke debug keystore.
 
----
-## Disclaimer
+## Lisensi
 
-Musicfy is an independent, unofficial project made for personal and educational use. It is provided as is, without warranty of any kind.
-
-- It is **not affiliated with, endorsed by, or sponsored by** YouTube, YouTube Music, Google, Spotify, Apple, Last.fm, Shazam, Discord or any other service it can connect to. All names, logos and brands belong to their respective owners.
-- Musicfy does not host, store or distribute any music. Everything is fetched from third-party services when you ask for it, and those services can change or stop working at any time.
-- You are responsible for how you use the app, including the terms of service of the accounts and services you connect and the copyright laws where you live.
-- Importing from other services (Spotify, etc.) uses your own account. Don't share your login data or tokens with anyone.
-
----
-## Preview
-
-<details>
-  <summary><b>Preview (click to expand)</b></summary>
-  <br>
-  <table>
-    <tr>
-      <td align="center"><img height="390" alt="Preview 1" src="https://github.com/user-attachments/assets/83f753b4-5dec-45f6-bf66-c00023b3b961" /></td>
-      <td align="center"><img height="390" alt="Preview 2" src="https://github.com/user-attachments/assets/bc2e001e-4b5e-421e-af96-b86c8d2a8bbb" /></td>
-      <td align="center"><img height="390" alt="Preview 3" src="https://github.com/user-attachments/assets/06499690-1168-477f-8924-d767c8216b5f" /></td>
-    </tr>
-    <tr>
-      <td align="center"><img height="390" alt="Preview 4" src="https://github.com/user-attachments/assets/ca84b924-8705-403c-83a5-e3a74e7d74c7" /></td>
-      <td align="center"><img height="390" alt="Preview 5" src="https://github.com/user-attachments/assets/a2ed32b6-2cbe-4b6e-8e1e-3bb82211f26d" /></td>
-      <td align="center"><img height="390" alt="Preview 6" src="https://github.com/user-attachments/assets/bbf05596-eb66-40ab-a1e1-32c51a8cd940" /></td>
-    </tr>
-  </table>
-</details>
-
-
----
-
-## These incredible project helped musicfy a lot!
-
-- **ViviMusic** by [vivizzz007Z](https://github.com/vivizzz007Z) )[Their repo](https://github.com/vivizzz007/vivi-music)) -- For the base app. This app is a fork from this project.
-- **Metrolist** by [Mostafa Alagamy](https://github.com/mostafaalagamy) ([Repository](https://github.com/mostafaalagamy/Metrolist)) -- For the base framework.
-- **SimpMusic** by [maxrave-dev](https://github.com/maxrave-dev) ([Repository](https://github.com/maxrave-dev/SimpMusic)) -- For the lyrics API provider.
-- **Archivetune** by [Rukamori](https://github.com/rukamori) ([Repository](https://github.com/rukamori/ArchiveTune)) -- For design and architectural inspiration.
-- **RiMusic / InnerTube** by [fast4x](https://github.com/fast4x) ([Repository](https://github.com/fast4x/RiMusic)) -- For YouTube Music InnerTube API service wrapper.
-- **LRCLib** by [tranducbox](https://github.com/tranducbox) ([Repository](https://github.com/tranducbox/lrclib) / [Website](https://lrclib.net/)) -- For synchronized LRC lyrics provider integration.
-- **Monochrome Music** by [monochrome](https://github.com/monochrome) ([Repository](https://github.com/monochrome-music/monochrome) / ([Website](https://monochrome.st)) -- Flac streams, visit their web, very cool one.
-- **Auto Eq** ([Web](https://autoeq.app)) -- The equalizer database
-
----
-## Star History
-
-<a href="https://www.star-history.com/?repos=realidkroo%2Fmusicfy&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=realidkroo/musicfy&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=realidkroo/musicfy&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=realidkroo/musicfy&type=date&legend=top-left" />
- </picture>
-</a>
-
-<div align="center">
-  <sub>star the repo plssss!</sub>
-</div>
+GPL-3.0. Projek ini turunan Musicfy, jadi distribusi ulang wajib tetap GPL-3.0,
+menyertakan kode sumber, dan mempertahankan atribusi. Rinciannya di
+[`NOTICE.md`](NOTICE.md).

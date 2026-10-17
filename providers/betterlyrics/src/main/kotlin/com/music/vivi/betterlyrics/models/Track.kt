@@ -1,6 +1,6 @@
 // Track.kt
 
-package com.example.musicfy.betterlyrics.models
+package com.meowlabs.stereonism.betterlyrics.models
 
 import kotlinx.serialization.Serializable
 

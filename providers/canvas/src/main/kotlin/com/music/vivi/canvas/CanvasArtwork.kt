@@ -1,6 +1,6 @@
 // CanvasArtwork.kt
 
-package com.example.musicfy.canvas
+package com.meowlabs.stereonism.canvas
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

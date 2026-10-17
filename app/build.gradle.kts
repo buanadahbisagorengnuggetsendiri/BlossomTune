@@ -18,16 +18,16 @@ plugins {
 }
 
 extensions.configure<ApplicationExtension> {
-    namespace = "com.example.musicfy"
+    namespace = "com.meowlabs.stereonism"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
-        applicationId = "com.example.musicfy"
+        applicationId = "com.meowlabs.stereonism"
         minSdk = 26
         targetSdk = 36
-        versionCode = 71
-        versionName = "8.0.0 build#1150"
+        versionCode = 1
+        versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

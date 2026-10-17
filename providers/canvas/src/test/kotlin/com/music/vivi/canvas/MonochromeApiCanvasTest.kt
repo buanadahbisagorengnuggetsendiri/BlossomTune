@@ -1,6 +1,6 @@
 // MonochromeApiCanvasTest.kt
 
-package com.example.musicfy.canvas
+package com.meowlabs.stereonism.canvas
 
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

@@ -1,6 +1,6 @@
 // MonochromeAlbumCanvas.kt
 
-package com.example.musicfy.canvas
+package com.meowlabs.stereonism.canvas
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body

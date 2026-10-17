@@ -6,7 +6,7 @@ import android.content.Context
 import com.music.paxsenix.models.LyricsResponse
 import com.music.paxsenix.models.SearchResponse
 import com.music.paxsenix.models.SearchResult
-import com.example.musicfy.betterlyrics.TTMLParser
+import com.meowlabs.stereonism.betterlyrics.TTMLParser
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
@@ -64,7 +64,7 @@ object Paxsenix {
 
                 defaultRequest {
                     url("https://lyrics.paxsenix.org")
-                    header("User-Agent", "Musicfy/$appVersion")
+                    header("User-Agent", "Stereonism/$appVersion")
                 }
 
                 expectSuccess = true

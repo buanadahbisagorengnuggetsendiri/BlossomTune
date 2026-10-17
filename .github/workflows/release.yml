@@ -1,0 +1,114 @@
+name: Release
+
+# Rilis lewat tag: `git tag 0.1.0 && git push origin 0.1.0` (atau `v0.1.0`).
+# CI membangun APK rilis, memastikan nomor tag sama dengan versionName di
+# app/build.gradle.kts, lalu membuat GitHub Release berisi APK, checksum, dan
+# changelog.json — berkas terakhir itu yang dibaca pemeriksa pembaruan di app.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+      - '[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag yang dirilis (mis. 0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x ./gradlew
+
+      # Tag yang tidak cocok dengan versionName berarti APK yang diunggah
+      # mengaku versi lain dari yang tertulis di halaman rilis — dan pemeriksa
+      # pembaruan di app akan terus menawarkan "versi baru" yang sama.
+      - name: Check tag matches versionName
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          NAME=$(sed -n 's/^[[:space:]]*versionName = "\(.*\)"/\1/p' app/build.gradle.kts | head -1)
+          echo "tag: $TAG  versionName: $NAME"
+          if [ "$VERSION" != "$NAME" ]; then
+            echo "::error::Tag $TAG tidak cocok dengan versionName $NAME di app/build.gradle.kts"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - run: ./gradlew :app:lintUniversalFossDebug
+      - run: ./gradlew :app:testUniversalFossDebugUnitTest
+      - name: Build release APK
+        run: ./gradlew :app:assembleUniversalFossRelease --stacktrace
+
+      - name: Verify APK is a real release build
+        run: |
+          set -euo pipefail
+          APK=$(ls app/build/outputs/apk/foss/release/*universal*.apk | head -1)
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
+          if "$AAPT" dump badging "$APK" | grep -q 'application-debuggable'; then
+            echo "::error::$APK is debuggable — release build tidak boleh debuggable"
+            exit 1
+          fi
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs "$APK" | grep -E 'certificate DN|SHA-256 digest'
+
+      - name: Prepare APK, checksum and changelog
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p dist
+          cp "$(ls app/build/outputs/apk/foss/release/*universal*.apk | head -1)" \
+             "dist/Stereonism-$VERSION-universal.apk"
+          (cd dist && sha256sum "Stereonism-$VERSION-universal.apk" > "Stereonism-$VERSION-universal.apk.sha256")
+          python3 - "$VERSION" <<'EOF'
+          import json, sys
+          version = sys.argv[1]
+          entries = json.load(open("changelog.json", encoding="utf-8"))
+          entry = next((e for e in entries if e.get("versionName") == version), None)
+          lines = [f"Stereonism {version}"] if entry is None else []
+          if entry is not None:
+              if entry.get("summary"):
+                  lines += [entry["summary"], ""]
+              for section in entry.get("sections", []):
+                  lines.append(f"### {section['title']}")
+                  lines += [f"- {item}" for item in section.get("items", [])]
+                  lines.append("")
+          open("dist/notes.md", "w", encoding="utf-8").write("\n".join(lines).strip() + "\n")
+          # changelog.json ikut diunggah: layar "Yang baru" di app membacanya
+          # dari aset rilis, bukan dari dalam APK.
+          json.dump(entries, open("dist/changelog.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          EOF
+          cat dist/notes.md
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Stereonism ${{ steps.version.outputs.version }}
+          body_path: dist/notes.md
+          files: |
+            dist/Stereonism-${{ steps.version.outputs.version }}-universal.apk
+            dist/Stereonism-${{ steps.version.outputs.version }}-universal.apk.sha256
+            dist/changelog.json
+          fail_on_unmatched_files: true

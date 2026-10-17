@@ -1,0 +1,26 @@
+[
+  {
+    "versionName": "0.1.0",
+    "publishedAt": "2026-10-17",
+    "summary": "Rilis pertama Stereonism: pemutar musik Android dari basis Musicfy.",
+    "sections": [
+      {
+        "title": "Dasar",
+        "items": [
+          "Basis kode Musicfy 8.0.0 (GPL-3.0), sudah di-rebrand ke com.meowlabs.stereonism.",
+          "Build lewat GitHub Actions: lint, unit test, APK debug dan APK rilis.",
+          "Rilis ditandai tag, APK dan changelog.json diunggah sebagai aset rilis."
+        ]
+      },
+      {
+        "title": "Belum dikerjakan",
+        "items": [
+          "Ikon aplikasi masih ikon bawaan basis.",
+          "Palet dan tipografi masih milik basis.",
+          "Avatar di kartu Tentang masih foto pengembang basis.",
+          "Belum pernah diuji di perangkat."
+        ]
+      }
+    ]
+  }
+]

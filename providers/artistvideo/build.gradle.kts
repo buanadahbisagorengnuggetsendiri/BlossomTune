@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.musicfy.artistvideo"
+    namespace = "com.meowlabs.stereonism.artistvideo"
     compileSdk = 36
 
     defaultConfig {
