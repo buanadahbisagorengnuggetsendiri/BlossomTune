@@ -75,6 +75,19 @@ jobs:
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x ./gradlew
+      # AGP menandatangani varian debug dengan ~/.android/debug.keystore, dan
+      # runner GitHub tidak punya berkas itu. Tanpa langkah ini
+      # :app:validateSigning* gagal sebelum satu baris pun dikompilasi.
+      - name: Generate debug.keystore
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.android
+          keytool -genkeypair -v \
+            -keystore ~/.android/debug.keystore \
+            -storepass android -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
       - name: Build debug APK
         run: ./gradlew :app:assembleUniversalFossDebug --stacktrace
       - name: Upload APK
@@ -100,6 +113,18 @@ jobs:
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x ./gradlew
+      # Varian rilis pun jatuh ke debug keystore selama secrets rilis belum
+      # ada — jadi langkah ini bukan cuma untuk job debug.
+      - name: Generate debug.keystore
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.android
+          keytool -genkeypair -v \
+            -keystore ~/.android/debug.keystore \
+            -storepass android -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
       - name: Build release APK
         run: ./gradlew :app:assembleUniversalFossRelease --stacktrace
 
