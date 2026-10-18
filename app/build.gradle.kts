@@ -18,12 +18,12 @@ plugins {
 }
 
 extensions.configure<ApplicationExtension> {
-    namespace = "com.meowlabs.stereonism"
+    namespace = "id.meowlabs.blossomtune"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
-        applicationId = "com.meowlabs.stereonism"
+        applicationId = "id.meowlabs.blossomtune"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

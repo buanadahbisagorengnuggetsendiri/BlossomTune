@@ -1,4 +1,4 @@
-// The Apple Music source module. Built into Stereonism for now; written against :modules:api only, so
+// The Apple Music source module. Built into BlossomTune for now; written against :modules:api only, so
 // it can later be packaged as its own APK and loaded at runtime instead.
 plugins {
     alias(libs.plugins.kotlin.serialization)

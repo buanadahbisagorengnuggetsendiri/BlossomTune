@@ -120,14 +120,14 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p dist
           cp "$(ls app/build/outputs/apk/universalFoss/release/*.apk | head -1)" \
-             "dist/Stereonism-$VERSION-universal.apk"
-          (cd dist && sha256sum "Stereonism-$VERSION-universal.apk" > "Stereonism-$VERSION-universal.apk.sha256")
+             "dist/BlossomTune-$VERSION-universal.apk"
+          (cd dist && sha256sum "BlossomTune-$VERSION-universal.apk" > "BlossomTune-$VERSION-universal.apk.sha256")
           python3 - "$VERSION" <<'EOF'
           import json, sys
           version = sys.argv[1]
           entries = json.load(open("changelog.json", encoding="utf-8"))
           entry = next((e for e in entries if e.get("versionName") == version), None)
-          lines = [f"Stereonism {version}"] if entry is None else []
+          lines = [f"BlossomTune {version}"] if entry is None else []
           if entry is not None:
               if entry.get("summary"):
                   lines += [entry["summary"], ""]
@@ -146,10 +146,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
-          name: Stereonism ${{ steps.version.outputs.version }}
+          name: BlossomTune ${{ steps.version.outputs.version }}
           body_path: dist/notes.md
           files: |
-            dist/Stereonism-${{ steps.version.outputs.version }}-universal.apk
-            dist/Stereonism-${{ steps.version.outputs.version }}-universal.apk.sha256
+            dist/BlossomTune-${{ steps.version.outputs.version }}-universal.apk
+            dist/BlossomTune-${{ steps.version.outputs.version }}-universal.apk.sha256
             dist/changelog.json
           fail_on_unmatched_files: true

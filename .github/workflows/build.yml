@@ -56,7 +56,7 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: stereonism-test-report
+          name: blossomtune-test-report
           path: |
             app/build/reports/tests/
             modules/*/build/reports/tests/
@@ -93,7 +93,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: stereonism-debug-apk
+          name: blossomtune-debug-apk
           path: app/build/outputs/apk/universalFoss/debug/*.apk
           if-no-files-found: error
           # APK debug dibuat di setiap push. Retensi panjang menumpuk sampai
@@ -165,7 +165,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: stereonism-release-apk
+          name: blossomtune-release-apk
           path: app/build/outputs/apk/universalFoss/release/*.apk
           if-no-files-found: error
           retention-days: 7

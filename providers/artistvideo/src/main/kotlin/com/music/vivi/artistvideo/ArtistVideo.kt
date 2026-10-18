@@ -1,6 +1,6 @@
 // ArtistVideo.kt
 
-package com.meowlabs.stereonism.artistvideo
+package id.meowlabs.blossomtune.artistvideo
 
 import android.view.TextureView
 import android.view.ViewGroup

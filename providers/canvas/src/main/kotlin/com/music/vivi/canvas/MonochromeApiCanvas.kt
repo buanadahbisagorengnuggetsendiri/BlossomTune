@@ -1,6 +1,6 @@
 // MonochromeApiCanvas.kt
 
-package com.meowlabs.stereonism.canvas
+package id.meowlabs.blossomtune.canvas
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body

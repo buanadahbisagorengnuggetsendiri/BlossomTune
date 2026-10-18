@@ -1,10 +1,10 @@
-# Stereonism
+# BlossomTune
 
 > Pemutar musik Android. Dibangun dari basis [Musicfy](https://github.com/realidkroo/musicfy), di-rebrand jadi aplikasi sendiri.
 
 | | |
 |---|---|
-| Package | `com.meowlabs.stereonism` |
+| Package | `id.meowlabs.blossomtune` |
 | Versi | `0.1.0` (`versionCode` 1) |
 | Lisensi | GPL-3.0 (lihat [`LICENSE`](LICENSE) dan [`NOTICE.md`](NOTICE.md)) |
 | Min SDK | 26 (Android 8.0) |
@@ -17,15 +17,15 @@
 
 Sudah dikerjakan:
 
-- Nama paket `com.example.musicfy` → `com.meowlabs.stereonism`, termasuk kode,
+- Nama paket `com.example.musicfy` → `id.meowlabs.blossomtune`, termasuk kode,
   resource, manifest, skema Room, dan ketiga flavor (`foss`, `gms`, `fdroid`).
-- Nama app `Stereonism`, nama proyek Gradle `stereonism`, versi direset ke `0.1.0`.
+- Nama app `BlossomTune`, nama proyek Gradle `blossomtune`, versi direset ke `0.1.0`.
 - Berkas khas basis dihapus: `build.sh`, `crowdin.yml`, `fastlane/`, `assets/`,
   `Roadmap.md`, `docs/`, `Frame 201.png`, serta workflow `build_pr.yml` dan `stale.yml`.
 - CI sendiri: lint, unit test, APK debug, APK rilis, plus job rilis berbasis tag.
 - Tautan akun basis dibersihkan: Instagram dan kanal donasi (Ko-fi, Sociabuzz,
   Buy Me a Coffee) dihapus; layar Tentang/Dukungan/Donasi menunjuk
-  `buanadahbisagorengnuggetsendiri/stereonism`.
+  `buanadahbisagorengnuggetsendiri/blossomtune`.
 - Atribusi dan catatan lisensi ditulis ulang di [`NOTICE.md`](NOTICE.md).
 
 Belum dikerjakan:
@@ -36,7 +36,7 @@ Belum dikerjakan:
 
 Fitur yang ikut dari basis — Audio Lab, lirik multi-sumber, impor/ekspor,
 Cast, equalizer — semuanya masih kode basis, bukan hasil tulis ulang. Lihat
-`app/src/main/kotlin/com/meowlabs/stereonism/` dan `providers/`.
+`app/src/main/kotlin/com/meowlabs/blossomtune/` dan `providers/`.
 
 ## Build
 

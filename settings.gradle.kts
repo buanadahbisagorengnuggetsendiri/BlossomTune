@@ -16,7 +16,7 @@ dependencyResolutionManagement {
 //     id("org.gradle.toolchains.foojay-resolver-convention") version("1.0.0")
 // }
 
-rootProject.name = "stereonism"
+rootProject.name = "BlossomTune"
 include(":app")
 include(":providers:canvas")
 include(":providers:innertube")
