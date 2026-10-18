@@ -1,8 +1,8 @@
 // AppleMusicCanvasProvider.kt
 
-package id.meowlabs.blossomtune.applecanvas
+package dev.meowlabs.blossomtune.applecanvas
 
-import id.meowlabs.blossomtune.canvas.CanvasArtwork
+import dev.meowlabs.blossomtune.canvas.CanvasArtwork
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp

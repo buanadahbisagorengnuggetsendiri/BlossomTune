@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "id.meowlabs.blossomtune.artistvideo"
+    namespace = "dev.meowlabs.blossomtune.artistvideo"
     compileSdk = 36
 
     defaultConfig {

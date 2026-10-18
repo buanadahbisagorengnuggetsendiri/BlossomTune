@@ -36,7 +36,7 @@
         </intent>
         <!-- source modules installed as their own app (modules/SourceModules.kt) -->
         <intent>
-            <action android:name="id.meowlabs.blossomtune.SOURCE_MODULE" />
+            <action android:name="dev.meowlabs.blossomtune.SOURCE_MODULE" />
         </intent>
     </queries>
     <application
@@ -254,9 +254,9 @@
             android:label="@string/widget_music_player">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="id.meowlabs.blossomtune.widget.PLAY_PAUSE" />
-                <action android:name="id.meowlabs.blossomtune.widget.LIKE" />
-                <action android:name="id.meowlabs.blossomtune.widget.UPDATE_WIDGET" />
+                <action android:name="dev.meowlabs.blossomtune.widget.PLAY_PAUSE" />
+                <action android:name="dev.meowlabs.blossomtune.widget.LIKE" />
+                <action android:name="dev.meowlabs.blossomtune.widget.UPDATE_WIDGET" />
             </intent-filter>
 
             <meta-data
@@ -271,9 +271,9 @@
             android:label="@string/widget_turntable">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="id.meowlabs.blossomtune.widget.TURNTABLE_PLAY_PAUSE" />
-                <action android:name="id.meowlabs.blossomtune.widget.TURNTABLE_LIKE" />
-                <action android:name="id.meowlabs.blossomtune.widget.UPDATE_TURNTABLE_WIDGET" />
+                <action android:name="dev.meowlabs.blossomtune.widget.TURNTABLE_PLAY_PAUSE" />
+                <action android:name="dev.meowlabs.blossomtune.widget.TURNTABLE_LIKE" />
+                <action android:name="dev.meowlabs.blossomtune.widget.UPDATE_TURNTABLE_WIDGET" />
             </intent-filter>
 
             <meta-data
@@ -284,7 +284,7 @@
         <!-- Google Cast Options Provider -->
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
-            android:value="id.meowlabs.blossomtune.cast.CastOptionsProvider" />
+            android:value="dev.meowlabs.blossomtune.cast.CastOptionsProvider" />
     </application>
 
 </manifest>

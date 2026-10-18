@@ -18,12 +18,12 @@ plugins {
 }
 
 extensions.configure<ApplicationExtension> {
-    namespace = "id.meowlabs.blossomtune"
+    namespace = "dev.meowlabs.blossomtune"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
-        applicationId = "id.meowlabs.blossomtune"
+        applicationId = "dev.meowlabs.blossomtune"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

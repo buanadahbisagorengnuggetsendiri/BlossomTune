@@ -1,6 +1,6 @@
 // TTMLParser.kt
 
-package id.meowlabs.blossomtune.betterlyrics
+package dev.meowlabs.blossomtune.betterlyrics
 
 import org.w3c.dom.Element
 import org.w3c.dom.Node

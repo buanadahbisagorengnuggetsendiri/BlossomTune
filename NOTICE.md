@@ -24,7 +24,7 @@ BlossomTune memakai lisensi yang sama.
 
 | Hal | Basis (Musicfy) | BlossomTune |
 |---|---|---|
-| `applicationId` / `namespace` | `com.example.musicfy` | `id.meowlabs.blossomtune` |
+| `applicationId` / `namespace` | `com.example.musicfy` | `dev.meowlabs.blossomtune` |
 | Nama tampilan | musicfy | BlossomTune |
 | Versi | `8.0.0 build#1150` (`versionCode` 71) | `0.1.0` (`versionCode` 1) |
 | Nama proyek Gradle | `musicfy` | `blossomtune` |

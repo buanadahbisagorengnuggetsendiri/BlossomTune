@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Package | `id.meowlabs.blossomtune` |
+| Package | `dev.meowlabs.blossomtune` |
 | Versi | `0.1.0` (`versionCode` 1) |
 | Lisensi | GPL-3.0 (lihat [`LICENSE`](LICENSE) dan [`NOTICE.md`](NOTICE.md)) |
 | Min SDK | 26 (Android 8.0) |
@@ -17,7 +17,7 @@
 
 Sudah dikerjakan:
 
-- Nama paket `com.example.musicfy` → `id.meowlabs.blossomtune`, termasuk kode,
+- Nama paket `com.example.musicfy` → `dev.meowlabs.blossomtune`, termasuk kode,
   resource, manifest, skema Room, dan ketiga flavor (`foss`, `gms`, `fdroid`).
 - Nama app `BlossomTune`, nama proyek Gradle `blossomtune`, versi direset ke `0.1.0`.
 - Berkas khas basis dihapus: `build.sh`, `crowdin.yml`, `fastlane/`, `assets/`,

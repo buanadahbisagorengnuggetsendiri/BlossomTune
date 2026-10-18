@@ -1,6 +1,6 @@
 // MonochromeApiCanvasTest.kt
 
-package id.meowlabs.blossomtune.canvas
+package dev.meowlabs.blossomtune.canvas
 
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

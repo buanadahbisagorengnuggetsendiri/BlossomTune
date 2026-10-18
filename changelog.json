@@ -7,7 +7,7 @@
       {
         "title": "Dasar",
         "items": [
-          "Basis kode Musicfy 8.0.0 (GPL-3.0), sudah di-rebrand ke id.meowlabs.blossomtune.",
+          "Basis kode Musicfy 8.0.0 (GPL-3.0), sudah di-rebrand ke dev.meowlabs.blossomtune.",
           "Build lewat GitHub Actions: lint, unit test, APK debug dan APK rilis.",
           "Rilis ditandai tag, APK dan changelog.json diunggah sebagai aset rilis."
         ]

@@ -1,6 +1,6 @@
 // ArtistVideo.kt
 
-package id.meowlabs.blossomtune.artistvideo
+package dev.meowlabs.blossomtune.artistvideo
 
 import android.view.TextureView
 import android.view.ViewGroup

@@ -1,8 +1,8 @@
 // BetterLyrics.kt
 
-package id.meowlabs.blossomtune.betterlyrics
+package dev.meowlabs.blossomtune.betterlyrics
 
-import id.meowlabs.blossomtune.betterlyrics.models.TTMLResponse
+import dev.meowlabs.blossomtune.betterlyrics.models.TTMLResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
