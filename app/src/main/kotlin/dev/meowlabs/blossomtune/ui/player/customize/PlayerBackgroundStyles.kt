@@ -75,7 +75,7 @@ fun PlayerBackgroundPreview(
         )
         return
     }
-    Box(modifier = modifier.background(Color(0xFF1A1A1C))) {
+    Box(modifier = modifier.background(Color(0xFF131823))) {
         CoverGradientBackdrop(
             thumbnailUrl = thumbnailUrl,
             width = width,
@@ -96,9 +96,9 @@ private fun SolidBackground(pureBlack: Boolean, modifier: Modifier = Modifier) {
 private fun DarkGradientBackground(modifier: Modifier = Modifier) {
     val brush = remember {
         Brush.verticalGradient(
-            0f to Color(0xFF2A2A2E),
-            0.55f to Color(0xFF1A1A1D),
-            1f to Color(0xFF0E0E10),
+            0f to Color(0xFF1F2839),
+            0.55f to Color(0xFF131924),
+            1f to Color(0xFF0A0D14),
         )
     }
     Box(modifier = modifier.background(brush))

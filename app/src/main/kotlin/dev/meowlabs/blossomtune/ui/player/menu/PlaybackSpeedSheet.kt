@@ -144,7 +144,7 @@ private fun ValueSlider(label: String, value: Float, onValueChange: (Float) -> U
             )
             Text(
                 text = String.format("%.2f×", value),
-                color = Color(0xFFB3B3B3),
+                color = Color(0xFFA7AFBF),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )

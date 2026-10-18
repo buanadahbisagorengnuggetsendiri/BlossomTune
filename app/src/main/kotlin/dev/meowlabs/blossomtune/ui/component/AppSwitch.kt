@@ -26,7 +26,7 @@ private val TrackWidth = 52.dp
 private val TrackHeight = 32.dp
 private val ThumbSize = 24.dp
 private val ThumbInset = (TrackHeight - ThumbSize) / 2
-private val Grey = Color(0xFF8E8E93)
+private val Grey = Color(0xFF7888A9)
 
 @Composable
 fun AppSwitch(

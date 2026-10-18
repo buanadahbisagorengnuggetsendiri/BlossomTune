@@ -134,7 +134,7 @@ import java.util.concurrent.ConcurrentHashMap
 // the album, artist and generated pages line up on the same inset and type
 internal val PlaylistInset = 36.dp
 internal val PlaylistTracking = (-0.06).em
-internal val PillContent = Color(0xFF2F2F2F)
+internal val PillContent = Color(0xFF212A3D)
 internal val PillFill = Color.White.copy(alpha = 0.64f)
 internal val TrackShape = RoundedCornerShape(9.dp)
 
@@ -1045,7 +1045,7 @@ fun <T : Enum<T>> PlaylistSortControl(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             shape = RoundedCornerShape(18.dp),
-            containerColor = Color(0xFF1E1F23),
+            containerColor = Color(0xFF171D2A),
         ) {
             options.forEach { option ->
                 DropdownMenuItem(

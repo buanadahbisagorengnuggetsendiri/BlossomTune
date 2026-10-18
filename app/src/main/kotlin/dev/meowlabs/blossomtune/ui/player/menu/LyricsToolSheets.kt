@@ -141,7 +141,7 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
             if (parsed.isEmpty()) {
                 Text(
                     text = "No lyrics to edit for this song.",
-                    color = Color(0xFF9A9A9A),
+                    color = Color(0xFF8493B0),
                     fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 24.dp),
                 )
@@ -157,7 +157,7 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
                         Column(modifier = Modifier.padding(bottom = 14.dp)) {
                             Text(
                                 text = formatTimestamp(entry.time),
-                                color = Color(0xFF8A8A8A),
+                                color = Color(0xFF7081A4),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -314,7 +314,7 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
                                 when {
                                     available != null -> Color(0xFF4CD964)
                                     state == LyricsMenuViewModel.SourceState.Unavailable -> Color(0xFFFF5A5F)
-                                    else -> Color(0xFF6A6A6A)
+                                    else -> Color(0xFF536281)
                                 }
                             )
                     )
@@ -330,7 +330,7 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
                     )
                     Text(
                         text = status,
-                        color = if (isActive) Color.White else Color(0xFF9A9A9A),
+                        color = if (isActive) Color.White else Color(0xFF8493B0),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -404,7 +404,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
                 .padding(horizontal = 20.dp)
                 .padding(top = 16.dp, bottom = 24.dp)
         ) {
-            Text(text = "Lyrics translation", color = Color(0xFF9A9A9A), fontSize = 12.sp)
+            Text(text = "Lyrics translation", color = Color(0xFF8493B0), fontSize = 12.sp)
             Text(
                 text = "Translate from",
                 color = Color.White,
@@ -433,7 +433,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
             )
 
             Spacer(modifier = Modifier.height(14.dp))
-            Text(text = "And", color = Color(0xFF9A9A9A), fontSize = 12.sp)
+            Text(text = "And", color = Color(0xFF8493B0), fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
@@ -591,7 +591,7 @@ private fun LanguagePickerSheet(
                     .padding(horizontal = 16.dp)
             ) {
                 if (query.isEmpty()) {
-                    Text(text = "Search language", color = Color(0xFF8A8A8A), fontSize = 13.sp)
+                    Text(text = "Search language", color = Color(0xFF7081A4), fontSize = 13.sp)
                 }
                 BasicTextField(
                     value = query,

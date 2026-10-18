@@ -116,8 +116,8 @@ object TopToaster {
     }
 }
 
-private val ToastCard = Color(0xFF1E1E1E)
-private val ToastSquare = Color(0xFFD9D9D9)
+private val ToastCard = Color(0xFF151B27)
+private val ToastSquare = Color(0xFFD3D7DF)
 private val ToastError = Color(0xFFEE5A52)
 private val ToastEase = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
@@ -217,7 +217,7 @@ private fun ToastPill(toast: TopToast) {
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
-                    Icon(painterResource(toast.iconRes), null, tint = Color(0xFF232323), modifier = Modifier.size(24.dp))
+                    Icon(painterResource(toast.iconRes), null, tint = Color(0xFF181F2E), modifier = Modifier.size(24.dp))
                 }
             }
         }
@@ -244,11 +244,11 @@ private fun ToastPill(toast: TopToast) {
                     }
                     .padding(horizontal = 4.dp, vertical = 8.dp),
             ) {
-                Icon(painterResource(R.drawable.undo), null, tint = Color(0xFFE6E6E6), modifier = Modifier.size(18.dp))
+                Icon(painterResource(R.drawable.undo), null, tint = Color(0xFFE2E5EA), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(
                     toast.actionLabel,
-                    style = TextStyle(fontFamily = InterFontFamily, fontSize = 15.sp, color = Color(0xFFE6E6E6)),
+                    style = TextStyle(fontFamily = InterFontFamily, fontSize = 15.sp, color = Color(0xFFE2E5EA)),
                     maxLines = 1,
                 )
             }
@@ -257,7 +257,7 @@ private fun ToastPill(toast: TopToast) {
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.padding(start = 12.dp).size(26.dp).clip(CircleShape).background(ToastSquare),
             ) {
-                Icon(painterResource(R.drawable.check), null, tint = Color(0xFF232323), modifier = Modifier.size(16.dp))
+                Icon(painterResource(R.drawable.check), null, tint = Color(0xFF181F2E), modifier = Modifier.size(16.dp))
             }
         }
     }

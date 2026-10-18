@@ -63,8 +63,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-val MenuSurface = Color(0xFF0B0B0C)
-val MenuRowSurface = Color(0xFF161619)
+val MenuSurface = Color(0xFF080A0F)
+val MenuRowSurface = Color(0xFF10151F)
 
 internal val MenuEasing = CubicBezierEasing(0.57f, 0.53f, 0f, 1f)
 

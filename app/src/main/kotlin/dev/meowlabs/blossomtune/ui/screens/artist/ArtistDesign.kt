@@ -690,7 +690,7 @@ internal fun ArtistShelfTitle(
                     expanded = menuOpen,
                     onDismissRequest = { menuOpen = false },
                     shape = RoundedCornerShape(18.dp),
-                    containerColor = Color(0xFF1E1F23),
+                    containerColor = Color(0xFF171D2A),
                 ) {
                     menu { menuOpen = false }
                 }

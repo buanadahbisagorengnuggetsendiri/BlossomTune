@@ -305,7 +305,7 @@ private fun CoverTile(playlist: RemotePlaylist, selected: Boolean, onClick: () -
                 playlist.isLiked -> Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Brush.linearGradient(listOf(Color(0xFF5B5B66), Color(0xFF1F1F24)))),
+                        .background(Brush.linearGradient(listOf(Color(0xFF4B5976), Color(0xFF171E2C)))),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(painterResource(R.drawable.favorite), contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))

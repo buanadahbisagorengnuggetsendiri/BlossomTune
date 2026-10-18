@@ -165,7 +165,7 @@ fun PhotoCropperContainer(
                     .fillMaxSize()
                     .padding(top = 48.dp)
                     .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                    .background(Color(0xFF121212))
+                    .background(Color(0xFF0D1017))
             ) {
 
                 Box(
@@ -279,7 +279,7 @@ fun PhotoCropperContainer(
 
         Button(
             onClick = onSelectNewImage,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF222222)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF181F2C)),
             shape = RoundedCornerShape(24.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -327,7 +327,7 @@ fun PhotoCropperContainer(
                     }
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF242E42)),
             shape = RoundedCornerShape(24.dp),
             modifier = Modifier
                 .fillMaxWidth()

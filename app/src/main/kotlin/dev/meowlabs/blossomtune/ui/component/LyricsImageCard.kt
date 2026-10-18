@@ -169,7 +169,7 @@ fun LyricsImageCard(
     val padding = 28.dp
     val coverArtSize = 64.dp
 
-    val defaultBgColor = if (darkBackground) Color(0xFF121212) else Color(0xFFF5F5F5)
+    val defaultBgColor = if (darkBackground) Color(0xFF0D1017) else Color(0xFFF3F4F7)
     val backgroundSolidColor = backgroundColor ?: defaultBgColor
 
     val mainTextColor = textColor ?: if (darkBackground) Color.White else Color.Black

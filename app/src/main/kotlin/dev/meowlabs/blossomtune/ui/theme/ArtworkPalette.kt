@@ -25,7 +25,7 @@ data class ArtworkPalette(
             onAccent = Color.Black,
             container = Color.White.copy(alpha = 0.15f),
             onContainer = Color.White,
-            surface = Color(0xFF121212),
+            surface = Color(0xFF0D1017),
         )
 
         /**

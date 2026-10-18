@@ -215,7 +215,7 @@ private fun inline(text: String, strongColor: Color): AnnotatedString = buildAnn
 fun ChangelogMarkdown(
     markdown: String,
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF9A9A9A),
+    color: Color = Color(0xFF8493B0),
     strongColor: Color = Color.White,
     fontSize: TextUnit = 12.sp,
     lineHeight: TextUnit = 17.sp,

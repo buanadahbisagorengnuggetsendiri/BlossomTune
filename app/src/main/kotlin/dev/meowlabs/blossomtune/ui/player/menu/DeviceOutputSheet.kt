@@ -164,7 +164,7 @@ private fun Int.deviceIcon(): Int = when (this) {
 private fun SectionLabel(text: String) {
     Text(
         text = text,
-        color = Color(0xFF8A8A8A),
+        color = Color(0xFF7081A4),
         fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(bottom = 10.dp),

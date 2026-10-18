@@ -39,7 +39,7 @@ internal fun CrossfadeBanner(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .height(124.dp)
-            .border(1.dp, Color(0xFF5A5A5A), RoundedCornerShape(14.dp)),
+            .border(1.dp, Color(0xFF46536E), RoundedCornerShape(14.dp)),
     ) {
         Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 26.dp, vertical = 30.dp)) {
             val w = size.width
@@ -72,8 +72,8 @@ internal fun CrossfadeBanner(modifier: Modifier = Modifier) {
                 moveTo(0f, h)
                 cubicTo(w * 0.45f, h, w * 0.55f, 0f, w, 0f)
             }
-            drawPath(fadeOut, Color(0xFF9A9A9A), style = curveStroke)
-            drawPath(fadeIn, Color(0xFF9A9A9A), style = curveStroke)
+            drawPath(fadeOut, Color(0xFF8493B0), style = curveStroke)
+            drawPath(fadeIn, Color(0xFF8493B0), style = curveStroke)
         }
         Text(
             "ei i i eii",
@@ -84,7 +84,7 @@ internal fun CrossfadeBanner(modifier: Modifier = Modifier) {
         )
         Text(
             "i miss you",
-            color = Color(0xFF9A9A9A),
+            color = Color(0xFF8493B0),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 8.dp, start = 40.dp),

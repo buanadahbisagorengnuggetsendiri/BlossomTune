@@ -51,17 +51,17 @@ import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.ui.component.AppSwitch
 
 internal object Onb {
-    val Page = Color(0xFF1C1C1C)
-    val Card = Color(0xFF2C2C2C)
-    val CardPressed = Color(0xFF353535)
-    val Field = Color(0xFF2C2C2C)
+    val Page = Color(0xFF141924)
+    val Card = Color(0xFF1F2839)
+    val CardPressed = Color(0xFF253045)
+    val Field = Color(0xFF1F2839)
     val Title = Color.White
-    val Subtitle = Color(0xFFBDBDBD)
-    val Muted = Color(0xFF8C8C8C)
-    val Faint = Color(0xFF6A6A6A)
-    val ButtonPrimary = Color(0xFF5E5E5E)
-    val ButtonSecondary = Color(0xFF353535)
-    val Badge = Color(0xFFD9D9D9)
+    val Subtitle = Color(0xFFB2B9C8)
+    val Muted = Color(0xFF7384A5)
+    val Faint = Color(0xFF536281)
+    val ButtonPrimary = Color(0xFF495773)
+    val ButtonSecondary = Color(0xFF253045)
+    val Badge = Color(0xFFD3D7DF)
 
     /** Wider than this and pages stop growing, centred, so a tablet doesn't get 1000dp lines. */
     val MaxContentWidth = 560.dp
@@ -159,7 +159,7 @@ internal fun PageBadge(icon: Painter, size: Dp = 40.dp) {
             .background(Onb.Badge),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = Color(0xFF1C1C1C), modifier = Modifier.size(size * 0.52f))
+        Icon(icon, contentDescription = null, tint = Color(0xFF141924), modifier = Modifier.size(size * 0.52f))
     }
 }
 

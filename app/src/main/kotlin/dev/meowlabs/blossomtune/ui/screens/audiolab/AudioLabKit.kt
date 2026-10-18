@@ -81,16 +81,16 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.flow.first
 
 object LabColors {
-    val Card = Color(0xFF1C1C1E)
-    val Stage = Color(0xFF0E0E10)
-    val StageLine = Color(0xFF2E2E32)
-    val Row = Color(0xFF26262A)
-    val RowSelected = Color(0xFF34343A)
-    val Chip = Color(0xFF232327)
+    val Card = Color(0xFF141A26)
+    val Stage = Color(0xFF0A0D14)
+    val StageLine = Color(0xFF222B3E)
+    val Row = Color(0xFF1C2434)
+    val RowSelected = Color(0xFF273148)
+    val Chip = Color(0xFF1A2130)
     val Primary = Color.White
-    val Secondary = Color(0xFF9A9AA0)
-    val Faint = Color(0xFF5C5C63)
-    val Ink = Color(0xFF8A8A92)
+    val Secondary = Color(0xFF8796B3)
+    val Faint = Color(0xFF4A5875)
+    val Ink = Color(0xFF7586A7)
 
     /** the equalizer's node colours: soft enough to sit on BlossomTune's greys, apart enough to tell */
     val Nodes = listOf(
@@ -160,7 +160,7 @@ fun LabToggleRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leadingDot) {
-            val dot by animateColorAsState(if (checked) Color.White else Color(0xFFD9D9DE), tween(200), label = "dot")
+            val dot by animateColorAsState(if (checked) Color.White else Color(0xFFD6DAE1), tween(200), label = "dot")
             Box(
                 Modifier
                     .size(20.dp)
@@ -398,7 +398,7 @@ fun LabSegmented(
 @Composable
 fun LabGlyph(iconRes: Int, modifier: Modifier = Modifier, size: Dp = 32.dp) {
     Box(
-        modifier = modifier.size(size).clip(CircleShape).background(Color(0xFFE5E5EA)),
+        modifier = modifier.size(size).clip(CircleShape).background(Color(0xFFE4E6EB)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(painterResource(iconRes), null, tint = Color.Black, modifier = Modifier.size(size * 0.55f))

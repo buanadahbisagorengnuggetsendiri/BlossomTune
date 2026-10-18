@@ -107,11 +107,11 @@ fun ArtistListCard(
             .clickable(onClick = onClick)
     ) {
         val premiumDarkColors = listOf(
-            listOf(Color(0xFF2B1B38), Color(0xFF151521), Color.Black),
+            listOf(Color(0xFF2B1B38), Color(0xFF131823), Color.Black),
             listOf(Color(0xFF1B2838), Color(0xFF0F1521), Color.Black),
             listOf(Color(0xFF381B24), Color(0xFF1F0F15), Color.Black),
             listOf(Color(0xFF1B382D), Color(0xFF0F1F17), Color.Black),
-            listOf(Color(0xFF2D2B55), Color(0xFF151521), Color.Black)
+            listOf(Color(0xFF2D2B55), Color(0xFF131823), Color.Black)
         )
         val fallbackColors = premiumDarkColors[(group.artistName.hashCode() and 0x7FFFFFFF) % premiumDarkColors.size]
 

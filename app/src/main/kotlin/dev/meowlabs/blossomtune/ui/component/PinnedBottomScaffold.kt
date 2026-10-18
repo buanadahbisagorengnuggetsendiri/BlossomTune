@@ -39,7 +39,7 @@ import kotlin.math.absoluteValue
 @Composable
 fun PinnedBottomScaffold(
     modifier: Modifier = Modifier,
-    scrimColor: Color = Color(0xFF161616),
+    scrimColor: Color = Color(0xFF0F141D),
     scrimExtraHeight: Dp = 32.dp,
     bottomBar: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit,

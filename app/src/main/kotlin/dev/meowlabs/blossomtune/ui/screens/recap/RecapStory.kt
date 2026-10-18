@@ -170,12 +170,12 @@ internal const val P_SONG = 8
 internal const val P_RECEIPT = 9
 internal const val P_END = 10
 
-internal val StoryDark = Color(0xFF0C0C0C)
-internal val HeaderGrey = Color(0xFF1C1C1C)
-internal val StoryTextDark = Color(0xFF111111)
-internal val HeaderText = Color(0xFF272727)
-internal val StoryDots = Color(0xFF171717)
-internal val HeaderDots = Color(0xFF262626)
+internal val StoryDark = Color(0xFF080B10)
+internal val HeaderGrey = Color(0xFF141924)
+internal val StoryTextDark = Color(0xFF0C0F16)
+internal val HeaderText = Color(0xFF1B2333)
+internal val StoryDots = Color(0xFF10151E)
+internal val HeaderDots = Color(0xFF1B2231)
 
 internal val Emphasized: Easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 internal val EmphasizedAccelerate: Easing = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
@@ -643,12 +643,12 @@ private fun StoryAvatar(s: StoryState, data: RecapStoryData) {
                 alpha = s.avAlpha.value
             }
             .drawBehind {
-                val ring = lerp(Color.White, Color(0xFF626262), s.avRing.value)
+                val ring = lerp(Color.White, Color(0xFF4C5B78), s.avRing.value)
                 drawCircle(ring, alpha = s.avRingAlpha.value)
             }
             .padding((AvatarBaseDp * 0.075f).dp)
             .clip(CircleShape)
-            .background(Color(0xFFE8E8E8)),
+            .background(Color(0xFFE4E7EC)),
         contentAlignment = Alignment.Center,
     ) {
         if (data.photo != null) {
@@ -664,7 +664,7 @@ private fun StoryAvatar(s: StoryState, data: RecapStoryData) {
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.Bold,
                 fontSize = 64.sp,
-                color = Color(0xFF2C2C2E),
+                color = Color(0xFF1F283A),
             )
         }
     }

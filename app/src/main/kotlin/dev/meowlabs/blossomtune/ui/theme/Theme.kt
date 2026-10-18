@@ -24,7 +24,79 @@ import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
 import com.materialkolor.score.Score
 
-val DefaultThemeColor = Color(0xFF8E8E8E)
+/**
+ * Palet aplikasi: **hitam** latar, **biru** aksen, **putih** teks.
+ *
+ * Nilainya bukan selera. Setiap pasangan teks/latar di bawah sudah diuji
+ * kontrasnya (WCAG AA, >= 4.5) di `PaletteContrastTest`; mengubah satu warna
+ * tanpa menjalankan tes itu berarti menukar keterbacaan dengan selera.
+ *
+ * Biru ada dua nada, bukan satu: biru yang enak dibaca di atas hitam terlalu
+ * terang untuk latar tombol berisi teks gelap, dan biru yang enak dijadikan
+ * latar tombol terlalu gelap untuk dibaca di atas hitam.
+ */
+object BlossomColors {
+    // --- gelap ---
+    val Blue = Color(0xFF4D8DFF)          // aksen utama di latar hitam
+    val OnBlue = Color(0xFF04101F)        // teks di atas tombol biru
+    val BlueContainer = Color(0xFF12224A)
+    val OnBlueContainer = Color(0xFFD9E6FF)
+    val Steel = Color(0xFFA8C4EC)
+    val SteelContainer = Color(0xFF16233A)
+    val OnSteelContainer = Color(0xFFE4ECF9)
+    val Black = Color(0xFF000000)
+    val White = Color(0xFFFFFFFF)
+    val NightCard = Color(0xFF101827)     // kartu di atas latar hitam
+    val OnNightCard = Color(0xFFC9D6E8)
+
+    // --- terang ---
+    val BlueDeep = Color(0xFF1A56DB)
+    val BluePale = Color(0xFFDCE7FF)
+    val OnBluePale = Color(0xFF06122E)
+    val Indigo = Color(0xFF1E3A8A)
+    val PaperSoft = Color(0xFFEEF2F8)
+    val Ink = Color(0xFF0B1220)           // teks di atas latar putih
+    val InkSoft = Color(0xFF1B2430)
+    val PaperIndigo = Color(0xFFE6EDF9)
+}
+
+val DefaultThemeColor = BlossomColors.Blue
+
+val DarkPalette: ColorScheme = darkColorScheme(
+    primary = BlossomColors.Blue,
+    onPrimary = BlossomColors.OnBlue,
+    primaryContainer = BlossomColors.BlueContainer,
+    onPrimaryContainer = BlossomColors.OnBlueContainer,
+    secondary = BlossomColors.Steel,
+    onSecondary = BlossomColors.OnBlue,
+    secondaryContainer = BlossomColors.SteelContainer,
+    onSecondaryContainer = BlossomColors.OnSteelContainer,
+    background = BlossomColors.Black,
+    onBackground = BlossomColors.White,
+    surface = BlossomColors.Black,
+    onSurface = BlossomColors.White,
+    surfaceVariant = BlossomColors.NightCard,
+    onSurfaceVariant = BlossomColors.OnNightCard,
+    surfaceTint = BlossomColors.Black
+)
+
+val LightPalette: ColorScheme = lightColorScheme(
+    primary = BlossomColors.BlueDeep,
+    onPrimary = BlossomColors.White,
+    primaryContainer = BlossomColors.BluePale,
+    onPrimaryContainer = BlossomColors.OnBluePale,
+    secondary = BlossomColors.Indigo,
+    onSecondary = BlossomColors.White,
+    secondaryContainer = BlossomColors.PaperIndigo,
+    onSecondaryContainer = BlossomColors.Ink,
+    background = BlossomColors.White,
+    onBackground = BlossomColors.Ink,
+    surface = BlossomColors.White,
+    onSurface = BlossomColors.Ink,
+    surfaceVariant = BlossomColors.PaperSoft,
+    onSurfaceVariant = BlossomColors.InkSoft,
+    surfaceTint = BlossomColors.White
+)
 
 /**
  * blossomtune renders dark-only.
@@ -46,46 +118,10 @@ fun BlossomTuneTheme(
 
     // Dynamic (Material You) colour is deliberately not used - the app ships its own palette.
     // The branch is gone rather than dead-but-present: dynamic*ColorScheme is API 31.
-    val baseColorScheme = run {
-
-        if (darkTheme) {
-            darkColorScheme(
-                primary = Color(0xFFE0E0E0),
-                onPrimary = Color.Black,
-                primaryContainer = Color(0xFF333333),
-                onPrimaryContainer = Color.White,
-                secondary = Color(0xFFB0B0B0),
-                onSecondary = Color.Black,
-                secondaryContainer = Color(0xFF2C2C2C),
-                onSecondaryContainer = Color.White,
-                background = Color.Black,
-                onBackground = Color.White,
-                surface = Color.Black,
-                onSurface = Color.White,
-                surfaceVariant = Color(0xFF1A1A1A),
-                onSurfaceVariant = Color.White,
-                surfaceTint = Color.Black
-            )
-        } else {
-            lightColorScheme(
-                primary = Color.Black,
-                onPrimary = Color.White,
-                primaryContainer = Color(0xFFE0E0E0),
-                onPrimaryContainer = Color.Black,
-                secondary = Color(0xFF333333),
-                onSecondary = Color.White,
-                secondaryContainer = Color(0xFFCCCCCC),
-                onSecondaryContainer = Color.Black,
-                background = Color.White,
-                onBackground = Color.Black,
-                surface = Color.White,
-                onSurface = Color.Black,
-                surfaceVariant = Color(0xFFF0F0F0),
-                onSurfaceVariant = Color.Black,
-                surfaceTint = Color.White
-            )
-        }
-    }
+    // Skema diambil dari val top-level (`DarkPalette`/`LightPalette`) supaya
+    // `PaletteContrastTest` bisa menguji warna yang benar-benar dipakai aplikasi,
+    // bukan salinannya.
+    val baseColorScheme = if (darkTheme) DarkPalette else LightPalette
 
     val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
         if (darkTheme && pureBlack) {
@@ -129,7 +165,7 @@ fun Bitmap.extractGradientColors(): List<Color> {
     return if (orderedColors.size >= 2)
         listOf(Color(orderedColors[0]), Color(orderedColors[1]))
     else
-        listOf(Color(0xFF595959), Color(0xFF0D0D0D))
+        listOf(BlossomColors.BlueDeep, BlossomColors.Black)
 }
 
 fun ColorScheme.pureBlack(apply: Boolean) =

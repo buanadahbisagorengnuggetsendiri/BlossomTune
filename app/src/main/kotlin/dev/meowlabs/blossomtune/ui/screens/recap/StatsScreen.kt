@@ -93,8 +93,8 @@ import java.time.YearMonth
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 
-private val StatsCard = Color(0xFF0F0F0F)
-private val ChipBg = Color(0xFF2A2A2A)
+private val StatsCard = Color(0xFF0A0D14)
+private val ChipBg = Color(0xFF1D2637)
 private val PagePadding = 20.dp
 
 private fun statsText(size: Float, weight: FontWeight = FontWeight.Bold, color: Color = StatsInk, tracking: Float = -0.02f * size) =
@@ -338,7 +338,7 @@ fun StatsScreen(navController: NavController) {
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF2A2A2A)),
+                    .background(Color(0xFF1D2637)),
             )
         }
     }
@@ -457,7 +457,7 @@ private fun TotalCard(s: ListeningStats, thisWhat: String, expanded: MutableMap<
             Text("m", style = unit, modifier = Modifier.padding(bottom = 8.dp))
         }
         Spacer(Modifier.height(10.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF3A3A3A)))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF29344B)))
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Fact("${s.songCount}", if (s.songCount == 1) "Song" else "Songs")
@@ -471,7 +471,7 @@ private fun TotalCard(s: ListeningStats, thisWhat: String, expanded: MutableMap<
 @Composable
 private fun Fact(value: String, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(11.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFD9D9D9)))
+        Box(Modifier.size(11.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFD3D7DF)))
         Spacer(Modifier.width(5.dp))
         Text("$value $label", style = statsText(13f, FontWeight.SemiBold, StatsInkSecondary, 0f), maxLines = 1)
     }
@@ -555,7 +555,7 @@ private fun ArtistCard(s: ListeningStats, top: RecapArtist, expanded: MutableMap
                 model = top.thumbnailUrl?.resize(240, 240),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(80.dp).clip(CircleShape).background(Color(0xFF2A2A2A)),
+                modifier = Modifier.size(80.dp).clip(CircleShape).background(Color(0xFF1D2637)),
             )
             Spacer(Modifier.width(16.dp))
             Column {
@@ -591,7 +591,7 @@ private fun SongCard(s: ListeningStats, top: RecapSong, expanded: MutableMap<Str
                 model = top.thumbnailUrl?.resize(240, 240),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(78.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF2A2A2A)),
+                modifier = Modifier.size(78.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF1D2637)),
             )
             Spacer(Modifier.width(16.dp))
             Column {
@@ -682,20 +682,20 @@ private fun ColumnScope.StatsPicker(
                     .padding(vertical = 5.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (on) Color(0xFF4A4A4A) else Color(0xFF2A2A2A))
+                    .background(if (on) Color(0xFF344360) else Color(0xFF1D2637))
                     .then(if (on) Modifier.border(BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)), RoundedCornerShape(14.dp)) else Modifier)
                     .clickable { k = value }
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                Box(Modifier.size(28.dp).clip(CircleShape).background(Color(0xFFD9D9D9)), contentAlignment = Alignment.Center) {
-                    if (on) Box(Modifier.size(12.dp).clip(CircleShape).background(Color(0xFF2A2A2A)))
+                Box(Modifier.size(28.dp).clip(CircleShape).background(Color(0xFFD3D7DF)), contentAlignment = Alignment.Center) {
+                    if (on) Box(Modifier.size(12.dp).clip(CircleShape).background(Color(0xFF1D2637)))
                 }
                 Spacer(Modifier.width(14.dp))
                 Text(label, style = statsText(18f), modifier = Modifier.weight(1f))
                 if (on) Text("Selected", style = statsText(13f, FontWeight.SemiBold, StatsInkMuted, 0f))
             }
         }
-        Box(Modifier.padding(vertical = 18.dp).fillMaxWidth().height(1.dp).background(Color(0xFF555555)))
+        Box(Modifier.padding(vertical = 18.dp).fillMaxWidth().height(1.dp).background(Color(0xFF3B4C6E)))
         Text("What year?", style = statsText(36f, tracking = -1.4f))
         Wheel(items = years, selected = y, label = { "$it" }, onSelected = { y = it })
         AnimatedVisibility(visible = k == StatsRange.Kind.Month) {
@@ -715,7 +715,7 @@ private fun ColumnScope.StatsPicker(
                 .fillMaxWidth()
                 .height(54.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF666666))
+                .background(Color(0xFF505F7C))
                 .clickable { onDone(k, y, m) },
             contentAlignment = Alignment.Center,
         ) {
@@ -746,7 +746,7 @@ private fun <T> Wheel(items: List<T>, selected: T, label: (T) -> String, onSelec
                 .align(Alignment.Center)
                 .fillMaxWidth()
                 .height(rowH)
-                .border(BorderStroke(1.dp, Color(0xFF8A8A8A)), CircleShape),
+                .border(BorderStroke(1.dp, Color(0xFF7081A4)), CircleShape),
         )
         androidx.compose.foundation.lazy.LazyColumn(
             state = state,

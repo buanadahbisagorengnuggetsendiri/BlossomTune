@@ -78,8 +78,8 @@ private val BigLabel = TextStyle(
 // the other names are the same text drawn at this share of the size
 private const val SmallLabelScale = 0.48f
 
-private val GreyLabel = Color(0xFF474747)
-private val GreyLabelLit = Color(0xFF6E6E6E)
+private val GreyLabel = Color(0xFF32405C)
+private val GreyLabelLit = Color(0xFF566686)
 
 @Composable
 internal fun StatsRuler(

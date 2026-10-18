@@ -244,7 +244,7 @@ private fun ProviderHeader(
 @Composable
 internal fun ProviderLogo(logo: Int?, size: Int) {
     Box(
-        modifier = Modifier.size(size.dp).clip(RoundedCornerShape((size * 0.26f).dp)).background(Color(0xFFD9D9D9)),
+        modifier = Modifier.size(size.dp).clip(RoundedCornerShape((size * 0.26f).dp)).background(Color(0xFFD3D7DF)),
         contentAlignment = Alignment.Center,
     ) {
         if (logo != null) {

@@ -89,7 +89,7 @@ internal fun OnboardingBrowserSheet(
                 translationY = (1f - presence.value) * size.height + dragPx
             }
             .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-            .background(Color(0xFF1C1C1C)),
+            .background(Color(0xFF141924)),
     ) {
         // the page starts right under the bar's solid part; the bar's fade then lies over the page
         content({ url = it }, { }, Modifier.fillMaxSize().padding(top = BarSolidHeight).navigationBarsPadding())
@@ -100,8 +100,8 @@ internal fun OnboardingBrowserSheet(
                 .height(BarSolidHeight + BarFadeHeight)
                 .background(
                     Brush.verticalGradient(
-                        0f to Color(0xFF4A4A4A),
-                        BarSolidHeight / (BarSolidHeight + BarFadeHeight) to Color(0xFF3A3A3A),
+                        0f to Color(0xFF344360),
+                        BarSolidHeight / (BarSolidHeight + BarFadeHeight) to Color(0xFF29344B),
                         1f to Color(0x003A3A3A),
                     )
                 )

@@ -203,7 +203,7 @@ private object BlossomTuneGreeting {
 /** Where the header is in its pull-down / scratch / recap life. */
 private enum class HeaderStage { Collapsed, Pulling, Expanding, Expanded, Scanning, Invalid, Story }
 
-private val PageCard = Color(0xFF0F0F0F)
+private val PageCard = Color(0xFF0A0D14)
 
 @Composable
 fun ProfileScreen(navController: NavController) {
@@ -847,17 +847,17 @@ private fun ListeningTimeCard(totalMs: Long, onViewStats: () -> Unit) {
                 Spacer(Modifier.width(10.dp))
                 Text(
                     "Total Listening\ntime",
-                    style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 18.sp, color = Color(0xFF8A8A8A), textAlign = TextAlign.End),
+                    style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 18.sp, color = Color(0xFF7081A4), textAlign = TextAlign.End),
                     modifier = Modifier.weight(1f),
                 )
             }
         }
         Spacer(Modifier.height(14.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF474747)))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF32405C)))
         Spacer(Modifier.height(12.dp))
         Text(
             "View Stats  >",
-            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF8A8A8A)),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF7081A4)),
         )
     }
 }
@@ -895,7 +895,7 @@ private fun VersionCard(updateHeadline: String?, onAbout: () -> Unit) {
                 .padding(CardPadding),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Version", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF9A9A9A)))
+                Text("Version", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF8493B0)))
                 Text(
                     // "7.1.1 build#1093" -> "7.1.1"
                     BuildConfig.VERSION_NAME.substringBefore(' '),
@@ -966,7 +966,7 @@ private fun VersionCapsule(update: Boolean, onAbout: () -> Unit) {
                 scaleY = pop.value
             }
             .clip(CircleShape)
-            .background(Color(0xFF4D4D4D))
+            .background(Color(0xFF364564))
             .clickable {
                 when {
                     update || action == CapsuleAction.ABOUT -> onAbout()
@@ -1049,7 +1049,7 @@ private fun DeveloperCard(onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(CardPadding),
     ) {
-        Text("Developer page", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, letterSpacing = (-0.4).sp, color = Color(0xFF8A8A8A)))
+        Text("Developer page", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, letterSpacing = (-0.4).sp, color = Color(0xFF7081A4)))
         Spacer(Modifier.height(12.dp))
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val k = widthScale(maxWidth.value + 40f) * if (maxOf(counts?.open ?: 0, counts?.resolved ?: 0) >= 100) 0.85f else 1f
@@ -1083,7 +1083,7 @@ private fun DevFigure(value: Int?, label: String, k: Float, modifier: Modifier =
         )
         Text(
             label,
-            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(15f * k), letterSpacing = (-0.5).sp, color = Color(0xFF8A8A8A)),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(15f * k), letterSpacing = (-0.5).sp, color = Color(0xFF7081A4)),
             maxLines = 1,
             modifier = Modifier.padding(start = 3.dp, bottom = (6 * k).dp),
         )
@@ -1107,10 +1107,10 @@ private fun OpenSettingsRow(onClick: () -> Unit) {
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFD9D9D9)),
+                .background(Color(0xFFD3D7DF)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(painterResource(R.drawable.settings), contentDescription = null, tint = Color(0xFF232323), modifier = Modifier.size(18.dp))
+            Icon(painterResource(R.drawable.settings), contentDescription = null, tint = Color(0xFF181F2E), modifier = Modifier.size(18.dp))
         }
         Text("Open settings", style = PageTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold))
     }

@@ -128,7 +128,7 @@ fun ProviderOrder(
                             .fillMaxWidth()
                             .height(RowHeight)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(if (isDragged) Color(0xFF242428) else Color(0xFF141416))
+                            .background(if (isDragged) Color(0xFF1B2231) else Color(0xFF0F131B))
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

@@ -70,8 +70,8 @@ import dev.meowlabs.blossomtune.viewmodels.AudioLabViewModel
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-private val HubCard = Color(0xFF222225)
-private val Sketch = Color(0xFF6A6A70)
+private val HubCard = Color(0xFF19202E)
+private val Sketch = Color(0xFF556585)
 
 @Composable
 fun AudioLabScreen(
@@ -208,11 +208,11 @@ private fun HubTile(
                 .padding(horizontal = if (big) 22.dp else 16.dp, vertical = if (big) 18.dp else 0.dp),
         ) {
             if (big) {
-                Text(status, fontFamily = InterFontFamily, fontSize = 12.sp, color = Color(0xFF9A9AA0), maxLines = 1)
+                Text(status, fontFamily = InterFontFamily, fontSize = 12.sp, color = Color(0xFF8796B3), maxLines = 1)
                 Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color.White)
             } else {
                 Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
-                Text(status, fontFamily = InterFontFamily, fontSize = 11.sp, color = Color(0xFF9A9AA0), maxLines = 1)
+                Text(status, fontFamily = InterFontFamily, fontSize = 11.sp, color = Color(0xFF8796B3), maxLines = 1)
             }
         }
     }
@@ -255,7 +255,7 @@ private fun BoxScope.EqualizerSketch(eq: EqSettings) {
                 val bob = level.punch * 4.dp.toPx() * sin(t * 9f + i * 2f)
                 val y = (top + bottom) / 2 - (gain / 12f) * (bottom - top) / 2 + bob
                 drawCircle(HubCard, 9.dp.toPx(), Offset(x, y))
-                drawCircle(if (eq.enabled) Color(0xFF9A9AA0) else Sketch, 9.dp.toPx(), Offset(x, y), style = Stroke(2.5.dp.toPx()))
+                drawCircle(if (eq.enabled) Color(0xFF8796B3) else Sketch, 9.dp.toPx(), Offset(x, y), style = Stroke(2.5.dp.toPx()))
             }
         }
     }

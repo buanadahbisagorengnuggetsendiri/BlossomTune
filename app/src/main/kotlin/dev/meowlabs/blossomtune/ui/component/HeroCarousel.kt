@@ -183,7 +183,7 @@ private const val HeroWipeFlat = 0.04f
 private val HeroSlideEasing = CubicBezierEasing(0.32f, 0f, 0.15f, 1f)
 private const val HeroSlideMillis = 1150
 private const val HeroAdvanceMillis = 5500L
-private val HeroPillContent = Color(0xFF2F2F2F)
+private val HeroPillContent = Color(0xFF212A3D)
 private val HeroPillFill = Color.White.copy(alpha = 0.64f)
 private val HeroLabelColor = Color.White.copy(alpha = 0.69f)
 
@@ -1539,7 +1539,7 @@ private fun settle(from: Color, to: Color, fraction: Float): Color {
 }
 
 private val GachaPointerColor = Color(0xFFF0908D)
-private val GachaPipColor = Color(0xFF3C3C3C)
+private val GachaPipColor = Color(0xFF2A364E)
 
 /** the two colours the card takes from a cover: a lit one for the glow and a deep one for the wash */
 @Immutable

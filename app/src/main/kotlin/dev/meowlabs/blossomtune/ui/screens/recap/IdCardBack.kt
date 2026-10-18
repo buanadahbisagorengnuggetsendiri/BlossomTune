@@ -184,13 +184,13 @@ internal fun IdCardBack(
             .fillMaxWidth()
             .aspectRatio(IdCardAspect)
             .clip(RoundedCornerShape(22.dp))
-            .background(Color(0xFF303030)),
+            .background(Color(0xFF222B3E)),
     ) {
         val unit = maxWidth / 332f
         Row(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 val captionStyle = remember(unit) {
-                    TextStyle(color = Color(0xFFD9D9D9), fontFamily = FontFamily.Monospace, fontSize = (unit.value * 8.6f).sp)
+                    TextStyle(color = Color(0xFFD3D7DF), fontFamily = FontFamily.Monospace, fontSize = (unit.value * 8.6f).sp)
                 }
                 val stampStyle = remember(unit) {
                     TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = (unit.value * 22f).sp, letterSpacing = (unit.value * 3f).sp)
@@ -201,7 +201,7 @@ internal fun IdCardBack(
                     val bars = Rect(30f * u, 46f * u, size.width - 30f * u, 118f * u)
                     val s = scan()
                     val v = verdict()
-                    drawBarcode(modules, bars, Color(0xFFD9D9D9))
+                    drawBarcode(modules, bars, Color(0xFFD3D7DF))
                     val captionLayout = measurer.measure(caption, captionStyle, softWrap = false, maxLines = 1)
                     drawText(captionLayout, topLeft = Offset((size.width - captionLayout.size.width) / 2f, bars.bottom + 6f * u))
                     if (s > 0f) drawScanner(modules, bars, s, v, u)
@@ -218,7 +218,7 @@ internal fun IdCardBack(
                             center.x - layout.size.width / 2f - 10f * u, center.y - layout.size.height / 2f - 4f * u,
                             center.x + layout.size.width / 2f + 10f * u, center.y + layout.size.height / 2f + 4f * u,
                         )
-                        drawRoundRect(Color(0xFF151515), box.topLeft, box.size, CornerRadius(8f * u), alpha = 0.92f * p.coerceIn(0f, 1f))
+                        drawRoundRect(Color(0xFF0F131B), box.topLeft, box.size, CornerRadius(8f * u), alpha = 0.92f * p.coerceIn(0f, 1f))
                         drawRoundRect(color, box.topLeft, box.size, CornerRadius(8f * u), style = Stroke(2f * u), alpha = p.coerceIn(0f, 1f))
                         drawText(layout, topLeft = Offset(center.x - layout.size.width / 2f, center.y - layout.size.height / 2f), alpha = p.coerceIn(0f, 1f))
                         drawContext.canvas.restore()
@@ -237,8 +237,8 @@ internal fun IdCardBack(
             }
             MarqueeStrip(
                 text = "${name}`s CARD",
-                color = Color(0xFF4B4B4B),
-                background = Color(0xFF131313),
+                color = Color(0xFF344362),
+                background = Color(0xFF0D1119),
                 modifier = Modifier
                     .width(unit * 40f)
                     .fillMaxHeight(),
@@ -257,7 +257,7 @@ private fun ScratchCoating(
     onTick: () -> Unit,
 ) {
     val measurer = rememberTextMeasurer()
-    val microStyle = remember { TextStyle(color = Color(0xFF8E9096), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 2.sp) }
+    val microStyle = remember { TextStyle(color = Color(0xFF7A8AAA), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 2.sp) }
     Canvas(
         modifier = Modifier
             .fillMaxSize()
@@ -337,7 +337,7 @@ private fun ScratchCoating(
                 val x = f[0] + f[2] * age
                 val y = f[1] + f[3] * age + 0.5f * 1400f * age * age
                 drawRect(
-                    Color(0xFFC9CBD0),
+                    Color(0xFFC4CAD5),
                     topLeft = Offset(x, y),
                     size = Size(f[5], f[5] * 0.7f),
                     alpha = (1f - age / 0.7f).coerceIn(0f, 1f),
@@ -356,11 +356,11 @@ private fun stripRect(w: Float, h: Float): Rect {
 private fun DrawScope.drawSilver(size: Size, radius: CornerRadius, now: Float) {
     drawRoundRect(
         Brush.linearGradient(
-            0f to Color(0xFFB9BBC1),
-            0.35f to Color(0xFFE6E7EB),
-            0.55f to Color(0xFFA6A8AF),
-            0.8f to Color(0xFFD5D7DC),
-            1f to Color(0xFF9A9CA3),
+            0f to Color(0xFFB2B9C8),
+            0.35f to Color(0xFFE5E7EC),
+            0.55f to Color(0xFF9DA6B8),
+            0.8f to Color(0xFFD2D6DF),
+            1f to Color(0xFF8997B4),
             start = Offset.Zero,
             end = Offset(size.width, size.height),
         ),

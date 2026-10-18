@@ -94,8 +94,8 @@ fun rememberStyleTones(): StyleTones {
         StyleTones(
             played = tone(0.45f),
             remaining = tone(0.30f),
-            ink = Color(0xFFF1ECEC),
-            inkSoft = Color(0xFFF1ECEC).copy(alpha = 0.62f),
+            ink = Color(0xFFECEEF1),
+            inkSoft = Color(0xFFECEEF1).copy(alpha = 0.62f),
             chip = Color.White.copy(alpha = 0.22f),
         )
     }

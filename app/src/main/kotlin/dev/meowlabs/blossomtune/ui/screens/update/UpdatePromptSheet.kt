@@ -154,7 +154,7 @@ fun UpdatePromptSheet(
 
             Text(
                 text = "To Be Installed -",
-                color = Color(0xFF8A8A8A),
+                color = Color(0xFF7081A4),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -186,7 +186,7 @@ fun UpdatePromptSheet(
                     )
                     Text(
                         text = "${BuildConfig.APPLICATION_ID} · ${formatBytes(release.apkSizeBytes)}",
-                        color = Color(0xFF9A9A9A),
+                        color = Color(0xFF8493B0),
                         fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -289,7 +289,7 @@ private fun PromptButton(
                     .align(Alignment.CenterStart)
                     .fillMaxHeight()
                     .fillMaxWidth(fraction = progress)
-                    .background(Color(0xFF444444))
+                    .background(Color(0xFF303D58))
             )
         }
         Text(

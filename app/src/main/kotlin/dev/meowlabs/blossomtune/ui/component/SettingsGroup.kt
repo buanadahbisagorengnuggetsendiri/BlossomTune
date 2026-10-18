@@ -174,7 +174,7 @@ private fun ClusterRows(cluster: ItemCluster) {
     )
 
     // Expanded sub-menu background slightly brighter than accent surface
-    val pillColor = Color(0xFF282830).copy(alpha = pillAlpha)
+    val pillColor = Color(0xFF1F2839).copy(alpha = pillAlpha)
 
     Box(
         modifier = Modifier
@@ -249,7 +249,7 @@ private fun SettingsItemRow(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(Color(0xFFE5E5EA)),
+                    .background(Color(0xFFE4E6EB)),
                 contentAlignment = Alignment.Center
             ) {
                 if (item.showBadge) {
@@ -265,9 +265,9 @@ private fun SettingsItemRow(
                                 painter = icon,
                                 contentDescription = null,
                                 tint = if (!item.enabled)
-                                    Color(0xFF1C1C1E).copy(alpha = 0.38f)
+                                    Color(0xFF141A26).copy(alpha = 0.38f)
                                 else
-                                    Color(0xFF1C1C1E),
+                                    Color(0xFF141A26),
                                 modifier = Modifier.size(20.dp)
                             )
                         } else {
@@ -285,9 +285,9 @@ private fun SettingsItemRow(
                             painter = icon,
                             contentDescription = null,
                             tint = if (!item.enabled)
-                                Color(0xFF1C1C1E).copy(alpha = 0.38f)
+                                Color(0xFF141A26).copy(alpha = 0.38f)
                             else
-                                Color(0xFF1C1C1E),
+                                Color(0xFF141A26),
                             modifier = Modifier.size(16.dp)
                         )
                     } else {

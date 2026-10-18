@@ -54,7 +54,7 @@ private const val BurstStepMs = 60
 private const val BurstMaxSteps = 6
 
 /** colour of a loading bone, before the wave modulates it */
-val BoneColor = Color(0xFFD9D9D9).copy(alpha = 0.22f)
+val BoneColor = Color(0xFFD3D7DF).copy(alpha = 0.22f)
 
 /**
  * which keys already played their reveal. kept with rememberSaveable so coming back to a screen

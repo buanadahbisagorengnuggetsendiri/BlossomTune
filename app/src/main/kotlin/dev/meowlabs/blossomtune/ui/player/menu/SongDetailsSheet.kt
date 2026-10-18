@@ -231,7 +231,7 @@ private fun SongHeader(song: MediaMetadata) {
             if (artists.isNotBlank()) {
                 Text(
                     text = artists,
-                    color = Color(0xFFB3B3B3),
+                    color = Color(0xFFA7AFBF),
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

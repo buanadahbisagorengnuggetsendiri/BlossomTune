@@ -153,7 +153,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            Text(text = "or", color = Color(0xFF8A8A8A), fontSize = 13.sp)
+            Text(text = "or", color = Color(0xFF7081A4), fontSize = 13.sp)
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
@@ -188,7 +188,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            Text(text = "or", color = Color(0xFF8A8A8A), fontSize = 13.sp)
+            Text(text = "or", color = Color(0xFF7081A4), fontSize = 13.sp)
             Spacer(modifier = Modifier.height(10.dp))
 
             SheetButton(

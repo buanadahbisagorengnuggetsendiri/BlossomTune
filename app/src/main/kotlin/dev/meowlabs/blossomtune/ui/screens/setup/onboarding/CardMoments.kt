@@ -111,7 +111,7 @@ internal fun HelloCardStep(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.radialGradient(listOf(Color(0xFF2A2A2A), Color(0xFF0E0E0E)), radius = 1400f))
+            .background(Brush.radialGradient(listOf(Color(0xFF1D2637), Color(0xFF0A0D12)), radius = 1400f))
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragEnd = {
@@ -144,7 +144,7 @@ internal fun HelloCardStep(
                 for (i in 0 until 4) {
                     val a = time * (0.6f + i * 0.17f) + i * 1.7f
                     drawCircle(
-                        color = Color(0xFFD7D9DE).copy(alpha = 0.22f - i * 0.04f),
+                        color = Color(0xFFD5D9E0).copy(alpha = 0.22f - i * 0.04f),
                         radius = size.width * (0.28f + 0.05f * i),
                         center = c + Offset(cos(a) * size.width * 0.12f, sin(a * 1.3f) * size.width * 0.1f),
                     )
@@ -262,7 +262,7 @@ internal fun DoneStep(card: CardInfo, onFinished: () -> Unit) {
                     .background(Onb.Badge),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(painterResource(R.drawable.check), contentDescription = null, tint = Color(0xFF1C1C1C), modifier = Modifier.size(34.dp))
+                Icon(painterResource(R.drawable.check), contentDescription = null, tint = Color(0xFF141924), modifier = Modifier.size(34.dp))
             }
             Spacer(Modifier.height(18.dp))
             Text(
@@ -342,11 +342,11 @@ private class Confetti private constructor(private val pieces: List<Piece>) {
     companion object {
         private val palette = listOf(
             Color.White,
-            Color(0xFFE9EAEE),
-            Color(0xFFC4C6CC),
-            Color(0xFF9EA1A8),
-            Color(0xFFF5F5F7),
-            Color(0xFF7D8088),
+            Color(0xFFE8EAEF),
+            Color(0xFFBFC5D1),
+            Color(0xFF8F9CB7),
+            Color(0xFFF5F6F7),
+            Color(0xFF67799E),
         )
 
         fun burst(count: Int, seed: Int): Confetti {

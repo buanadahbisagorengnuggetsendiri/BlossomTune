@@ -173,9 +173,9 @@ fun WelcomeStep(isHiding: Boolean = false) {
                 .background(
                     Brush.verticalGradient(
                         0f to Color.Transparent,
-                        0.4f to Color(0xFF121212).copy(alpha = 0.8f),
-                        0.8f to Color(0xFF121212),
-                        1f to Color(0xFF121212)
+                        0.4f to Color(0xFF0D1017).copy(alpha = 0.8f),
+                        0.8f to Color(0xFF0D1017),
+                        1f to Color(0xFF0D1017)
                     )
                 )
         )
@@ -197,7 +197,7 @@ fun WelcomeStep(isHiding: Boolean = false) {
             Text(
                 text = "A way to listen and own your\nmusic, differently.",
                 fontSize = 16.sp,
-                color = Color(0xFFB3B3B3),
+                color = Color(0xFFA7AFBF),
                 lineHeight = 22.sp,
                 letterSpacing = (-0.5).sp
             )
@@ -305,46 +305,46 @@ fun DiscAnimation(isHiding: Boolean, onSequenceComplete: () -> Unit) {
                 rotate(rotation, pivot = discCenter) {
 
                     drawCircle(
-                        color = Color(0xFF2A2A2A),
+                        color = Color(0xFF1D2637),
                         radius = maxRadius,
                         center = discCenter
                     )
 
                     drawCircle(
-                        color = Color(0xFF242424),
+                        color = Color(0xFF19202F),
                         radius = maxRadius * 0.75f,
                         center = discCenter,
                         style = Stroke(width = 2.dp.toPx())
                     )
 
                     drawCircle(
-                        color = Color(0xFF242424),
+                        color = Color(0xFF19202F),
                         radius = maxRadius * 0.5f,
                         center = discCenter,
                         style = Stroke(width = 2.dp.toPx())
                     )
 
                     drawCircle(
-                        color = Color(0xFF333333),
+                        color = Color(0xFF242E42),
                         radius = maxRadius * 0.35f,
                         center = discCenter
                     )
 
                     drawCircle(
-                        color = Color(0xFF555555),
+                        color = Color(0xFF3B4C6E),
                         radius = maxRadius * 0.06f,
                         center = Offset(discCenter.x, discCenter.y - maxRadius * 0.2f)
                     )
 
                     drawCircle(
-                        color = Color(0xFF444444),
+                        color = Color(0xFF303D58),
                         radius = maxRadius * 0.12f,
                         center = discCenter,
                         style = Stroke(width = 4.dp.toPx())
                     )
 
                     drawCircle(
-                        color = Color(0xFF121212),
+                        color = Color(0xFF0D1017),
                         radius = maxRadius * 0.08f,
                         center = discCenter
                     )
@@ -362,7 +362,7 @@ fun DiscAnimation(isHiding: Boolean, onSequenceComplete: () -> Unit) {
                 val armEndY = armBaseY
 
                 drawLine(
-                    color = Color(0xFF444444),
+                    color = Color(0xFF303D58),
                     start = Offset(armBaseX, armBaseY),
                     end = Offset(armEndX, armEndY),
                     strokeWidth = 14.dp.toPx(),
@@ -373,7 +373,7 @@ fun DiscAnimation(isHiding: Boolean, onSequenceComplete: () -> Unit) {
                 val headHeight = 28.dp.toPx()
 
                 drawRoundRect(
-                    color = Color(0xFF666666),
+                    color = Color(0xFF505F7C),
                     topLeft = Offset(armEndX - headWidth / 2, armEndY - headHeight / 2),
                     size = Size(headWidth, headHeight),
                     cornerRadius = CornerRadius(14.dp.toPx(), 14.dp.toPx())
@@ -522,7 +522,7 @@ fun GridAnimation(isHiding: Boolean, thumbnails: List<String>, onSequenceComplet
                     }
                     .size(itemSize)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFF242424))
+                    .background(Color(0xFF19202F))
             ) {
                 if (url.isNotEmpty()) {
 

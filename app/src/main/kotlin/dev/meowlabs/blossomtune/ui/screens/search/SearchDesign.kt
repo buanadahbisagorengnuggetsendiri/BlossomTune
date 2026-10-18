@@ -91,14 +91,14 @@ val SearchTitleBlockHeight = 62.dp
 val SearchTopClearance = 18.dp
 
 object SearchColors {
-    val Field = Color(0xFF141416)
-    val FieldFocused = Color(0xFF1E1E21)
-    val Tile = Color(0xFF121214)
-    val TileHigh = Color(0xFF1C1C1F)
-    val Divider = Color(0xFF232326)
+    val Field = Color(0xFF0F131B)
+    val FieldFocused = Color(0xFF161C29)
+    val Tile = Color(0xFF0D1119)
+    val TileHigh = Color(0xFF151B26)
+    val Divider = Color(0xFF1A212F)
     val Primary = Color.White
-    val Secondary = Color(0xFF9A9AA0)
-    val Placeholder = Color(0xFF77777D)
+    val Secondary = Color(0xFF8796B3)
+    val Placeholder = Color(0xFF5F7195)
 
     fun page(pureBlack: Boolean): Color = Color.Black
 }
@@ -702,7 +702,7 @@ private fun moodTint(stripeColor: Long): Color {
     val r = ((argb shr 16) and 0xFF)
     val g = ((argb shr 8) and 0xFF)
     val b = (argb and 0xFF)
-    if (r == 0 && g == 0 && b == 0) return Color(0xFF3A3A44)
+    if (r == 0 && g == 0 && b == 0) return Color(0xFF2C3952)
     val lift = { c: Int -> (c + (170 - c) * 0.45f).toInt().coerceIn(40, 220) }
     return Color(lift(r), lift(g), lift(b))
 }

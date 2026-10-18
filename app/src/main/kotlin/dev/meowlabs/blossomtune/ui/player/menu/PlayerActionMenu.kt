@@ -167,7 +167,7 @@ fun PlayerActionMenu(
                                     append(trackInfo.album)
                                 }
                             },
-                            color = Color(0xFFB3B3B3),
+                            color = Color(0xFFA7AFBF),
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -492,7 +492,7 @@ private fun SleepTimerRow(onClick: () -> Unit) {
             if (remainingLabel.isNotEmpty()) {
                 Text(
                     text = "$remainingLabel remaining",
-                    color = Color(0xFF9A9A9A),
+                    color = Color(0xFF8493B0),
                     fontSize = 12.sp,
                 )
             }

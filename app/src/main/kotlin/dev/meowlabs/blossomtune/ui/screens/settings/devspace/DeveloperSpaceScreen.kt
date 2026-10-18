@@ -92,10 +92,10 @@ private val BarInset = 24.dp
 private val CardCorner = 24.dp
 private val CardPad = 18.dp
 
-private val DevCard = Color(0xFF1C1C1E)
-private val DevRow = Color(0xFF2C2C2E)
-private val DevMuted = Color(0xFF8E8E93)
-private val DevPill = Color(0xFF3A3A3C)
+private val DevCard = Color(0xFF141A26)
+private val DevRow = Color(0xFF1F283A)
+private val DevMuted = Color(0xFF7888A9)
+private val DevPill = Color(0xFF29354D)
 private val BugText = Color(0xFFFF8A80)
 private val BugFill = Color(0xFF4A2424)
 private const val IssueRowsShown = 6
@@ -297,7 +297,7 @@ fun DeveloperSpaceScreen(navController: NavController) {
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF48484A))
+                    .background(Color(0xFF33425F))
                     .clickable { navController.navigateUp() },
             ) {
                 Icon(painterResource(R.drawable.chevron_leftpx), contentDescription = "Back", tint = Color.White, modifier = Modifier.size(22.dp))
@@ -331,7 +331,7 @@ internal fun DevAvatar(modifier: Modifier = Modifier) {
         painter = painterResource(R.drawable.frame_51_3),
         contentDescription = "roo",
         contentScale = ContentScale.Crop,
-        modifier = modifier.clip(CircleShape).background(Color(0xFFD9D9D9)),
+        modifier = modifier.clip(CircleShape).background(Color(0xFFD3D7DF)),
     )
 }
 
@@ -402,7 +402,7 @@ private fun StatsCard(
 ) {
     Panel {
         Text(title, style = devText(17f))
-        Text(subtitle, style = devText(13f, FontWeight.Medium, Color(0xFFE5E5EA), -0.1f))
+        Text(subtitle, style = devText(13f, FontWeight.Medium, Color(0xFFE4E6EB), -0.1f))
         Spacer(Modifier.height(16.dp))
         // each column is as wide as the card allows; the figure shrinks if the number runs long
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -427,7 +427,7 @@ private fun StatsCard(
                             fontSize = figureSp(figureDp),
                             letterSpacing = (-1.5).sp,
                         )
-                        Text(label, style = devText(11f, FontWeight.Medium, Color(0xFFD1D1D6), 0f), maxLines = 3)
+                        Text(label, style = devText(11f, FontWeight.Medium, Color(0xFFCDD1DA), 0f), maxLines = 3)
                     }
                 }
             }
@@ -500,7 +500,7 @@ private fun IssueRow(issue: DevIssue, onClick: () -> Unit) {
             val bug = issue.isBug
             Text(
                 tag,
-                style = devText(11f, FontWeight.SemiBold, if (bug) BugText else Color(0xFFD1D1D6), 0f),
+                style = devText(11f, FontWeight.SemiBold, if (bug) BugText else Color(0xFFCDD1DA), 0f),
                 maxLines = 1,
                 modifier = Modifier
                     .clip(CircleShape)

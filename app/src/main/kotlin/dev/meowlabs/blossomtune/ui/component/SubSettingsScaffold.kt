@@ -195,7 +195,7 @@ fun SubSettingsScaffold(
                     .padding(top = HeaderTopPadding)
                     .size(BackButtonSize)
                     .clip(CircleShape)
-                    .background(Color(0xFF2C2C2E))
+                    .background(Color(0xFF1F283A))
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
@@ -276,7 +276,7 @@ fun SubSettingsScaffold(
                     .offset(x = pillX, y = pillY)
                     .size(width = pillWidth, height = pillHeight)
                     .clip(RoundedCornerShape(lerpDp(26.dp, BackButtonSize / 2, p)))
-                    .background(Color(0xFF2C2C2E))
+                    .background(Color(0xFF1F283A))
             ) {
                 Box(
                     modifier = Modifier
@@ -341,7 +341,7 @@ fun SubSettingsSearchBar(
             .fillMaxWidth()
             .height(52.dp)
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
-            .background(Color(0xFF1C1C1E))
+            .background(Color(0xFF141A26))
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.CenterStart
     ) {

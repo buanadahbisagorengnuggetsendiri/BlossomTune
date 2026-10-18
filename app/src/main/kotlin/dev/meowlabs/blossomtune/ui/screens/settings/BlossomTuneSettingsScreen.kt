@@ -160,8 +160,8 @@ private val RecommendedOptions = listOf(
     )
 )
 
-private val BubbleColor = Color(0xFF1C1C1E)
-private val IconBgColor = Color(0xFF333338)
+private val BubbleColor = Color(0xFF141A26)
+private val IconBgColor = Color(0xFF253046)
 
 @Composable
 fun BlossomTuneSettingsScreen(navController: NavController) {

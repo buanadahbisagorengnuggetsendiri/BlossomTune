@@ -44,7 +44,7 @@ import kotlin.random.Random
 private val LargeCoverMinWidth = 96.dp
 
 /** the rounded play glyph from the Figma (Image 6), light grey with no circle behind it */
-val CoverGlyphColor = Color(0xFFD9D9D9)
+val CoverGlyphColor = Color(0xFFD3D7DF)
 
 /**
  * five small equaliser bars. each one grows out from its middle, up and down at once, rather than

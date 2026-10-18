@@ -68,15 +68,15 @@ import kotlin.math.roundToInt
 
 internal val StatsAccent = Color(0xFF88FF76)
 internal val StatsInk = Color.White
-internal val StatsInkSecondary = Color(0xFFB8B8B8)
-internal val StatsInkMuted = Color(0xFF7A7A7A)
-private val Grid = Color(0xFF242424)
-private val BarRest = Color(0xFF3A3A3A)
-private val TooltipBg = Color(0xFF2C2C2C)
+internal val StatsInkSecondary = Color(0xFFADB4C3)
+internal val StatsInkMuted = Color(0xFF5F7195)
+private val Grid = Color(0xFF19202F)
+private val BarRest = Color(0xFF29344B)
+private val TooltipBg = Color(0xFF1F2839)
 
 /** Categorical order for genres on the dark card (validated: CVD ΔE ≥ 8.4, normal ≥ 19.3 adjacent). */
 internal val GenreColors = listOf(Color(0xFF3987E5), Color(0xFFD95926), Color(0xFF199E70), Color(0xFFC98500), Color(0xFFD55181))
-internal val GenreOther = Color(0xFF5A5A5A)
+internal val GenreOther = Color(0xFF46536E)
 
 private val AxisStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 11.sp, color = StatsInkMuted)
 private val TipStyle = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = StatsInk)
@@ -160,7 +160,7 @@ internal fun ListeningLine(
         if (shown in values.indices && grow.value > 0.98f) {
             val p = pt(shown)
             if (touched >= 0) drawLine(StatsInkMuted, Offset(p.x, top), Offset(p.x, bottom), strokeWidth = 1.dp.toPx())
-            drawCircle(Color(0xFF0F0F0F), radius = 6.dp.toPx(), center = p)
+            drawCircle(Color(0xFF0A0D14), radius = 6.dp.toPx(), center = p)
             drawCircle(StatsAccent, radius = 4.dp.toPx(), center = p)
             drawTooltip(measurer, "${nameOf(shown)} · ${shortDuration(values[shown])}", p)
         }
@@ -264,8 +264,8 @@ internal fun RankList(
                         model = row.image?.resize(160, 160),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        placeholder = ColorPainter(Color(0xFF2A2A2A)),
-                        error = ColorPainter(Color(0xFF2A2A2A)),
+                        placeholder = ColorPainter(Color(0xFF1D2637)),
+                        error = ColorPainter(Color(0xFF1D2637)),
                         modifier = Modifier
                             .size(40.dp)
                             .clip(if (circle) CircleShape else RoundedCornerShape(8.dp)),

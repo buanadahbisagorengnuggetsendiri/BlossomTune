@@ -317,7 +317,7 @@ private fun GenreHeader(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color(0xFF3A3A44), Color(0xFF1A1A1F), pageColor)
+                            listOf(Color(0xFF2C3952), Color(0xFF141A25), pageColor)
                         )
                     )
             )
@@ -530,7 +530,7 @@ private fun GenreCommunityCard(
             .width(268.dp)
             .height(320.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF151519))
+            .background(Color(0xFF10151E))
             .searchCardBorder(20.dp)
             .clickable(onClick = onClick),
     ) {

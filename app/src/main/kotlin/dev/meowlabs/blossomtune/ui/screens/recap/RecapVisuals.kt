@@ -230,7 +230,7 @@ internal class GiantTextState(word: String, val half: Int = 4, filledRows: IntRa
     val alpha = Animatable(1f)
 
     /** Read in draw, so a colour made of animated values follows them without recomposing. */
-    var color: () -> Color = { Color(0xFF272727) }
+    var color: () -> Color = { Color(0xFF1B2333) }
 
     companion object {
         const val PageColumnCenterX = 0.86f
@@ -339,7 +339,7 @@ internal fun Modifier.giantText(
 @Stable
 internal class RecapPalette(val c0: Color, val c1: Color, val c2: Color, val c3: Color) {
     companion object {
-        val Story = RecapPalette(Color(0xFF0C0C0C), Color(0xFF0C0C0C), Color(0xFF0C0C0C), Color(0xFF0C0C0C))
+        val Story = RecapPalette(Color(0xFF080B10), Color(0xFF080B10), Color(0xFF080B10), Color(0xFF080B10))
 
         /** The mock's red, for when a picture can't be read. */
         val Fallback = RecapPalette(Color(0xFF732C2A), Color(0xFF7A3B26), Color(0xFF4E1D1C), Color(0xFF6B3324))

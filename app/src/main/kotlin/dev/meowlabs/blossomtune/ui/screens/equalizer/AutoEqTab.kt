@@ -97,7 +97,7 @@ import kotlin.math.floor
 
 private val OriginalColor = Color(0xFF6B9BF2)
 private val CorrectedColor = Color(0xFFF28BA8)
-private val TargetColor = Color(0xFF9A9AA0)
+private val TargetColor = Color(0xFF8796B3)
 
 @Composable
 fun AutoEqTab(viewModel: AudioLabViewModel, eq: EqSettings) {
@@ -297,7 +297,7 @@ private fun SelectedHeadphone(
 @Composable
 private fun FormGlyph(form: HeadphoneForm) {
     Box(
-        modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF2C2C2E)),
+        modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF1F283A)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(painterResource(R.drawable.headset_applemusic), null, tint = Color.White, modifier = Modifier.size(20.dp))

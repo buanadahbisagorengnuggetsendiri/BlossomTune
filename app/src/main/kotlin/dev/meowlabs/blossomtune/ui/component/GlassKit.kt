@@ -181,7 +181,7 @@ fun Modifier.glassRoot(state: GlassState, isActive: () -> Boolean = { true }): M
  * Material You colour follows the wallpaper accent and washes these surfaces out. They are drawn
  * with white icons over a white hairline border, so they are meant to read as dark glass.
  */
-val GlassChromeColor = Color(0xFF0F0F12)
+val GlassChromeColor = Color(0xFF0C0F15)
 
 /** Backdrop blur for that chrome, heavier than the 24f default so it reads as properly frosted. */
 const val GlassChromeBlurRadius = 48f
