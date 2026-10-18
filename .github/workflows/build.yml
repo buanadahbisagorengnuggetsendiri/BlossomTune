@@ -30,6 +30,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Tulis cache hanya pada rilis (tag). Kuota penyimpanan Actions 500 MB
+          # per akun dan satu cache Gradle Android ~90 MB: setiap push yang
+          # menulis cache baru menabrak batas itu, lalu unggahan artefak ditolak.
+          cache-read-only: ${{ !startsWith(github.ref, 'refs/tags/') }}
       - run: chmod +x ./gradlew
       # Varian FOSS universal: satu-satunya yang dipakai job build di bawah,
       # jadi lint-nya pun yang itu — bukan seluruh belasan kombinasi abi × variant.
@@ -45,6 +50,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Tulis cache hanya pada rilis (tag). Kuota penyimpanan Actions 500 MB
+          # per akun dan satu cache Gradle Android ~90 MB: setiap push yang
+          # menulis cache baru menabrak batas itu, lalu unggahan artefak ditolak.
+          cache-read-only: ${{ !startsWith(github.ref, 'refs/tags/') }}
       - run: chmod +x ./gradlew
       # Modul JVM murni (:modules:*) punya task `test` sendiri. Task per-varian
       # `:app:test...UnitTest` hanya menjalankan tes app, jadi keduanya dipanggil.
@@ -74,6 +84,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Tulis cache hanya pada rilis (tag). Kuota penyimpanan Actions 500 MB
+          # per akun dan satu cache Gradle Android ~90 MB: setiap push yang
+          # menulis cache baru menabrak batas itu, lalu unggahan artefak ditolak.
+          cache-read-only: ${{ !startsWith(github.ref, 'refs/tags/') }}
       - run: chmod +x ./gradlew
       # AGP menandatangani varian debug dengan ~/.android/debug.keystore, dan
       # runner GitHub tidak punya berkas itu. Tanpa langkah ini
@@ -92,6 +107,8 @@ jobs:
         run: ./gradlew :app:assembleUniversalFossDebug --stacktrace
       - name: Upload APK
         uses: actions/upload-artifact@v4
+        # Kuota artefak akun dipakai bersama semua repo. APK-nya sudah jadi; gagal menitipkan salinannya ke GitHub tidak boleh memerahkan job.
+        continue-on-error: true
         with:
           name: blossomtune-debug-apk
           path: app/build/outputs/apk/universalFoss/debug/*.apk
@@ -112,6 +129,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Tulis cache hanya pada rilis (tag). Kuota penyimpanan Actions 500 MB
+          # per akun dan satu cache Gradle Android ~90 MB: setiap push yang
+          # menulis cache baru menabrak batas itu, lalu unggahan artefak ditolak.
+          cache-read-only: ${{ !startsWith(github.ref, 'refs/tags/') }}
       - run: chmod +x ./gradlew
       # Varian rilis pun jatuh ke debug keystore selama secrets rilis belum
       # ada — jadi langkah ini bukan cuma untuk job debug.
@@ -164,6 +186,8 @@ jobs:
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
+        # Kuota artefak akun dipakai bersama semua repo. APK-nya sudah jadi; gagal menitipkan salinannya ke GitHub tidak boleh memerahkan job.
+        continue-on-error: true
         with:
           name: blossomtune-release-apk
           path: app/build/outputs/apk/universalFoss/release/*.apk
