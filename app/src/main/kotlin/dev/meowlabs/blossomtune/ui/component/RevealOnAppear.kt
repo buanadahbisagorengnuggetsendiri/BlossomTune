@@ -53,8 +53,14 @@ private const val BurstWindowMs = 120L
 private const val BurstStepMs = 60
 private const val BurstMaxSteps = 6
 
-/** colour of a loading bone, before the wave modulates it */
-val BoneColor = Color(0xFFD3D7DF).copy(alpha = 0.22f)
+/**
+ * colour of a loading bone, before the wave modulates it.
+ *
+ * Tinta gelap, bukan putih: bone-nya duduk di atas halaman putih. Kalau
+ * `ForceDarkTheme` suatu saat dinyalakan lagi, nilai ini harus ikut mode -
+ * putih 22% di atas hitam, gelap 10% di atas putih.
+ */
+val BoneColor = Color(0xFF0A1424).copy(alpha = 0.10f)
 
 /**
  * which keys already played their reveal. kept with rememberSaveable so coming back to a screen

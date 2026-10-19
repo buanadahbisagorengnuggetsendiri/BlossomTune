@@ -116,8 +116,10 @@ object TopToaster {
     }
 }
 
-private val ToastCard = Color(0xFF151B27)
-private val ToastSquare = Color(0xFFD3D7DF)
+// Kartu toast ikut halaman terang: dulu #151B27 dengan judul putih, jadi satu-satunya
+// kotak hitam di layar putih. Judulnya pakai tinta, bukan putih.
+private val ToastCard = Color(0xFFFFFFFF)
+private val ToastSquare = Color(0xFFF4F7FB)
 private val ToastError = Color(0xFFEE5A52)
 private val ToastEase = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
@@ -126,7 +128,7 @@ private val ToastTitle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 17.sp,
     letterSpacing = (-0.6).sp,
-    color = Color.White,
+    color = Color(0xFF0A1424),
 )
 
 /** Draws the current toast over everything in its parent; touches elsewhere pass straight through. */

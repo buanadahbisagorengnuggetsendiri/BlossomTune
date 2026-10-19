@@ -105,7 +105,7 @@ class SwipeAction(
 val SwipeQueueColor = Color(0xFF34C759)
 val SwipeSaveColor = Color(0xFF9B72F2)
 
-private val SwipePillIdle = Color.White.copy(alpha = 0.12f)
+private val SwipePillIdle = Color(0xFF0A1424).copy(alpha = 0.08f)
 
 // a hold has to be this long before it counts as a long press inside a swipeable row, so pressing
 // down and then sliding never opens selection or the menu by accident

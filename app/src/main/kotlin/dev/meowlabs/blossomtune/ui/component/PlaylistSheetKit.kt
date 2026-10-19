@@ -66,10 +66,20 @@ internal fun SheetLabel(text: String, modifier: Modifier = Modifier) {
         text = text,
         fontSize = 17.sp,
         fontWeight = FontWeight.Bold,
-        color = Color.White,
+        color = SheetInk,
         modifier = modifier,
     )
 }
+
+// Tinta di atas sheet. Dulu semua ini `Color.White` karena sheet-nya kaca gelap
+// hardcode; sekarang sheet-nya ikut mode, jadi tintanya ikut.
+private val SheetInk = Color(0xFF0A1424)
+private val SheetInkMuted = Color(0xFF5B6B82)
+private val SheetDivider = Color(0xFF0A1424).copy(alpha = 0.08f)
+// Bulatan ikon: dulu putih pekat dengan ikon hitam. Dibalik, bukan ditukar -
+// tinta di atas tinta sama-sama hilang.
+private val SheetChip = Color(0xFF0A1424)
+private val SheetChipInk = Color(0xFFFFFFFF)
 
 /** A rounded field on [MenuRowSurface]: placeholder when empty, [leading] before the text. */
 @Composable
@@ -92,13 +102,13 @@ internal fun SheetTextField(
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         textStyle = TextStyle(
-            color = Color.White,
+            color = SheetInk,
             fontFamily = InterFontFamily,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             letterSpacing = (-0.03).em,
         ),
-        cursorBrush = SolidColor(Color.White),
+        cursorBrush = SolidColor(SheetInk),
         modifier = modifier.fillMaxWidth(),
         decorationBox = { inner ->
             Row(
@@ -120,7 +130,7 @@ internal fun SheetTextField(
                             text = placeholder,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White.copy(alpha = 0.4f),
+                            color = SheetInkMuted,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -151,12 +161,12 @@ internal fun SheetSearchField(
                 modifier = Modifier
                     .size(22.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.9f)),
+                    .background(SheetChip),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.search),
                     contentDescription = null,
-                    tint = Color.Black.copy(alpha = 0.75f),
+                    tint = SheetChipInk,
                     modifier = Modifier.size(13.dp),
                 )
             }
@@ -179,7 +189,7 @@ internal fun SheetPillButton(
             .heightIn(min = ControlMinHeight)
             .graphicsLayer { alpha = if (enabled) 1f else 0.45f }
             .clip(RoundedCornerShape(percent = 50))
-            .background(lerp(MenuRowSurface, Color.White, 0.22f))
+            .background(lerp(MenuRowSurface, SheetInk, 0.06f))
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -192,7 +202,7 @@ internal fun SheetPillButton(
             text = text,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White,
+            color = SheetInk,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -207,7 +217,7 @@ internal fun SheetDivider(modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .padding(vertical = 14.dp)
             .height(1.dp)
-            .background(Color.White.copy(alpha = 0.10f))
+            .background(SheetDivider)
     )
 }
 
@@ -245,7 +255,7 @@ internal fun SheetOptionRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = Color.White,
+                color = SheetInk,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -254,7 +264,7 @@ internal fun SheetOptionRow(
             if (subtitle != null) {
                 Text(
                     text = subtitle,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = SheetInkMuted,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -273,12 +283,12 @@ internal fun SheetIconBadge(icon: Int, modifier: Modifier = Modifier) {
         modifier = modifier
             .size(22.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.9f)),
+            .background(SheetChip),
     ) {
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
-            tint = Color.Black.copy(alpha = 0.75f),
+            tint = SheetChipInk,
             modifier = Modifier.size(13.dp),
         )
     }
@@ -327,7 +337,7 @@ internal fun SheetHeader(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = Color.White,
+                color = SheetInk,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -336,7 +346,7 @@ internal fun SheetHeader(
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     text = subtitle,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = SheetInkMuted,
                     fontSize = 13.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -357,14 +367,14 @@ internal fun SheetHeaderButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     active: Boolean = false,
-    tint: Color = Color.White,
+    tint: Color = SheetInk,
 ) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(42.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = if (active) 0.26f else 0.12f))
+            .background(SheetInk.copy(alpha = if (active) 0.14f else 0.06f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -409,7 +419,7 @@ internal fun SheetActionCard(
         Spacer(Modifier.height(30.dp))
         Text(
             text = title,
-            color = Color.White,
+            color = SheetInk,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
@@ -447,12 +457,12 @@ internal fun SheetSearchLauncher(
             modifier = Modifier
                 .size(22.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.9f)),
+                .background(SheetChip),
         ) {
             Icon(
                 painter = painterResource(R.drawable.search),
                 contentDescription = null,
-                tint = Color.Black.copy(alpha = 0.75f),
+                tint = SheetChipInk,
                 modifier = Modifier.size(13.dp),
             )
         }
@@ -461,7 +471,7 @@ internal fun SheetSearchLauncher(
             text = placeholder,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.White.copy(alpha = 0.4f),
+            color = SheetInkMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

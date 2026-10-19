@@ -25,8 +25,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
-/** the pressed row from the Figma: #1E1E1E on the black pages, and the same lift on any darker colour */
-val HighlightColor = Color.White.copy(alpha = 0.12f)
+/**
+ * the pressed row: a lift on the page, so it follows the page's ink rather than
+ * being white. Putih 12% di atas halaman putih tidak kelihatan sama sekali.
+ */
+val HighlightColor = Color(0xFF0A1424).copy(alpha = 0.08f)
 
 /**
  * a soft rounded box that fades in behind whatever is pressed, in place of material's square
