@@ -1424,7 +1424,9 @@ fun HeroCarouselBones(modifier: Modifier = Modifier) {
 private fun QuietHero(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier.background(
-            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.06f), Color.Transparent))
+            // QuietHero tidak punya artwork di belakangnya - cuma halaman. Putih 6% di
+            // atas halaman putih = kotak yang tidak ada.
+            Brush.verticalGradient(listOf(Color(0xFF0A1424).copy(alpha = 0.05f), Color.Transparent))
         )
     ) {
         Column(
@@ -1436,7 +1438,7 @@ private fun QuietHero(modifier: Modifier = Modifier) {
             Text(
                 text = "Play something and it shows up here",
                 style = HomeTitleStyle,
-                color = Color.White,
+                color = Color(0xFF0A1424),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
