@@ -250,11 +250,11 @@ fun HomeCoverCard(
                     style = HomeCardSubtitleStyle,
                     color = PageInkMuted,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
     }
-}
 }
 
 // the Figma "Concert" card (20:195) is 314 x 247 on a 402 wide frame
@@ -425,9 +425,9 @@ fun HomeTrackRow(
                     style = HomeCardSubtitleStyle,
                     color = PageInkMuted,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
         }
         OnDeviceMarks(songId, modifier = Modifier.padding(end = 2.dp))
         if (onMoreClick != null) Box(
