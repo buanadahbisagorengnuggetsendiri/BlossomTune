@@ -189,7 +189,7 @@ private fun LibraryGridTile(entry: LibraryGridEntry, onClick: () -> Unit, modifi
         Text(
             text = entry.title,
             style = TrackTitleStyle,
-            color = Color.White.copy(alpha = 0.92f),
+            color = SearchColors.Primary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -197,7 +197,7 @@ private fun LibraryGridTile(entry: LibraryGridEntry, onClick: () -> Unit, modifi
             Text(
                 text = entry.subtitle,
                 style = TrackSubtitleStyle,
-                color = Color.White.copy(alpha = 0.5f),
+                color = SearchColors.Secondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -441,10 +442,12 @@ fun LibraryIndexRail(
                 .width(150.dp)
                 .graphicsLayer { alpha = presence.value }
                 .background(
+                    // Scrim rel A-Z ikut halaman. Dulu hitam pekat; di halaman putih
+                    // itu jadi pita hitam di tepi kanan.
                     Brush.horizontalGradient(
                         0f to Color.Transparent,
-                        0.55f to Color.Black.copy(alpha = 0.55f),
-                        1f to Color.Black.copy(alpha = 0.88f),
+                        0.55f to MaterialTheme.colorScheme.background.copy(alpha = 0.75f),
+                        1f to MaterialTheme.colorScheme.background.copy(alpha = 0.95f),
                     )
                 ),
         )
@@ -488,7 +491,7 @@ fun LibraryIndexRail(
                         Text(
                             text = label,
                             style = if (isTag) RailTagStyle else RailLabelStyle,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             maxLines = 1,
                             softWrap = false,
                             modifier = Modifier.graphicsLayer {

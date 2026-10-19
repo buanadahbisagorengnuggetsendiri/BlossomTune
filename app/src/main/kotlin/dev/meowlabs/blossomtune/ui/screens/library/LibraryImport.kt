@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -218,16 +219,19 @@ private fun ImportProgressBanner(progress: ImportProgress, onClick: () -> Unit) 
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 22.dp, vertical = 26.dp),
     ) {
+        // Bar progres: trek abu di atas kartu terang, isinya aksen. Dulu putih di atas
+        // kaca gelap; di kartu putih dua-duanya hilang.
+        val progressFill = MaterialTheme.colorScheme.primary
         // Drawn from the animated value in the draw phase: the bar moves without recomposing.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color.White.copy(alpha = 0.14f))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                 .drawBehind {
                     drawRoundRect(
-                        color = Color.White,
+                        color = progressFill,
                         size = Size(size.width * fraction.value.coerceAtLeast(0.02f), size.height),
                         cornerRadius = CornerRadius(size.height / 2f),
                     )

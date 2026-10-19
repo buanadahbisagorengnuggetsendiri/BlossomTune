@@ -90,17 +90,28 @@ val SearchTitleBlockHeight = 62.dp
 
 val SearchTopClearance = 18.dp
 
+/**
+ * Token halaman Search. Nilainya sekarang terang (najstore), bukan hitam lagi.
+ *
+ * Catatan penting: `Primary`/`Secondary` di sini = tinta DI ATAS HALAMAN. Kalau dipakai
+ * di atas gambar/artwork (header genre), di situ harus putih eksplisit - jangan pakai
+ * token ini, karena tintanya akan hilang di atas foto terang.
+ */
 object SearchColors {
-    val Field = Color(0xFF0F131B)
-    val FieldFocused = Color(0xFF161C29)
-    val Tile = Color(0xFF0D1119)
-    val TileHigh = Color(0xFF151B26)
-    val Divider = Color(0xFF1A212F)
-    val Primary = Color.White
-    val Secondary = Color(0xFF8796B3)
-    val Placeholder = Color(0xFF5F7195)
+    val Field = Color(0xFFF4F7FB)          // kolom cari
+    val FieldFocused = Color(0xFFEAF2FF)   // najstore secondary
+    val Tile = Color(0xFFF7F9FC)
+    val TileHigh = Color(0xFFEDF1F6)
+    val Divider = Color(0xFFE5EAF2)        // najstore border
+    val Primary = Color(0xFF0A1424)        // tinta utama di halaman
+    val Secondary = Color(0xFF5B6B82)      // najstore muted-foreground
+    val Placeholder = Color(0xFF94A3B8)
 
-    fun page(pureBlack: Boolean): Color = Color.Black
+    /** Halaman ikut skema; `pureBlack` hanya relevan di mode gelap (sudah tidak dipakai). */
+    @androidx.compose.runtime.Composable
+    @androidx.compose.runtime.ReadOnlyComposable
+    fun page(pureBlack: Boolean): Color =
+        if (pureBlack) Color.Black else androidx.compose.material3.MaterialTheme.colorScheme.background
 }
 
 val SearchCollapseEasing = CubicBezierEasing(0.57f, 0.53f, 0f, 1f)
