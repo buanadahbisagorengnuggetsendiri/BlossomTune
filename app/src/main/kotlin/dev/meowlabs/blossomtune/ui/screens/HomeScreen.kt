@@ -1122,8 +1122,12 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    // Halaman Home menggambar latarnya sendiri - tidak ada parent yang
+                    // melakukannya. Dulu selalu hitam; sekarang ikut skema, kalau tidak
+                    // seluruh Home tetap hitam walau temanya terang.
+                    .background(MaterialTheme.colorScheme.background)
             ) {
-                val backgroundColor = Color.Black
+                val backgroundColor = MaterialTheme.colorScheme.background
                 CompositionLocalProvider(
                     dev.meowlabs.blossomtune.ui.component.LocalGridItemPadding provides 0.dp
                 ) {
