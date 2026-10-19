@@ -59,6 +59,7 @@ object BlossomColors {
     val SpecGray = Color(0xFF8E8E93)     // abu spec: 3.26 di atas putih -> gagal AA
     val Navy = Color(0xFF1C2144)         // aksen + tinta utama: 15.55 di atas putih
     val OnNavy = Color(0xFFFFFFFF)        // teks di atas tombol navy
+    val Blue = Color(0xFF2C6ADF)          // tombol navbar aktif: 4.96 vs putih, ikon putih di atasnya
     val Panel = Color(0xFFF2F2F7)        // panel/terpilih: abu netral
     val Ink = Color(0xFF1C2144)          // heading, judul, teks utama (= Navy)
     val InkSoft = Color(0xFF6D6D77)      // abu secondary: 5.12 di atas putih, 4.59 di atas panel
