@@ -1,5 +1,18 @@
 [
   {
+    "versionName": "0.5.2",
+    "publishedAt": "2026-10-19",
+    "summary": "Warna tema default navy, bukan biru.",
+    "sections": [
+      {
+        "title": "Warna tema",
+        "items": [
+          "Warna tema default (seed pemutar dan slider) navy, bukan biru — biru cuma dipakai mode gelap."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.1",
     "publishedAt": "2026-10-19",
     "summary": "Tombol navbar aktif biru yang mendominasi.",
