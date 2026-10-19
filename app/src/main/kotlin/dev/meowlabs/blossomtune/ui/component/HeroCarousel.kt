@@ -183,8 +183,8 @@ private const val HeroWipeFlat = 0.04f
 private val HeroSlideEasing = CubicBezierEasing(0.32f, 0f, 0.15f, 1f)
 private const val HeroSlideMillis = 1150
 private const val HeroAdvanceMillis = 5500L
-private val HeroPillContent = Color(0xFF212A3D)
-private val HeroPillFill = Color.White.copy(alpha = 0.64f)
+private val HeroPillContent = Color(0xFF1C2144)
+private val HeroPillFill = Color.White.copy(alpha = 0.75f)
 private val HeroLabelColor = Color.White.copy(alpha = 0.69f)
 
 // once the hero starts scrolling away its video holds still and the carousel stops turning, so
@@ -1303,7 +1303,7 @@ private fun HeroLabelLine(label: HeroLabel) {
 private enum class HeroPillKind { Play, Pause, View, Roll, Rolling }
 
 /**
- * the 33dp light pill from the Figma: dark glyph and label on white at 64%. it squishes under the
+ * the 33dp light pill from the Figma: navy glyph and label on frosted white at 75%. it squishes under the
  * finger, and when it changes (play to pause, roll to rolling) the new content pops in while the
  * pill eases to its new width.
  */
@@ -1426,7 +1426,7 @@ private fun QuietHero(modifier: Modifier = Modifier) {
         modifier = modifier.background(
             // QuietHero tidak punya artwork di belakangnya - cuma halaman. Putih 6% di
             // atas halaman putih = kotak yang tidak ada.
-            Brush.verticalGradient(listOf(Color(0xFF101A33).copy(alpha = 0.05f), Color.Transparent))
+            Brush.verticalGradient(listOf(Color(0xFF1C2144).copy(alpha = 0.05f), Color.Transparent))
         )
     ) {
         Column(
@@ -1436,11 +1436,11 @@ private fun QuietHero(modifier: Modifier = Modifier) {
         ) {
             // QuietHero tidak punya artwork di belakangnya: HeroLabelColor (putih 69%)
             // cuma benar di atas cover, di sini jadi teks yang nyaris tidak ada.
-            Text(text = "Nothing here yet", style = HomeLabelStyle, color = Color(0xFF5D6B85), maxLines = 1)
+            Text(text = "Nothing here yet", style = HomeLabelStyle, color = Color(0xFF6D6D77), maxLines = 1)
             Text(
                 text = "Play something and it shows up here",
                 style = HomeTitleStyle,
-                color = Color(0xFF101A33),
+                color = Color(0xFF1C2144),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

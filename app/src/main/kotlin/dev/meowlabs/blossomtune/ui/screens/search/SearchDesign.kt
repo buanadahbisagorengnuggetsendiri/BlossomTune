@@ -98,15 +98,15 @@ val SearchTopClearance = 18.dp
  * token ini, karena tintanya akan hilang di atas foto terang.
  */
 object SearchColors {
-    val Field = Color(0xFFEAF3FF)          // soft blue: kolom cari
+    val Field = Color(0xFFF2F2F7)          // abu panel: kolom cari
     val FieldFocused = Color(0xFFFFFFFF)   // fokus: putih, dibedakan lewat border
-    val Tile = Color(0xFFFFFFFF)           // kartu putih di atas page ice white
-    val TileHigh = Color(0xFFEAF3FF)       // state terpilih / hover = soft blue
-    val Divider = Color(0xFFDDE5F0)
-    val Primary = Color(0xFF101A33)        // navy: tinta utama di halaman
+    val Tile = Color(0xFFFFFFFF)           // kartu putih di atas page putih
+    val TileHigh = Color(0xFFF2F2F7)       // state terpilih / hover = abu panel
+    val Divider = Color(0xFFE5E5EA)
+    val Primary = Color(0xFF1C2144)        // navy: tinta utama di halaman
     val OnPrimary = Color(0xFFFFFFFF)      // teks di atas state terpilih
-    val Secondary = Color(0xFF5D6B85)      // slate: metadata
-    val Placeholder = Color(0xFF94A3B8)
+    val Secondary = Color(0xFF6D6D77)      // abu: metadata
+    val Placeholder = Color(0xFF8E8E93)
 
     /**
      * Halaman selalu ikut skema. `pureBlack` sengaja tidak dipakai lagi: opsi hitam pekat

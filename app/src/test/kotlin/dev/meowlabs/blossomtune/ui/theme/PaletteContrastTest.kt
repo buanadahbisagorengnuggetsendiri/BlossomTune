@@ -78,28 +78,27 @@ class PaletteContrastTest {
     }
 
     /**
-     * Mode terang memakai palet BlossomTune, dan itu yang benar-benar dirender
+     * Mode terang memakai palet navy/abu/putih, dan itu yang benar-benar dirender
      * (`ForceDarkTheme` = false).
      *
-     * Dua role sengaja TIDAK sama dengan spec desain, karena spec-nya gagal WCAG AA:
-     * primary #3478F6 (teks putih = 4.07) dirender #2C6ADF, dan slate #66758F
-     * (di atas soft blue = 4.16) dirender #5D6B85. Nilai spec tetap disimpan di
-     * `BlossomColors.SpecBlue` / `SpecSlate` supaya rujukannya tidak hilang.
+     * Abu spec #8E8E93 (3.26 di atas putih) gagal WCAG AA, jadi yang dirender
+     * #73737B (4.70). Nilai spec tetap disimpan di `BlossomColors.SpecGray`
+     * supaya rujukannya tidak hilang.
      */
     @Test
-    fun lightPalette_isBlossomTuneNavyOnIceWhite() {
+    fun lightPalette_isNavyOnWhite() {
         assertEquals(false, ForceDarkTheme)
-        assertEquals(Color(0xFF2C6ADF), LightPalette.primary)        // spec #3478F6, digelapkan utk AA
-        assertEquals(Color(0xFFEAF3FF), LightPalette.primaryContainer)
-        assertEquals(Color(0xFF101A33), LightPalette.onPrimaryContainer)
-        assertEquals(Color(0xFFF7FAFF), LightPalette.background)     // ice white
-        assertEquals(Color(0xFF101A33), LightPalette.onBackground)   // navy
-        assertEquals(Color(0xFFEAF3FF), LightPalette.surfaceVariant) // soft blue panel
-        assertEquals(Color(0xFFDDE5F0), LightPalette.outline)
+        assertEquals(Color(0xFF1C2144), LightPalette.primary)        // navy spec, lolos AA tanpa digelapkan
+        assertEquals(Color(0xFFF2F2F7), LightPalette.primaryContainer)
+        assertEquals(Color(0xFF1C2144), LightPalette.onPrimaryContainer)
+        assertEquals(Color(0xFFFFFFFF), LightPalette.background)     // putih
+        assertEquals(Color(0xFF1C2144), LightPalette.onBackground)   // navy
+        assertEquals(Color(0xFFF2F2F7), LightPalette.surfaceVariant) // panel abu
+        assertEquals(Color(0xFFE5E5EA), LightPalette.outline)
         assertEquals(Color(0xFFFFFFFF), LightPalette.surface)        // kartu putih
+        assertEquals(Color(0xFF6D6D77), LightPalette.onSurfaceVariant) // abu spec #8E8E93, digelapkan utk AA
         // Spec asli harus tetap ada di kode, bukan hilang tanpa jejak.
-        assertEquals(Color(0xFF3478F6), BlossomColors.SpecBlue)
-        assertEquals(Color(0xFF66758F), BlossomColors.SpecSlate)
+        assertEquals(Color(0xFF8E8E93), BlossomColors.SpecGray)
     }
 
     /**

@@ -134,7 +134,7 @@ import java.util.concurrent.ConcurrentHashMap
 // the album, artist and generated pages line up on the same inset and type
 internal val PlaylistInset = 36.dp
 internal val PlaylistTracking = (-0.06).em
-internal val PillContent = Color(0xFF212A3D)
+internal val PillContent = Color(0xFF1C2144)
 internal val PillFill = Color.White.copy(alpha = 0.64f)
 internal val TrackShape = RoundedCornerShape(9.dp)
 
