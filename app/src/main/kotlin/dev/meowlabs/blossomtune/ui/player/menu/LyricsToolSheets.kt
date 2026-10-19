@@ -57,6 +57,7 @@ import dev.meowlabs.blossomtune.lyrics.LyricsProviderRegistry
 import dev.meowlabs.blossomtune.lyrics.LyricsTranslationHelper
 import dev.meowlabs.blossomtune.lyrics.LyricsUtils
 import dev.meowlabs.blossomtune.ui.component.AppSwitch
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.viewmodels.LyricsMenuViewModel
 
@@ -107,7 +108,7 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Edit lyrics",
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
@@ -115,12 +116,12 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
                 if (parsed.isNotEmpty()) {
                     Text(
                         text = "Save",
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
-                            .background(Color.White.copy(alpha = 0.14f))
+                            .background(BlossomInk.Primary.copy(alpha = 0.07f))
                             .clickable {
                                 val id = mediaMetadata?.id
                                 if (id != null) {
@@ -141,7 +142,7 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
             if (parsed.isEmpty()) {
                 Text(
                     text = "No lyrics to edit for this song.",
-                    color = Color(0xFF8493B0),
+                    color = BlossomInk.Muted,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 24.dp),
                 )
@@ -166,11 +167,11 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
                                 value = drafts.getOrElse(index) { entry.text },
                                 onValueChange = { if (index < drafts.size) drafts[index] = it },
                                 textStyle = TextStyle(
-                                    color = Color.White,
+                                    color = BlossomInk.Primary,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.SemiBold,
                                 ),
-                                cursorBrush = SolidColor(Color.White),
+                                cursorBrush = SolidColor(BlossomInk.Primary),
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
@@ -261,7 +262,7 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
         ) {
             Text(
                 text = "Lyrics Provider",
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
             )
@@ -321,7 +322,7 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = LyricsProviderRegistry.getDisplayName(name),
-                        color = Color.White.copy(alpha = if (available != null) 1f else 0.5f),
+                        color = BlossomInk.Primary.copy(alpha = if (available != null) 1f else 0.5f),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
@@ -330,7 +331,7 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
                     )
                     Text(
                         text = status,
-                        color = if (isActive) Color.White else Color(0xFF8493B0),
+                        color = if (isActive) BlossomInk.Primary else BlossomInk.Muted,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -404,10 +405,10 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
                 .padding(horizontal = 20.dp)
                 .padding(top = 16.dp, bottom = 24.dp)
         ) {
-            Text(text = "Lyrics translation", color = Color(0xFF8493B0), fontSize = 12.sp)
+            Text(text = "Lyrics translation", color = BlossomInk.Muted, fontSize = 12.sp)
             Text(
                 text = "Translate from",
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
             )
@@ -425,7 +426,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
             )
 
             Spacer(modifier = Modifier.height(14.dp))
-            Text(text = "To", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(text = "To", color = BlossomInk.Primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             PillButton(
                 label = TranslationTargets.firstOrNull { it.first == target }?.second ?: "unselected",
@@ -433,7 +434,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
             )
 
             Spacer(modifier = Modifier.height(14.dp))
-            Text(text = "And", color = Color(0xFF8493B0), fontSize = 12.sp)
+            Text(text = "And", color = BlossomInk.Muted, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
@@ -448,12 +449,12 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
                     modifier = Modifier
                         .size(22.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.9f))
+                        .background(BlossomInk.Chip)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Translate this whole session",
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -476,7 +477,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
                         if (target.isBlank() || isTranslating) {
                             MenuRowSurface
                         } else {
-                            Color.White.copy(alpha = 0.22f)
+                            BlossomInk.Primary.copy(alpha = 0.08f)
                         }
                     )
                     .clickable(
@@ -503,7 +504,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
                         target.isBlank() -> "Pick a language first"
                         else -> "Translate!"
                     },
-                    color = Color.White.copy(alpha = if (target.isBlank() || isTranslating) 0.45f else 1f),
+                    color = BlossomInk.Primary.copy(alpha = if (target.isBlank() || isTranslating) 0.45f else 1f),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -575,7 +576,7 @@ private fun LanguagePickerSheet(
         ) {
             Text(
                 text = title,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
             )
@@ -597,8 +598,8 @@ private fun LanguagePickerSheet(
                     value = query,
                     onValueChange = { query = it },
                     singleLine = true,
-                    textStyle = TextStyle(color = Color.White, fontSize = 13.sp),
-                    cursorBrush = SolidColor(Color.White),
+                    textStyle = TextStyle(color = BlossomInk.Primary, fontSize = 13.sp),
+                    cursorBrush = SolidColor(BlossomInk.Primary),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -615,7 +616,7 @@ private fun LanguagePickerSheet(
                             .padding(bottom = 8.dp)
                             .clip(RoundedCornerShape(50))
                             .background(
-                                if (isSelected) Color.White.copy(alpha = 0.20f) else MenuRowSurface
+                                if (isSelected) BlossomInk.Primary.copy(alpha = 0.06f) else MenuRowSurface
                             )
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -628,7 +629,7 @@ private fun LanguagePickerSheet(
                     ) {
                         Text(
                             text = label,
-                            color = Color.White,
+                            color = BlossomInk.Primary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -655,7 +656,7 @@ private fun PillButton(
             .fillMaxWidth()
             .height(46.dp)
             .clip(RoundedCornerShape(50))
-            .background(if (highlighted) Color.White.copy(alpha = 0.20f) else MenuRowSurface)
+            .background(if (highlighted) BlossomInk.Primary.copy(alpha = 0.06f) else MenuRowSurface)
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -665,7 +666,7 @@ private fun PillButton(
     ) {
         Text(
             text = label,
-            color = Color.White.copy(alpha = alpha),
+            color = BlossomInk.Primary.copy(alpha = alpha),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
         )
