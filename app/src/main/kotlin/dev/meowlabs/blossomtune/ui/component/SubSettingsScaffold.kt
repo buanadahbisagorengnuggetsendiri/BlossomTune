@@ -98,7 +98,12 @@ fun SubSettingsScaffold(
     val scrollState = rememberScrollState()
     val glassState = remember { GlassState() }
 
-    val headerFoundationColor = Color.Black
+    // Header dan kolom cari ikut halaman. Dulu hitam + tinta putih; di halaman
+    // terang header-nya jadi pita hitam dan tintanya hilang.
+    val headerFoundationColor = MaterialTheme.colorScheme.background
+    val fieldFill = MaterialTheme.colorScheme.surfaceVariant
+    val fieldInk = MaterialTheme.colorScheme.onSurface
+    val fieldInkMuted = MaterialTheme.colorScheme.onSurfaceVariant
 
     // Latch-and-settle collapse, same as Library/Search: once the threshold is crossed the morph
     // always finishes smoothly, even after the user's finger lifts mid-scroll.
@@ -173,9 +178,9 @@ fun SubSettingsScaffold(
                     .matchParentSize()
                     .drawWithCache {
                         val gradient = Brush.verticalGradient(
-                            0f to Color.Black.copy(alpha = 0.90f),
-                            0.20f to Color.Black.copy(alpha = 0.50f),
-                            0.45f to Color.Black.copy(alpha = 0.18f),
+                            0f to headerFoundationColor.copy(alpha = 0.90f),
+                            0.20f to headerFoundationColor.copy(alpha = 0.50f),
+                            0.45f to headerFoundationColor.copy(alpha = 0.18f),
                             0.75f to Color.Transparent,
                         )
                         onDrawBehind { drawRect(brush = gradient) }
@@ -195,14 +200,14 @@ fun SubSettingsScaffold(
                     .padding(top = HeaderTopPadding)
                     .size(BackButtonSize)
                     .clip(CircleShape)
-                    .background(Color(0xFF1F283A))
+                    .background(fieldFill)
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
                     contentDescription = "Back",
-                    tint = Color.White,
+                    tint = fieldInk,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -213,7 +218,7 @@ fun SubSettingsScaffold(
                     text = backLabel,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = fieldInk,
                     maxLines = 1,
                     modifier = Modifier
                         .padding(top = HeaderTopPadding, start = BackButtonSize + 10.dp)
@@ -276,7 +281,7 @@ fun SubSettingsScaffold(
                     .offset(x = pillX, y = pillY)
                     .size(width = pillWidth, height = pillHeight)
                     .clip(RoundedCornerShape(lerpDp(26.dp, BackButtonSize / 2, p)))
-                    .background(Color(0xFF1F283A))
+                    .background(fieldFill)
             ) {
                 Box(
                     modifier = Modifier
@@ -303,7 +308,7 @@ fun SubSettingsScaffold(
                             rememberAsyncImagePainter(model = R.raw.search)
                         },
                         contentDescription = if (searchOverlayVisible) "Hide search" else "Search",
-                        tint = Color.White,
+                        tint = fieldInk,
                         modifier = Modifier.size(if (searchOverlayVisible) 18.dp else 16.dp)
                     )
                 }
@@ -341,7 +346,7 @@ fun SubSettingsSearchBar(
             .fillMaxWidth()
             .height(52.dp)
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
-            .background(Color(0xFF141A26))
+            .background(fieldFill)
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -356,10 +361,10 @@ fun SubSettingsSearchBar(
                 textStyle = androidx.compose.ui.text.TextStyle(
                     fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
                     fontSize = 16.sp,
-                    color = Color.White,
+                    color = fieldInk,
                     fontWeight = FontWeight.Normal
                 ),
-                cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(fieldInk),
                 modifier = Modifier.weight(1f),
                 decorationBox = { innerTextField ->
                     if (query.isEmpty()) {
@@ -367,7 +372,7 @@ fun SubSettingsSearchBar(
                             text = "Search any settings",
                             fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
                             fontSize = 16.sp,
-                            color = Color.White.copy(alpha = 0.5f)
+                            color = fieldInkMuted
                         )
                     }
                     innerTextField()
@@ -379,7 +384,7 @@ fun SubSettingsSearchBar(
                 Icon(
                     painter = painterResource(R.drawable.close),
                     contentDescription = "Clear",
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = fieldInkMuted,
                     modifier = Modifier
                         .size(20.dp)
                         .clip(CircleShape)

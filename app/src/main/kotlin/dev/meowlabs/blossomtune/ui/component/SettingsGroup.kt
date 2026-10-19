@@ -173,8 +173,10 @@ private fun ClusterRows(cluster: ItemCluster) {
         label = "pillInset"
     )
 
-    // Expanded sub-menu background slightly brighter than accent surface
-    val pillColor = Color(0xFF1F2839).copy(alpha = pillAlpha)
+    // Pil grup ikut mode. Dulu selalu #1F2839 (pil gelap), jadi di halaman terang
+    // grupnya jadi balok hitam. Di terang pil = surfaceVariant (lebih gelap dari
+    // halaman, sesuai tangga permukaan terang); di gelap nilainya sama seperti dulu.
+    val pillColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = pillAlpha)
 
     Box(
         modifier = Modifier
