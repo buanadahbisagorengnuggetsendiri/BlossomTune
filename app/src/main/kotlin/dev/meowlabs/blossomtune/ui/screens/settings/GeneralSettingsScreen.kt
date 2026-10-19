@@ -73,7 +73,7 @@ fun GeneralSettingsScreen(navController: NavController) {
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 10.dp, start = 4.dp)
         )
 

@@ -508,7 +508,7 @@ private fun TopResultCard(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(SearchColors.Primary)
                         .clickable(onClick = onClick),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -517,7 +517,7 @@ private fun TopResultCard(
                             if (isActive && isPlaying) R.drawable.ic_untitled_pause else R.drawable.play
                         ),
                         contentDescription = null,
-                        tint = Color.Black,
+                        tint = SearchColors.OnPrimary,
                         modifier = Modifier.size(22.dp),
                     )
                 }

@@ -131,7 +131,7 @@ fun AppearanceSettingsScreen(navController: NavController) {
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 10.dp, start = 4.dp)
         )
 
@@ -332,7 +332,7 @@ fun AppearanceSettingsScreen(navController: NavController) {
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 10.dp, start = 4.dp)
         )
 
@@ -381,7 +381,7 @@ fun AppearanceSettingsScreen(navController: NavController) {
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.70f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
@@ -437,18 +437,18 @@ private fun LyricsStyleToggle(
     Row(
         modifier = Modifier
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.08f))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         LyricsMotionStyle.entries.forEach { style ->
             val isSelected = style == selected
             val background by animateColorAsState(
-                targetValue = if (isSelected) Color.White else Color.Transparent,
+                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                 label = "lyricsStyleChip",
             )
             val content by animateColorAsState(
-                targetValue = if (isSelected) Color.Black else Color.White.copy(alpha = 0.7f),
+                targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                 label = "lyricsStyleChipText",
             )
             Text(

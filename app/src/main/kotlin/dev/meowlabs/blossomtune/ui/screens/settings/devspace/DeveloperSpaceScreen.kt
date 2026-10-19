@@ -104,7 +104,7 @@ private const val IssueRowsShown = 6
 private fun devText(
     size: Float,
     weight: FontWeight = FontWeight.Bold,
-    color: Color = Color.White,
+    color: Color = MaterialTheme.colorScheme.onSurface,
     tracking: Float = -0.4f,
 ) = TextStyle(fontFamily = InterFontFamily, fontWeight = weight, fontSize = size.sp, letterSpacing = tracking.sp, color = color)
 
@@ -273,7 +273,7 @@ fun DeveloperSpaceScreen(navController: NavController) {
                 ProgressiveGlassBackground(
                     state = glassState,
                     maxBlurRadius = { 50f * barP },
-                    foundationColor = Color.Black.copy(alpha = 0.5f),
+                    foundationColor = MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
                     direction = BlurDirection.BottomToTop,
                     steps = 3,
                     modifier = Modifier.fillMaxSize(),
@@ -282,7 +282,15 @@ fun DeveloperSpaceScreen(navController: NavController) {
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(Brush.verticalGradient(listOf(Color.Black, Color.Black.copy(alpha = 0.7f), Color.Transparent))),
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.background,
+                                MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
+                                Color.Transparent,
+                            )
+                        )
+                    ),
             )
         }
 
@@ -301,7 +309,7 @@ fun DeveloperSpaceScreen(navController: NavController) {
                     .background(Color(0xFF33425F))
                     .clickable { navController.navigateUp() },
             ) {
-                Icon(painterResource(R.drawable.chevron_leftpx), contentDescription = "Back", tint = Color.White, modifier = Modifier.size(22.dp))
+                Icon(painterResource(R.drawable.chevron_leftpx), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -419,7 +427,7 @@ private fun StatsCard(
                                 .padding(top = 6.dp)
                                 .width(divider)
                                 .height((figureDp * 0.85f).dp)
-                                .background(Color.White.copy(alpha = 0.35f)),
+                                .background(MaterialTheme.colorScheme.outline),
                         )
                     }
                     Column(Modifier.width(cell).padding(start = if (i == 0) 0.dp else 14.dp, end = 4.dp)) {
@@ -447,11 +455,11 @@ private fun FilterChips(selected: IssueFilter, countOf: (IssueFilter) -> Int, on
             val n = countOf(f)
             Text(
                 text = if (n > 0) "${f.label} $n" else f.label,
-                style = devText(13f, FontWeight.SemiBold, if (on) Color.Black else Color.White, -0.2f),
+                style = devText(13f, FontWeight.SemiBold, if (on) Color.White, -0.2f),
                 maxLines = 1,
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(if (on) Color.White else DevPill)
+                    .background(if (on) MaterialTheme.colorScheme.primary else DevPill)
                     .clickable { onSelect(f) }
                     .padding(horizontal = 14.dp, vertical = 7.dp),
             )
@@ -467,7 +475,7 @@ private fun IssueList(issues: List<DevIssue>, showAll: Boolean, context: android
         if (!showAll && issues.size > IssueRowsShown) {
             Text(
                 "Show all ${issues.size}",
-                style = devText(13f, FontWeight.SemiBold, Color.White, -0.2f),
+                style = devText(13f, FontWeight.SemiBold, MaterialTheme.colorScheme.onSurface, -0.2f),
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .clip(CircleShape)
@@ -543,10 +551,10 @@ private fun RetryNote(text: String, onRetry: () -> Unit) {
         Spacer(Modifier.width(10.dp))
         Text(
             "Try again",
-            style = devText(13f, FontWeight.SemiBold, Color.Black, -0.2f),
+            style = devText(13f, FontWeight.SemiBold, MaterialTheme.colorScheme.onPrimary, -0.2f),
             modifier = Modifier
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.primary)
                 .clickable(onClick = onRetry)
                 .padding(horizontal = 14.dp, vertical = 7.dp),
         )
