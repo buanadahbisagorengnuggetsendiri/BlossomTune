@@ -95,7 +95,13 @@ private val HomeRankStyle = TextStyle(
     letterSpacing = HomeTracking,
 )
 
-private val SectionLabelColor = Color.White.copy(alpha = 0.69f)
+// Chrome halaman, bukan teks di atas artwork: label section, chevron, judul baris,
+// nomor rank. Dulu putih karena halaman hitam; sekarang ikut tinta halaman terang.
+// Yang tetap putih adalah teks di atas cover/video (HomeVideoCard) - di situ
+// latarnya gambar, bukan halaman.
+private val SectionLabelColor = Color(0xFF0A1424)
+private val PageInk = Color(0xFF0A1424)
+private val PageInkMuted = Color(0xFF5B6B82)
 private val HomeRowShape = RoundedCornerShape(14.dp)
 val HomeRowHeight = 54.dp
 
@@ -159,7 +165,7 @@ fun HomeSectionTitle(
                 Text(
                     text = label,
                     style = HomeCardSubtitleStyle,
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = PageInkMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -184,7 +190,7 @@ private fun SectionChevron() {
     Icon(
         painter = painterResource(R.drawable.ic_chevron_right),
         contentDescription = null,
-        tint = Color.White.copy(alpha = 0.55f),
+        tint = PageInkMuted,
         modifier = Modifier.size(18.dp),
     )
 }
@@ -230,7 +236,7 @@ fun HomeCoverCard(
         Text(
             text = title,
             style = HomeCardTitleStyle,
-            color = Color.White.copy(alpha = 0.92f),
+            color = PageInk,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = if (circular) TextAlign.Center else TextAlign.Start,
@@ -242,13 +248,13 @@ fun HomeCoverCard(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = PageInkMuted,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
     }
+}
 }
 
 // the Figma "Concert" card (20:195) is 314 x 247 on a 402 wide frame
@@ -382,7 +388,7 @@ fun HomeTrackRow(
             Text(
                 text = rank.toString(),
                 style = HomeRankStyle,
-                color = Color.White,
+                color = PageInk,
                 maxLines = 1,
                 modifier = Modifier.width(37.dp),
             )
@@ -409,7 +415,7 @@ fun HomeTrackRow(
             Text(
                 text = title,
                 style = HomeCardTitleStyle.copy(fontSize = 15.sp),
-                color = if (isActive) Color.White else Color.White.copy(alpha = 0.92f),
+                color = PageInk,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -417,11 +423,11 @@ fun HomeTrackRow(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = PageInkMuted,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
         }
         OnDeviceMarks(songId, modifier = Modifier.padding(end = 2.dp))
         if (onMoreClick != null) Box(
@@ -435,12 +441,12 @@ fun HomeTrackRow(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(24.dp)
-                    .background(Color.White.copy(alpha = 0.14f), CircleShape),
+                    .background(PageInk.copy(alpha = 0.06f), CircleShape),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.more_horiz),
                     contentDescription = "More",
-                    tint = Color.White.copy(alpha = 0.85f),
+                    tint = PageInk,
                     modifier = Modifier.size(17.dp),
                 )
             }
