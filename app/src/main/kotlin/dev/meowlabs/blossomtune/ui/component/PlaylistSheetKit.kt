@@ -3,6 +3,7 @@
 package dev.meowlabs.blossomtune.ui.component
 
 import androidx.compose.ui.unit.em
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -71,15 +72,12 @@ internal fun SheetLabel(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-// Tinta di atas sheet. Dulu semua ini `Color.White` karena sheet-nya kaca gelap
-// hardcode; sekarang sheet-nya ikut mode, jadi tintanya ikut.
-private val SheetInk = Color(0xFF0A1424)
-private val SheetInkMuted = Color(0xFF5B6B82)
-private val SheetDivider = Color(0xFF0A1424).copy(alpha = 0.08f)
-// Bulatan ikon: dulu putih pekat dengan ikon hitam. Dibalik, bukan ditukar -
-// tinta di atas tinta sama-sama hilang.
-private val SheetChip = Color(0xFF0A1424)
-private val SheetChipInk = Color(0xFFFFFFFF)
+// Tinta sheet dipusatkan di `BlossomInk` - lihat Theme.kt.
+private val SheetInk = BlossomInk.Primary
+private val SheetInkMuted = BlossomInk.Muted
+private val SheetDivider = BlossomInk.Divider
+private val SheetChip = BlossomInk.Chip
+private val SheetChipInk = BlossomInk.OnChip
 
 /** A rounded field on [MenuRowSurface]: placeholder when empty, [leading] before the text. */
 @Composable

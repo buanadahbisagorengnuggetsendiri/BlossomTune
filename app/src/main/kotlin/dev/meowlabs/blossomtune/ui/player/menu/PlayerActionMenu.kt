@@ -64,6 +64,7 @@ import coil3.request.ImageRequest
 import dev.meowlabs.blossomtune.LocalDatabase
 import dev.meowlabs.blossomtune.LocalDownloadUtil
 import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.playback.ExoDownloadService
 import dev.meowlabs.blossomtune.ui.menu.AddToPlaylistDialog
@@ -146,13 +147,13 @@ fun PlayerActionMenu(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.08f)),
+                            .background(BlossomInk.Primary.copy(alpha = 0.06f)),
                     )
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = trackInfo.title,
-                            color = Color.White,
+                            color = BlossomInk.Primary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -356,7 +357,7 @@ private fun MenuDivider() {
             .padding(vertical = 14.dp)
             .fillMaxWidth()
             .height(1.dp)
-            .background(Color.White.copy(alpha = 0.10f))
+            .background(BlossomInk.Divider)
     )
 }
 
@@ -390,19 +391,19 @@ private fun MenuCard(
             modifier = Modifier
                 .size(22.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.9f * contentAlpha))
+                .background(BlossomInk.Chip.copy(alpha = contentAlpha))
         ) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = Color.Black.copy(alpha = 0.75f),
+                tint = BlossomInk.OnChip,
                 modifier = Modifier.size(13.dp),
             )
         }
         Spacer(modifier = Modifier.height(30.dp))
         Text(
             text = title,
-            color = Color.White.copy(alpha = contentAlpha),
+            color = BlossomInk.Primary.copy(alpha = contentAlpha),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
@@ -440,19 +441,19 @@ private fun MenuRow(
             modifier = Modifier
                 .size(22.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.9f * contentAlpha))
+                .background(BlossomInk.Chip.copy(alpha = contentAlpha))
         ) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = Color.Black.copy(alpha = 0.75f),
+                tint = BlossomInk.OnChip,
                 modifier = Modifier.size(13.dp),
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = title,
-            color = Color.White.copy(alpha = contentAlpha),
+            color = BlossomInk.Primary.copy(alpha = contentAlpha),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
@@ -540,19 +541,19 @@ private fun DeviceVolumeRow() {
                 modifier = Modifier
                     .size(22.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.9f))
+                    .background(BlossomInk.Chip)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.volume_up),
                     contentDescription = null,
-                    tint = Color.Black.copy(alpha = 0.75f),
+                    tint = BlossomInk.OnChip,
                     modifier = Modifier.size(13.dp),
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = android.os.Build.MODEL ?: "this device",
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -569,7 +570,7 @@ private fun DeviceVolumeRow() {
             Icon(
                 painter = painterResource(R.drawable.volume_down),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = BlossomInk.Muted,
                 modifier = Modifier.size(16.dp),
             )
             LineSlider(
@@ -587,7 +588,7 @@ private fun DeviceVolumeRow() {
             Icon(
                 painter = painterResource(R.drawable.volume_up),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = BlossomInk.Muted,
                 modifier = Modifier.size(16.dp),
             )
         }

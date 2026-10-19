@@ -179,6 +179,22 @@ val LocalBlossomSurfaces = staticCompositionLocalOf { if (ForceDarkTheme) DarkSu
 val BlossomSurface: BlossomSurfaces
     @Composable @ReadOnlyComposable get() = LocalBlossomSurfaces.current
 
+/**
+ * Tinta di atas [BlossomSurfaces.sheet] dan `.row`.
+ *
+ * Dulu semua layar sheet menulis `Color.White` langsung, karena sheet-nya kaca gelap
+ * hardcode. Begitu sheet ikut mode, tinta putih di atas sheet putih hilang - jadi
+ * tintanya dipusatkan di sini, satu tempat, bukan `Color.White` yang tersebar.
+ */
+object BlossomInk {
+    val Primary = Color(0xFF0A1424)
+    val Muted = Color(0xFF5B6B82)
+    val Divider = Color(0xFF0A1424).copy(alpha = 0.08f)
+    /** Bulatan ikon: tinta pekat dengan ikon putih. Dulu putih pekat dengan ikon hitam. */
+    val Chip = Color(0xFF0A1424)
+    val OnChip = Color(0xFFFFFFFF)
+}
+
 @Composable
 fun BlossomTuneTheme(
     darkTheme: Boolean = ForceDarkTheme,
