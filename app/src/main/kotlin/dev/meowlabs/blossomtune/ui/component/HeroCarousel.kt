@@ -1434,7 +1434,9 @@ private fun QuietHero(modifier: Modifier = Modifier) {
                 .align(Alignment.BottomStart)
                 .padding(start = HomeContentInset, end = HomeContentInset, bottom = 64.dp)
         ) {
-            Text(text = "Nothing here yet", style = HomeLabelStyle, color = HeroLabelColor, maxLines = 1)
+            // QuietHero tidak punya artwork di belakangnya: HeroLabelColor (putih 69%)
+            // cuma benar di atas cover, di sini jadi teks yang nyaris tidak ada.
+            Text(text = "Nothing here yet", style = HomeLabelStyle, color = Color(0xFF5B6B82), maxLines = 1)
             Text(
                 text = "Play something and it shows up here",
                 style = HomeTitleStyle,
