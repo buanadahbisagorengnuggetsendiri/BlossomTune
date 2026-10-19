@@ -52,8 +52,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -203,7 +205,10 @@ private object BlossomTuneGreeting {
 /** Where the header is in its pull-down / scratch / recap life. */
 private enum class HeaderStage { Collapsed, Pulling, Expanding, Expanded, Scanning, Invalid, Story }
 
-private val PageCard = Color(0xFF0A0D14)
+// Kartu halaman profil. Kartu ID-nya sendiri (ProfileIdCard/IdCardBack) tetap
+// seperti apa adanya - itu benda fisik, bukan chrome halaman.
+private val PageCard: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.surfaceVariant
 
 @Composable
 fun ProfileScreen(navController: NavController) {
@@ -397,7 +402,7 @@ fun ProfileScreen(navController: NavController) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .onGloballyPositioned { rootOnScreen = it.positionOnScreen() }
             .pointerInput(Unit) {
                 // a new touch is "in the header" only if the header itself says so (it sees it next)
@@ -587,7 +592,7 @@ fun ProfileScreen(navController: NavController) {
                         Icon(
                             painter = painterResource(R.drawable.expand_more),
                             contentDescription = "Pull down",
-                            tint = Color.White.copy(alpha = 0.35f),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                             modifier = Modifier
                                 .size(30.dp)
                                 .graphicsLayer {
@@ -601,7 +606,7 @@ fun ProfileScreen(navController: NavController) {
                         if (recapWaiting) {
                             Text(
                                 text = "swipe down here!!",
-                                style = MonoSmall.copy(color = Color.White.copy(alpha = 0.6f)),
+                                style = MonoSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
                                 maxLines = 1,
                                 modifier = Modifier.graphicsLayer {
                                     val w = hintWords.value
@@ -635,12 +640,12 @@ fun ProfileScreen(navController: NavController) {
                         if (invalid) {
                             Text(
                                 text = (recap as? RecapAvailability.NotYet)?.comeBack.orEmpty(),
-                                style = PageTitle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, color = Color.White.copy(alpha = 0.6f)),
+                                style = PageTitle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant),
                                 modifier = Modifier.padding(top = 6.dp),
                             )
                             Text(
                                 text = "swipe up to close",
-                                style = MonoSmall.copy(color = Color.White.copy(alpha = 0.35f)),
+                                style = MonoSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)),
                                 modifier = Modifier.padding(top = 26.dp),
                             )
                         }
@@ -684,7 +689,7 @@ fun ProfileScreen(navController: NavController) {
                 ProgressiveGlassBackground(
                     state = glassState,
                     maxBlurRadius = { 55f * collapseProgress },
-                    foundationColor = Color.Black.copy(alpha = 0.55f * collapseProgress),
+                    foundationColor = MaterialTheme.colorScheme.background.copy(alpha = 0.55f * collapseProgress),
                     direction = BlurDirection.BottomToTop,
                     steps = 3,
                     modifier = Modifier
@@ -696,7 +701,11 @@ fun ProfileScreen(navController: NavController) {
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Black, Color.Black.copy(alpha = 0.85f * collapseProgress), Color.Transparent),
+                                listOf(
+                                    MaterialTheme.colorScheme.background,
+                                    MaterialTheme.colorScheme.background.copy(alpha = 0.85f * collapseProgress),
+                                    Color.Transparent,
+                                ),
                             ),
                         ),
                 )
@@ -707,7 +716,7 @@ fun ProfileScreen(navController: NavController) {
         Icon(
             painter = painterResource(R.drawable.ic_blossomtune_mark),
             contentDescription = "BlossomTune",
-            tint = Color.White,
+            tint = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier
                 .padding(start = HomeContentInset, top = statusBarTop + TopBarLogoTop)
                 .size(width = 31.dp, height = 34.dp)
@@ -807,7 +816,7 @@ private val PageTitle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 23.sp,
     letterSpacing = (-0.6).sp,
-    color = Color.White,
+    color = Color(0xFF0A1424),
 )
 
 private val MonoSmall = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)
@@ -841,23 +850,23 @@ private fun ListeningTimeCard(totalMs: Long, onViewStats: () -> Unit) {
                         .padding(horizontal = (14 * k).dp)
                         .width(1.dp)
                         .height((34 * k).dp)
-                        .background(Color.White.copy(alpha = 0.4f)),
+                        .background(MaterialTheme.colorScheme.outline),
                 )
                 TimeValue((totalMinutes % 60).toString(), "m", k)
                 Spacer(Modifier.width(10.dp))
                 Text(
                     "Total Listening\ntime",
-                    style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 18.sp, color = Color(0xFF7081A4), textAlign = TextAlign.End),
+                    style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End),
                     modifier = Modifier.weight(1f),
                 )
             }
         }
         Spacer(Modifier.height(14.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF32405C)))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
         Spacer(Modifier.height(12.dp))
         Text(
             "View Stats  >",
-            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF7081A4)),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant),
         )
     }
 }
@@ -870,12 +879,12 @@ private fun TimeValue(value: String, unit: String, k: Float) {
             fontSize = figureSp(44f * k),
             fontWeight = FontWeight.Bold,
             fontFamily = InterFontFamily,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             letterSpacing = (-2).sp,
         )
         Text(
             unit,
-            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(18f * k), color = Color.White),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(18f * k), color = MaterialTheme.colorScheme.onSurface),
             modifier = Modifier.padding(start = 1.dp, bottom = (6 * k).dp),
         )
     }
@@ -895,11 +904,11 @@ private fun VersionCard(updateHeadline: String?, onAbout: () -> Unit) {
                 .padding(CardPadding),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Version", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF8493B0)))
+                Text("Version", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant))
                 Text(
                     // "7.1.1 build#1093" -> "7.1.1"
                     BuildConfig.VERSION_NAME.substringBefore(' '),
-                    style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(44f * k), letterSpacing = (-2).sp, color = Color.White),
+                    style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(44f * k), letterSpacing = (-2).sp, color = MaterialTheme.colorScheme.onSurface),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -966,7 +975,7 @@ private fun VersionCapsule(update: Boolean, onAbout: () -> Unit) {
                 scaleY = pop.value
             }
             .clip(CircleShape)
-            .background(Color(0xFF364564))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
             .clickable {
                 when {
                     update || action == CapsuleAction.ABOUT -> onAbout()
@@ -1003,7 +1012,12 @@ private fun VersionCapsule(update: Boolean, onAbout: () -> Unit) {
         ) { label ->
             Text(
                 label,
-                style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White),
+                style = TextStyle(
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
                 maxLines = 1,
                 softWrap = false,
             )
@@ -1049,7 +1063,7 @@ private fun DeveloperCard(onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(CardPadding),
     ) {
-        Text("Developer page", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, letterSpacing = (-0.4).sp, color = Color(0xFF7081A4)))
+        Text("Developer page", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, letterSpacing = (-0.4).sp, color = MaterialTheme.colorScheme.onSurfaceVariant))
         Spacer(Modifier.height(12.dp))
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val k = widthScale(maxWidth.value + 40f) * if (maxOf(counts?.open ?: 0, counts?.resolved ?: 0) >= 100) 0.85f else 1f
@@ -1062,7 +1076,7 @@ private fun DeveloperCard(onClick: () -> Unit) {
                         .padding(horizontal = (12 * k).dp)
                         .width(1.dp)
                         .height((30 * k).dp)
-                        .background(Color.White.copy(alpha = 0.85f)),
+                        .background(MaterialTheme.colorScheme.outline),
                 )
                 DevFigure(counts?.resolved, "Resolved", k, Modifier.weight(1f, fill = false))
             }
@@ -1078,12 +1092,12 @@ private fun DevFigure(value: Int?, label: String, k: Float, modifier: Modifier =
             fontSize = figureSp(40f * k),
             fontWeight = FontWeight.Bold,
             fontFamily = InterFontFamily,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             letterSpacing = (-1.6).sp,
         )
         Text(
             label,
-            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(15f * k), letterSpacing = (-0.5).sp, color = Color(0xFF7081A4)),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(15f * k), letterSpacing = (-0.5).sp, color = MaterialTheme.colorScheme.onSurfaceVariant),
             maxLines = 1,
             modifier = Modifier.padding(start = 3.dp, bottom = (6 * k).dp),
         )
