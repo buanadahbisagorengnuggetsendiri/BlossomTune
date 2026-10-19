@@ -1,5 +1,21 @@
 [
   {
+    "versionName": "0.5.0",
+    "publishedAt": "2026-10-19",
+    "summary": "Tema terang monokrom: navy, abu, putih.",
+    "sections": [
+      {
+        "title": "Palet",
+        "items": [
+          "Aksen utama bukan biru lagi, tapi navy; tombol, ikon aktif, dan judul pakai warna yang sama.",
+          "Latar halaman jadi putih penuh; panel dan state terpilih pakai abu netral.",
+          "Teks sekunder digelapkan sedikit dari warna spec supaya tetap terbaca di atas putih; hasilnya lolos uji kontras WCAG AA.",
+          "Pill hero memakai kaca buram dengan ikon dan teks navy."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.2.0",
     "publishedAt": "2026-10-19",
     "summary": "Nama aplikasi berganti jadi BlossomTune dan warnanya jadi hitam, biru, putih.",
