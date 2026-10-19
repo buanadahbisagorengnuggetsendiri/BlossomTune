@@ -104,7 +104,8 @@ private const val IssueRowsShown = 6
 private fun devText(
     size: Float,
     weight: FontWeight = FontWeight.Bold,
-    color: Color = MaterialTheme.colorScheme.onSurface,
+    // Plain value: devText bukan @Composable, jadi default-nya tidak boleh membaca MaterialTheme.
+    color: Color = Color(0xFF0A1424),
     tracking: Float = -0.4f,
 ) = TextStyle(fontFamily = InterFontFamily, fontWeight = weight, fontSize = size.sp, letterSpacing = tracking.sp, color = color)
 
@@ -455,7 +456,7 @@ private fun FilterChips(selected: IssueFilter, countOf: (IssueFilter) -> Int, on
             val n = countOf(f)
             Text(
                 text = if (n > 0) "${f.label} $n" else f.label,
-                style = devText(13f, FontWeight.SemiBold, if (on) Color.White, -0.2f),
+                style = devText(13f, FontWeight.SemiBold, if (on) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, -0.2f),
                 maxLines = 1,
                 modifier = Modifier
                     .clip(CircleShape)

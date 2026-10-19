@@ -39,6 +39,7 @@ import dev.meowlabs.blossomtune.ui.component.ActionPromptDialog
 import dev.meowlabs.blossomtune.ui.component.SubSettingsScaffold
 import dev.meowlabs.blossomtune.ui.component.TextFieldDialog
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabCard
+import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabChip
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabChips
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabSectionLabel
