@@ -37,6 +37,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -152,7 +153,7 @@ fun DeveloperSpaceScreen(navController: NavController) {
     var showAllOpen by remember { mutableStateOf(false) }
     var showAllResolved by remember { mutableStateOf(false) }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // glassRoot wraps the content only; the glass bar below is a sibling (see glassroot-rendernode-crash)
         Box(
             Modifier

@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -211,7 +212,9 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            // Latar halaman ini digambar sendiri di sini, bukan oleh parent - dulu
+            // selalu hitam, jadi tetap hitam walau temanya terang.
+            .background(MaterialTheme.colorScheme.background),
     ) {
         // Scrollable content. glassRoot wraps only this box - never a sibling that also reads
         // glassState to draw the blur, such as SearchGlassTopBar below - or that sibling's draw
