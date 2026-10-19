@@ -1,5 +1,19 @@
 [
   {
+    "versionName": "0.5.1",
+    "publishedAt": "2026-10-19",
+    "summary": "Tombol navbar aktif biru yang mendominasi.",
+    "sections": [
+      {
+        "title": "Navbar",
+        "items": [
+          "Item aktif sekarang pill biru dengan ikon putih, bukan lagi putih di atas kaca putih yang tidak terbaca.",
+          "Item nonaktif memakai ikon navy supaya terlihat di bar putih."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.0",
     "publishedAt": "2026-10-19",
     "summary": "Tema terang monokrom: navy, abu, putih.",
