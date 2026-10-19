@@ -11,9 +11,12 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
@@ -25,15 +28,18 @@ import com.materialkolor.rememberDynamicColorScheme
 import com.materialkolor.score.Score
 
 /**
- * Palet aplikasi: **hitam** latar, **biru** aksen, **putih** teks.
+ * Palet aplikasi. Terang = palet najstore.id, gelap = palet lama (hitam/biru/putih).
  *
  * Nilainya bukan selera. Setiap pasangan teks/latar di bawah sudah diuji
  * kontrasnya (WCAG AA, >= 4.5) di `PaletteContrastTest`; mengubah satu warna
  * tanpa menjalankan tes itu berarti menukar keterbacaan dengan selera.
  *
- * Biru ada dua nada, bukan satu: biru yang enak dibaca di atas hitam terlalu
- * terang untuk latar tombol berisi teks gelap, dan biru yang enak dijadikan
- * latar tombol terlalu gelap untuk dibaca di atas hitam.
+ * Aksen ada dua nada, bukan satu: aksen yang enak dibaca di atas putih terlalu
+ * gelap untuk dibaca di atas hitam, dan sebaliknya. Karena itu tiap mode punya
+ * nadanya sendiri (najstore: `#0F6CF5` di terang, `#4D8DFF` di gelap).
+ *
+ * Nilai terang disalin dari `~/roblox-top-up-system/styles/globals.css`
+ * (`:root`) — kalau najstore ganti palet, ganti di sini juga.
  */
 object BlossomColors {
     // --- gelap ---
@@ -49,15 +55,23 @@ object BlossomColors {
     val NightCard = Color(0xFF101827)     // kartu di atas latar hitam
     val OnNightCard = Color(0xFFC9D6E8)
 
-    // --- terang ---
-    val BlueDeep = Color(0xFF1A56DB)
-    val BluePale = Color(0xFFDCE7FF)
-    val OnBluePale = Color(0xFF06122E)
-    val Indigo = Color(0xFF1E3A8A)
-    val PaperSoft = Color(0xFFEEF2F8)
-    val Ink = Color(0xFF0B1220)           // teks di atas latar putih
-    val InkSoft = Color(0xFF1B2430)
-    val PaperIndigo = Color(0xFFE6EDF9)
+    // --- terang (najstore.id) ---
+    val BlueDeep = Color(0xFF0F6CF5)      // najstore primary
+    val OnBlueDeep = Color(0xFFFFFFFF)    // teks di atas tombol biru terang
+    val BluePale = Color(0xFFEAF2FF)      // najstore secondary
+    val OnBluePale = Color(0xFF0B4FC0)    // najstore secondary-foreground
+    val Indigo = Color(0xFF0B4FC0)
+    val PaperSoft = Color(0xFFF4F7FB)     // najstore muted
+    val Ink = Color(0xFF0A1424)           // najstore foreground
+    val InkSoft = Color(0xFF5B6B82)       // najstore muted-foreground
+    val PaperIndigo = Color(0xFFEAF2FF)
+    val Line = Color(0xFFE5EAF2)          // najstore border
+    val LineSoft = Color(0xFFEDF1F6)
+    val Error = Color(0xFFDC2626)         // najstore destructive
+    val ErrorPale = Color(0xFFFEE2E2)
+    val ErrorInk = Color(0xFF7F1D1D)
+    val InverseSurface = Color(0xFF0A1424)
+    val InverseOnSurface = Color(0xFFF9FAFB)
 }
 
 val DefaultThemeColor = BlossomColors.Blue
@@ -82,30 +96,88 @@ val DarkPalette: ColorScheme = darkColorScheme(
 
 val LightPalette: ColorScheme = lightColorScheme(
     primary = BlossomColors.BlueDeep,
-    onPrimary = BlossomColors.White,
+    onPrimary = BlossomColors.OnBlueDeep,
     primaryContainer = BlossomColors.BluePale,
     onPrimaryContainer = BlossomColors.OnBluePale,
     secondary = BlossomColors.Indigo,
     onSecondary = BlossomColors.White,
     secondaryContainer = BlossomColors.PaperIndigo,
     onSecondaryContainer = BlossomColors.Ink,
+    tertiary = BlossomColors.Indigo,
+    onTertiary = BlossomColors.White,
+    tertiaryContainer = BlossomColors.PaperIndigo,
+    onTertiaryContainer = BlossomColors.Ink,
     background = BlossomColors.White,
     onBackground = BlossomColors.Ink,
     surface = BlossomColors.White,
     onSurface = BlossomColors.Ink,
     surfaceVariant = BlossomColors.PaperSoft,
     onSurfaceVariant = BlossomColors.InkSoft,
-    surfaceTint = BlossomColors.White
+    surfaceTint = BlossomColors.BlueDeep,
+    inverseSurface = BlossomColors.InverseSurface,
+    inverseOnSurface = BlossomColors.InverseOnSurface,
+    error = BlossomColors.Error,
+    onError = BlossomColors.White,
+    errorContainer = BlossomColors.ErrorPale,
+    onErrorContainer = BlossomColors.ErrorInk,
+    outline = BlossomColors.Line,
+    outlineVariant = BlossomColors.LineSoft,
+    scrim = BlossomColors.Black,
+    // Tangga permukaan terang digambar dari halaman ke bawah, bukan ke atas:
+    // kartu harus LEBIH GELAP dari latar, kalau tidak kartunya hilang.
+    // (Di mode gelap kebalikannya — surface lebih terang dari background.)
+    surfaceBright = BlossomColors.White,
+    surfaceDim = BlossomColors.LineSoft,
+    surfaceContainerLowest = BlossomColors.White,
+    surfaceContainerLow = BlossomColors.InverseOnSurface,
+    surfaceContainer = BlossomColors.PaperSoft,
+    surfaceContainerHigh = BlossomColors.LineSoft,
+    surfaceContainerHighest = BlossomColors.Line
 )
 
 /**
- * blossomtune renders dark-only.
+ * blossomtune renders light (najstore.id palette).
  *
- * The light palette was never finished - large parts of the UI hardcode white text and dark
- * glass - so on a light-mode phone the app looked broken rather than light. Pinned here as one
- * switch instead of being decided independently at every call site.
+ * Diganti dari `true` waktu palet terang dipasang; sebelumnya `true` karena palet
+ * terang belum pernah kelar — UI-nya hardcode teks putih dan kaca gelap, jadi di HP
+ * mode terang appnya kelihatan rusak, bukan terang. Sekarang sisanya sudah ikut
+ * skema (`MaterialTheme.colorScheme`), jadi mode terang bisa dipakai.
+ *
+ * Satu switch, bukan keputusan terpisah di tiap call site.
  */
-const val ForceDarkTheme = true
+const val ForceDarkTheme = false
+
+/**
+ * Permukaan sheet dan bilah kaca — yang dulu hardcode gelap.
+ *
+ * "Kaca gelap" di atas halaman putih jadi kotak hitam, dan tinta putih di atasnya
+ * hilang. Jadi permukaannya ikut mode: di terang `sheet` putih, `row` abu najstore
+ * (`#F4F7FB`), bukan `#080A0F`/`#10151F`. Nilai gelap tidak diubah sama sekali.
+ */
+data class BlossomSurfaces(
+    val chrome: Color,   // bilah kaca atas/bawah (bottom bar, mini player)
+    val sheet: Color,    // latar sheet
+    val row: Color,      // baris/kartu di dalam sheet
+)
+
+val DarkSurfaces = BlossomSurfaces(
+    chrome = Color(0xFF0C0F15),
+    sheet = Color(0xFF080A0F),
+    row = Color(0xFF10151F),
+)
+
+val LightSurfaces = BlossomSurfaces(
+    chrome = Color(0xFFF7F9FC),
+    sheet = Color(0xFFFFFFFF),
+    row = Color(0xFFF4F7FB),
+)
+
+/** Default mengikuti `ForceDarkTheme`, jadi kode yang belum ikut mode tetap benar. */
+val LocalBlossomSurfaces = staticCompositionLocalOf { if (ForceDarkTheme) DarkSurfaces else LightSurfaces }
+
+/** Permukaan untuk mode yang sedang aktif. Harus dibaca di scope `@Composable`. */
+val BlossomSurface: BlossomSurfaces
+    @Composable @ReadOnlyComposable get() = LocalBlossomSurfaces.current
 
 @Composable
 fun BlossomTuneTheme(
@@ -137,8 +209,12 @@ fun BlossomTuneTheme(
     ) {
         ProvideTextStyle(
             value = AppTypography.bodyLarge,
-            content = content
-        )
+        ) {
+            CompositionLocalProvider(
+                LocalBlossomSurfaces provides if (darkTheme) DarkSurfaces else LightSurfaces,
+                content = content
+            )
+        }
     }
 }
 

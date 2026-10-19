@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,7 +56,8 @@ import dev.meowlabs.blossomtune.LocalPlayerConnection
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.component.AppSwitch
 
-private val CardSurface = MenuRowSurface
+private val CardSurface: Color
+    @Composable @ReadOnlyComposable get() = MenuRowSurface
 private val SheetEasing = MenuEasing
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)

@@ -4,6 +4,7 @@ import android.graphics.RenderNode
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
+import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -177,11 +178,14 @@ fun Modifier.glassRoot(state: GlassState, isActive: () -> Boolean = { true }): M
 /**
  * Backdrop colour for the floating glass chrome - the navigation pill and the mini player.
  *
- * Deliberately a fixed dark tone rather than `MaterialTheme.colorScheme.surfaceContainer`: the
+ * Deliberately a fixed tone rather than `MaterialTheme.colorScheme.surfaceContainer`: the
  * Material You colour follows the wallpaper accent and washes these surfaces out. They are drawn
  * with white icons over a white hairline border, so they are meant to read as dark glass.
+ *
+ * Nadanya ikut mode lewat [BlossomSurface] - kaca gelap di atas halaman putih jadi kotak hitam.
  */
-val GlassChromeColor = Color(0xFF0C0F15)
+val GlassChromeColor: Color
+    @Composable @ReadOnlyComposable get() = BlossomSurface.chrome
 
 /** Backdrop blur for that chrome, heavier than the 24f default so it reads as properly frosted. */
 const val GlassChromeBlurRadius = 48f

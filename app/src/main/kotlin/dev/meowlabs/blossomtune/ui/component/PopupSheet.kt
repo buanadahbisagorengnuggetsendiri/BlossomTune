@@ -74,6 +74,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -585,6 +586,10 @@ private fun BoxWithConstraintsScope.PopupSheetFrame(
     val shape = remember(metrics.isTablet) { sheetSurfaceShape(metrics.isTablet) }
     val minHeight = if (metrics.isTablet) 0.dp else with(LocalDensity.current) { frame.minHeightPx.toDp() }
 
+    // Diangkat ke luar drawBehind: draw lambda bukan scope @Composable.
+    val sheetFill = frame.surface ?: MenuSurface
+    val rowFill = MenuRowSurface
+
     Box(
         modifier = Modifier
             .align(if (metrics.isTablet) Alignment.Center else Alignment.BottomCenter)
@@ -615,7 +620,7 @@ private fun BoxWithConstraintsScope.PopupSheetFrame(
                 val frames = state.frames
                 val index = frames.indexOf(frame)
                 val recede = if (index < 0) 0f else frames.depthAbove(index).coerceAtMost(1f)
-                drawRect(lerp(frame.surface ?: MenuSurface, MenuRowSurface, recede))
+                drawRect(lerp(sheetFill, rowFill, recede))
             }
             // The whole sheet is a touch target, not just the parts of its content that have one -
             // otherwise a tap on an empty patch (beside a row, around the button bar) fell
@@ -753,4 +758,5 @@ private fun SheetBody(
 }
 
 /** Elevated row/card/button sitting directly on a [MenuSurface] sheet - see docs/popup-sheet.skill.md. */
-val PopupSheetRowSurface: Color get() = MenuRowSurface
+val PopupSheetRowSurface: Color
+    @Composable @ReadOnlyComposable get() = MenuRowSurface

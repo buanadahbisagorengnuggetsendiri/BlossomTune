@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -43,7 +44,8 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlin.math.abs
 import kotlin.math.log2
 
-private val CardSurface = MenuRowSurface
+private val CardSurface: Color
+    @Composable @ReadOnlyComposable get() = MenuRowSurface
 
 @Composable
 fun PlaybackSpeedSheet(onDismiss: () -> Unit) {

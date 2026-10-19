@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -38,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
+import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -63,8 +65,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-val MenuSurface = Color(0xFF080A0F)
-val MenuRowSurface = Color(0xFF10151F)
+/**
+ * Latar sheet dan barisnya. Ikut mode lewat [BlossomSurface]; dulu nilainya hardcode
+ * gelap, dan tinta `Color.White` di atasnya ikut jadi salah di mode terang.
+ *
+ * Karena `@Composable`, pemakaiannya harus di scope `@Composable` — nilai yang
+ * dibaca di dalam `drawBehind`/`Canvas` diangkat dulu ke luar lambda.
+ */
+val MenuSurface: Color
+    @Composable @ReadOnlyComposable get() = BlossomSurface.sheet
+val MenuRowSurface: Color
+    @Composable @ReadOnlyComposable get() = BlossomSurface.row
 
 internal val MenuEasing = CubicBezierEasing(0.57f, 0.53f, 0f, 1f)
 
@@ -416,6 +427,10 @@ fun MenuSheetSurface(
 
         val sheetShape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
 
+        // Diangkat ke luar drawBehind: draw lambda bukan scope @Composable.
+        val sheetFill = MenuSurface
+        val rowFill = MenuRowSurface
+
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -469,7 +484,7 @@ fun MenuSheetSurface(
                         val index = entries.indexOf(entry)
                         if (index >= 0) recede = entries.depthAbove(index).coerceAtMost(1f)
                     }
-                    drawRect(lerp(MenuSurface, MenuRowSurface, recede))
+                    drawRect(lerp(sheetFill, rowFill, recede))
                 }
         ) {
             val dragHandle = Modifier.draggable(
