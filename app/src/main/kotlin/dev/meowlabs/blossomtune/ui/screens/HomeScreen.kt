@@ -552,7 +552,8 @@ private fun HomeShell() {
             Icon(
                 painter = painterResource(R.drawable.ic_blossomtune_mark),
                 contentDescription = "BlossomTune",
-                tint = Color.White,
+                // Header skeleton: belum ada artwork di belakangnya, jadi tintanya tinta halaman.
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .launchMarkTarget()
                     .size(HomeMarkWidth, HomeMarkHeight)
@@ -1451,7 +1452,8 @@ fun HomeScreen(
                                                     Icon(
                                                         painter = painterResource(id = R.drawable.person),
                                                         contentDescription = null,
-                                                        tint = Color.White.copy(alpha = 0.69f),
+                                                        // Ikon profil duduk di halaman, bukan di atas artwork.
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         modifier = Modifier.size(30.dp)
                                                     )
                                                 }
