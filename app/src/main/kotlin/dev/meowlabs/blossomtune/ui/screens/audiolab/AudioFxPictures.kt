@@ -150,7 +150,7 @@ fun ReverbPicture(settings: ReverbSettings) {
         // the wall, lit for a moment by each wave that reaches it
         val wallH = h * 0.62f
         drawRoundRect(
-            Color.White.copy(alpha = (0.18f + 0.55f * on + 0.6f * flash).coerceAtMost(1f)),
+            LabColors.Primary.copy(alpha = (0.18f + 0.55f * on + 0.6f * flash).coerceAtMost(1f)),
             Offset(wallX, cy - wallH / 2), Size(5.dp.toPx(), wallH), CornerRadius(3.dp.toPx()),
         )
         drawSpeaker(Offset(speakerX, cy), 1f + clock.level.punch * 0.12f)
@@ -166,9 +166,9 @@ private fun DrawScope.drawWave(x: Float, cy: Float, h: Float, travelled: Float, 
         quadraticTo(x + bulge, cy, x - bulge * 0.2f, cy + reach)
     }
     if (softness > 0.15f) {
-        drawPath(path, Color.White.copy(alpha = alpha * 0.25f * softness), style = Stroke(7.dp.toPx() * softness, cap = StrokeCap.Round))
+        drawPath(path, LabColors.Primary.copy(alpha = alpha * 0.25f * softness), style = Stroke(7.dp.toPx() * softness, cap = StrokeCap.Round))
     }
-    drawPath(path, Color.White.copy(alpha = alpha.coerceAtMost(1f)), style = Stroke((2.2f - softness).dp.toPx(), cap = StrokeCap.Round))
+    drawPath(path, LabColors.Primary.copy(alpha = alpha.coerceAtMost(1f)), style = Stroke((2.2f - softness).dp.toPx(), cap = StrokeCap.Round))
 }
 
 private fun DrawScope.drawSpeaker(center: Offset, scale: Float) {
@@ -182,7 +182,7 @@ private fun DrawScope.drawSpeaker(center: Offset, scale: Float) {
         lineTo(center.x - s * 1.1f, center.y + s * 0.45f)
         close()
     }
-    drawPath(body, Color.White.copy(alpha = 0.92f), style = Stroke(1.6.dp.toPx()))
+    drawPath(body, LabColors.Primary.copy(alpha = 0.92f), style = Stroke(1.6.dp.toPx()))
 }
 
 // ---- Loudness: the music's level, lifted by the boost and flattened under the ceiling ---------
@@ -232,11 +232,11 @@ fun LoudnessPicture(settings: LoudnessSettings, fx: AudioFxService) {
             // what came in, faint; what goes out, solid, mirrored around the middle like a waveform
             val inHalf = (bottom - yIn) / 2f
             val outHalf = (bottom - yOut) / 2f
-            drawRoundRect(Color.White.copy(alpha = 0.12f), Offset(x, mid - inHalf), Size(barW * 0.62f, inHalf * 2),
+            drawRoundRect(LabColors.Primary.copy(alpha = 0.12f), Offset(x, mid - inHalf), Size(barW * 0.62f, inHalf * 2),
                 CornerRadius(barW * 0.3f))
             val limited = on > 0.5f && outDb >= -0.6f
             drawRoundRect(
-                if (limited) Color.White else Color.White.copy(alpha = 0.72f),
+                if (limited) LabColors.Primary else LabColors.Primary.copy(alpha = 0.72f),
                 Offset(x, mid - outHalf), Size(barW * 0.62f, outHalf * 2), CornerRadius(barW * 0.3f),
             )
         }
@@ -244,15 +244,15 @@ fun LoudnessPicture(settings: LoudnessSettings, fx: AudioFxService) {
         val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()))
         val mid = (top + bottom) / 2f
         val half = (bottom - ceiling) / 2f
-        drawLine(Color.White.copy(alpha = 0.3f * on + 0.08f), Offset(10.dp.toPx(), mid - half), Offset(w - 10.dp.toPx(), mid - half),
+        drawLine(LabColors.Primary.copy(alpha = 0.3f * on + 0.08f), Offset(10.dp.toPx(), mid - half), Offset(w - 10.dp.toPx(), mid - half),
             1.dp.toPx(), pathEffect = dash)
-        drawLine(Color.White.copy(alpha = 0.3f * on + 0.08f), Offset(10.dp.toPx(), mid + half), Offset(w - 10.dp.toPx(), mid + half),
+        drawLine(LabColors.Primary.copy(alpha = 0.3f * on + 0.08f), Offset(10.dp.toPx(), mid + half), Offset(w - 10.dp.toPx(), mid + half),
             1.dp.toPx(), pathEffect = dash)
         // how hard it's working right now
         val reduction = (-fx.loudnessReductionDb).coerceIn(0f, 12f) / 12f * on
         if (reduction > 0.01f) {
             val meterH = (bottom - top) * reduction
-            drawRoundRect(Color.White.copy(alpha = 0.85f), Offset(w - 7.dp.toPx(), top), Size(3.dp.toPx(), meterH), CornerRadius(2.dp.toPx()))
+            drawRoundRect(LabColors.Primary.copy(alpha = 0.85f), Offset(w - 7.dp.toPx(), top), Size(3.dp.toPx(), meterH), CornerRadius(2.dp.toPx()))
         }
     }
 }
@@ -275,14 +275,14 @@ fun SpatialPicture(settings: SpatialSettings) {
         val pulse = clock.level.punch
 
         // head, nose up, ears
-        drawCircle(Color.White.copy(alpha = 0.9f), r, head, style = Stroke(1.6.dp.toPx()))
+        drawCircle(LabColors.Primary.copy(alpha = 0.9f), r, head, style = Stroke(1.6.dp.toPx()))
         drawPath(Path().apply {
             moveTo(head.x - 4.dp.toPx(), head.y - r + 1.dp.toPx())
             lineTo(head.x, head.y - r - 6.dp.toPx())
             lineTo(head.x + 4.dp.toPx(), head.y - r + 1.dp.toPx())
-        }, Color.White.copy(alpha = 0.9f), style = Stroke(1.6.dp.toPx()))
-        drawCircle(Color.White, 3.dp.toPx(), earL)
-        drawCircle(Color.White, 3.dp.toPx(), earR)
+        }, LabColors.Primary.copy(alpha = 0.9f), style = Stroke(1.6.dp.toPx()))
+        drawCircle(LabColors.Primary, 3.dp.toPx(), earL)
+        drawCircle(LabColors.Primary, 3.dp.toPx(), earR)
 
         // stereo as headphones play it: each side only in its own ear, inside the head
         val inside = 1f - on
@@ -349,7 +349,7 @@ fun AtmosPicture(enabled: Boolean, renderOnHeadphones: Boolean) {
         val rx = w * 0.36f
         val ry = h * 0.2f
         val dome = h * 0.56f
-        val line = Color.White.copy(alpha = 0.12f + 0.2f * on)
+        val line = LabColors.Primary.copy(alpha = 0.12f + 0.2f * on)
 
         // floor ring and dome
         drawOval(line, Offset(c.x - rx, c.y - ry), Size(rx * 2, ry * 2), style = Stroke(1.dp.toPx()))
@@ -365,18 +365,18 @@ fun AtmosPicture(enabled: Boolean, renderOnHeadphones: Boolean) {
         bed.forEach { az ->
             val a = Math.toRadians(az.toDouble() - 90)
             val p = Offset(c.x + (cos(a) * rx).toFloat(), c.y + (sin(a) * ry).toFloat())
-            drawCircle(Color.White.copy(alpha = 0.25f + 0.45f * on), 2.6.dp.toPx(), p)
+            drawCircle(LabColors.Primary.copy(alpha = 0.25f + 0.45f * on), 2.6.dp.toPx(), p)
         }
         if (on > 0.01f) {
             listOf(-45f, 45f, -135f, 135f).forEach { az ->
                 val a = Math.toRadians(az.toDouble() - 90)
                 val p = Offset(c.x + (cos(a) * rx * 0.62f).toFloat(), c.y + (sin(a) * ry * 0.62f).toFloat() - dome * 0.72f)
-                drawCircle(Color.White.copy(alpha = 0.55f * on), 2.6.dp.toPx(), p)
+                drawCircle(LabColors.Primary.copy(alpha = 0.55f * on), 2.6.dp.toPx(), p)
             }
         }
 
         // the listener
-        drawCircle(Color.White.copy(alpha = 0.9f), 9.dp.toPx(), Offset(c.x, c.y - 4.dp.toPx()), style = Stroke(1.5.dp.toPx()))
+        drawCircle(LabColors.Primary.copy(alpha = 0.9f), 9.dp.toPx(), Offset(c.x, c.y - 4.dp.toPx()), style = Stroke(1.5.dp.toPx()))
 
         // objects: with Atmos they fly around and above; without, they flatten into stereo
         val colors = listOf(Color(0xFF6BBAF2), Color(0xFFF28BA8), Color(0xFF8FD98B))
@@ -418,14 +418,14 @@ fun SpeedPicture(settings: PlaybackSettings) {
 
         // the record
         drawCircle(Color(0xFF16161A), disc, c)
-        for (g in 1..5) drawCircle(Color.White.copy(alpha = 0.06f), disc * (0.45f + g * 0.1f), c, style = Stroke(1.dp.toPx()))
+        for (g in 1..5) drawCircle(LabColors.Primary.copy(alpha = 0.06f), disc * (0.45f + g * 0.1f), c, style = Stroke(1.dp.toPx()))
         rotate(spin.angle, c) {
             drawArc(
-                Brush.sweepGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.22f), Color.Transparent), c),
+                Brush.sweepGradient(listOf(Color.Transparent, LabColors.Primary.copy(alpha = 0.22f), Color.Transparent), c),
                 startAngle = 0f, sweepAngle = 70f, useCenter = true,
                 topLeft = Offset(c.x - disc, c.y - disc), size = Size(disc * 2, disc * 2),
             )
-            drawCircle(Color.White.copy(alpha = 0.9f), disc * 0.3f, c)
+            drawCircle(LabColors.Primary.copy(alpha = 0.9f), disc * 0.3f, c)
             drawCircle(Color.Black, disc * 0.06f, Offset(c.x, c.y - disc * 0.16f))
         }
         drawCircle(Color.Black, disc * 0.05f, c)
@@ -444,7 +444,7 @@ fun SpeedPicture(settings: PlaybackSettings) {
             if (x == left) path.moveTo(x, y) else path.lineTo(x, y)
             x += 2.dp.toPx()
         }
-        drawPath(path, Color.White.copy(alpha = 0.9f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+        drawPath(path, LabColors.Primary.copy(alpha = 0.9f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
     }
 }
 
@@ -462,11 +462,11 @@ fun VolumeCurvePicture(settings: VolumeSettings, volume: Float) {
         fun at(p: Float) = Offset(plot.left + p * plot.width, plot.bottom - limit * p.pow(exponent) * plot.height)
 
         // linear, for comparison
-        drawLine(Color.White.copy(alpha = 0.16f), Offset(plot.left, plot.bottom), Offset(plot.right, plot.top), 1.dp.toPx(),
+        drawLine(LabColors.Primary.copy(alpha = 0.16f), Offset(plot.left, plot.bottom), Offset(plot.right, plot.top), 1.dp.toPx(),
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx())))
         if (limit < 0.999f) {
             val y = plot.bottom - limit * plot.height
-            drawLine(Color.White.copy(alpha = 0.3f), Offset(plot.left, y), Offset(plot.right, y), 1.dp.toPx(),
+            drawLine(LabColors.Primary.copy(alpha = 0.3f), Offset(plot.left, y), Offset(plot.right, y), 1.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 3.dp.toPx())))
         }
         val curve = Path()
@@ -478,15 +478,15 @@ fun VolumeCurvePicture(settings: VolumeSettings, volume: Float) {
         }
         fill.lineTo(plot.right, plot.bottom)
         fill.close()
-        drawPath(fill, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.14f), Color.Transparent), plot.top, plot.bottom))
-        drawPath(curve, Color.White, style = Stroke(2.2.dp.toPx(), cap = StrokeCap.Round))
+        drawPath(fill, Brush.verticalGradient(listOf(LabColors.Primary.copy(alpha = 0.14f), Color.Transparent), plot.top, plot.bottom))
+        drawPath(curve, LabColors.Primary, style = Stroke(2.2.dp.toPx(), cap = StrokeCap.Round))
         // ten equal steps of the slider: see how small the quiet ones are
         for (i in 1..9) {
             val p = at(i / 10f)
-            drawLine(Color.White.copy(alpha = 0.25f), Offset(p.x, plot.bottom), Offset(p.x, p.y), 1.dp.toPx())
+            drawLine(LabColors.Primary.copy(alpha = 0.25f), Offset(p.x, plot.bottom), Offset(p.x, p.y), 1.dp.toPx())
         }
         val dot = at(position.coerceIn(0f, 1f))
-        drawCircle(Color.White.copy(alpha = 0.18f + 0.2f * clock.level.punch), 11.dp.toPx(), dot)
-        drawCircle(Color.White, 5.dp.toPx(), dot)
+        drawCircle(LabColors.Primary.copy(alpha = 0.18f + 0.2f * clock.level.punch), 11.dp.toPx(), dot)
+        drawCircle(LabColors.Primary, 5.dp.toPx(), dot)
     }
 }

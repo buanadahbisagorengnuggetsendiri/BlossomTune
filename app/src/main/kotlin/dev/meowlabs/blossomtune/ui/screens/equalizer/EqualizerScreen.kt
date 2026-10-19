@@ -190,7 +190,7 @@ private fun Presets(
     }
     val chips = buildList {
         if (eq.presetId == null) add(LabChip("custom", "Custom"))
-        presets.forEach { add(LabChip(it.id, it.name, dot = androidx.compose.ui.graphics.Color.White)) }
+        presets.forEach { add(LabChip(it.id, it.name, dot = LabColors.Primary)) }
         EqPresets.BuiltIn.forEach { add(LabChip(it.id, it.name)) }
     }
     LabChips(
