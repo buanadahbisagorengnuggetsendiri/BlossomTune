@@ -74,7 +74,7 @@ class PaletteContrastTest {
         assertEquals(BlossomColors.Blue, DarkPalette.primary)
         assertTrue("aksen harus biru", BlossomColors.Blue.blue > BlossomColors.Blue.red)
         assertTrue("aksen harus biru", BlossomColors.Blue.blue > BlossomColors.Blue.green)
-        assertEquals(BlossomColors.Blue, DefaultThemeColor)
+        assertEquals(BlossomColors.Navy, DefaultThemeColor)
     }
 
     /**

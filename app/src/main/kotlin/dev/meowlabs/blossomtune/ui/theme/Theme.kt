@@ -75,7 +75,8 @@ object BlossomColors {
     val InverseOnSurface = Color(0xFFF9FAFB)
 }
 
-val DefaultThemeColor = BlossomColors.Blue
+/** Warna tema default (seed artwork/player). Navy, bukan biru — biru cuma untuk mode gelap. */
+val DefaultThemeColor = BlossomColors.Navy
 
 val DarkPalette: ColorScheme = darkColorScheme(
     primary = BlossomColors.Blue,
