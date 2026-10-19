@@ -373,7 +373,7 @@ fun AppNavigationBar(
                     // Tombol aktif = pill biru yang mendominasi bar; ikon di dalamnya
                     // putih. Putih di atas kaca putih tidak terbaca sama sekali.
                     val targetBackgroundColor = if (isSelected) {
-                        dev.meowlabs.blossomtune.ui.theme.BlossomColors.Blue
+                        dev.meowlabs.blossomtune.ui.theme.BlossomColors.NavBlue
                     } else Color.Transparent
 
                     val animatedBackgroundColor by animateColorAsState(
