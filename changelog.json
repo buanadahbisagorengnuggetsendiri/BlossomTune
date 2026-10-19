@@ -1,5 +1,29 @@
 [
   {
+    "versionName": "0.2.0",
+    "publishedAt": "2026-10-19",
+    "summary": "Nama aplikasi berganti jadi BlossomTune dan warnanya jadi hitam, biru, putih.",
+    "sections": [
+      {
+        "title": "Nama dan paket",
+        "items": [
+          "Aplikasi ini sekarang bernama BlossomTune; rilis sebelumnya memakai nama Stereonism.",
+          "Paket berubah jadi dev.meowlabs.blossomtune. Pemasangan versi lama tidak bisa ditimpa versi ini, jadi perlu dipasang ulang.",
+          "Nama repositori GitHub ikut berganti jadi BlossomTune."
+        ]
+      },
+      {
+        "title": "Palet",
+        "items": [
+          "Latar jadi hitam, aksen biru, teks putih. Sebelumnya seluruh antarmuka abu-abu.",
+          "Aksen biru dipakai dua nada: biru yang enak dibaca di atas hitam terlalu terang untuk latar tombol, dan sebaliknya.",
+          "Kontras setiap pasangan teks dan latar diuji otomatis (WCAG AA) di mode gelap maupun terang, termasuk keadaan latar hitam penuh.",
+          "Bagian yang meniru benda nyata sengaja tidak diwarnai ulang: piringan hitam, meja putar, gradien kartu ID, dan sampul layanan musik."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.1.0",
     "publishedAt": "2026-10-17",
     "summary": "Rilis pertama BlossomTune: pemutar musik Android dari basis Musicfy.",
