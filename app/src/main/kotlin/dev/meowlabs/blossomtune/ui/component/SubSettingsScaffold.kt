@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -85,6 +86,15 @@ private val OverlayEasing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
 
 private val SearchBarHeight = 52.dp
 
+// Dipakai dua composable di file ini (scaffold + kolom cari), jadi file-scope
+// getter - bukan `val` lokal yang cuma hidup di satu fungsi.
+private val fieldFill: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.surfaceVariant
+private val fieldInk: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurface
+private val fieldInkMuted: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
 @Composable
 fun SubSettingsScaffold(
     title: String,
@@ -101,9 +111,6 @@ fun SubSettingsScaffold(
     // Header dan kolom cari ikut halaman. Dulu hitam + tinta putih; di halaman
     // terang header-nya jadi pita hitam dan tintanya hilang.
     val headerFoundationColor = MaterialTheme.colorScheme.background
-    val fieldFill = MaterialTheme.colorScheme.surfaceVariant
-    val fieldInk = MaterialTheme.colorScheme.onSurface
-    val fieldInkMuted = MaterialTheme.colorScheme.onSurfaceVariant
 
     // Latch-and-settle collapse, same as Library/Search: once the threshold is crossed the morph
     // always finishes smoothly, even after the user's finger lifts mid-scroll.
