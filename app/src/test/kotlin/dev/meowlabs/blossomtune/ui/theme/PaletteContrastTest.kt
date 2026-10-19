@@ -78,21 +78,28 @@ class PaletteContrastTest {
     }
 
     /**
-     * Mode terang memakai palet najstore.id, dan itu yang benar-benar dirender
-     * (`ForceDarkTheme` = false). Nilainya disalin dari
-     * `~/roblox-top-up-system/styles/globals.css`; kalau najstore ganti palet,
-     * tes ini yang menahan sampai nilainya ikut diganti.
+     * Mode terang memakai palet BlossomTune, dan itu yang benar-benar dirender
+     * (`ForceDarkTheme` = false).
+     *
+     * Dua role sengaja TIDAK sama dengan spec desain, karena spec-nya gagal WCAG AA:
+     * primary #3478F6 (teks putih = 4.07) dirender #2C6ADF, dan slate #66758F
+     * (di atas soft blue = 4.16) dirender #5D6B85. Nilai spec tetap disimpan di
+     * `BlossomColors.SpecBlue` / `SpecSlate` supaya rujukannya tidak hilang.
      */
     @Test
-    fun lightPalette_isNajstoreNavyBlueOnWhite() {
+    fun lightPalette_isBlossomTuneNavyOnIceWhite() {
         assertEquals(false, ForceDarkTheme)
-        assertEquals(Color(0xFF0F6CF5), LightPalette.primary)      // najstore primary
-        assertEquals(Color(0xFFEAF2FF), LightPalette.primaryContainer)
-        assertEquals(Color(0xFF0B4FC0), LightPalette.onPrimaryContainer)
-        assertEquals(Color(0xFFFFFFFF), LightPalette.background)
-        assertEquals(Color(0xFF0A1424), LightPalette.onBackground)  // najstore foreground
-        assertEquals(Color(0xFFF4F7FB), LightPalette.surfaceVariant)
-        assertEquals(Color(0xFFE5EAF2), LightPalette.outline)
+        assertEquals(Color(0xFF2C6ADF), LightPalette.primary)        // spec #3478F6, digelapkan utk AA
+        assertEquals(Color(0xFFEAF3FF), LightPalette.primaryContainer)
+        assertEquals(Color(0xFF101A33), LightPalette.onPrimaryContainer)
+        assertEquals(Color(0xFFF7FAFF), LightPalette.background)     // ice white
+        assertEquals(Color(0xFF101A33), LightPalette.onBackground)   // navy
+        assertEquals(Color(0xFFEAF3FF), LightPalette.surfaceVariant) // soft blue panel
+        assertEquals(Color(0xFFDDE5F0), LightPalette.outline)
+        assertEquals(Color(0xFFFFFFFF), LightPalette.surface)        // kartu putih
+        // Spec asli harus tetap ada di kode, bukan hilang tanpa jejak.
+        assertEquals(Color(0xFF3478F6), BlossomColors.SpecBlue)
+        assertEquals(Color(0xFF66758F), BlossomColors.SpecSlate)
     }
 
     /**

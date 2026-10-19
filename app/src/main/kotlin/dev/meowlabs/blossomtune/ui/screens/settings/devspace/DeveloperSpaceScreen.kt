@@ -105,7 +105,7 @@ private fun devText(
     size: Float,
     weight: FontWeight = FontWeight.Bold,
     // Plain value: devText bukan @Composable, jadi default-nya tidak boleh membaca MaterialTheme.
-    color: Color = Color(0xFF0A1424),
+    color: Color = Color(0xFF101A33),
     tracking: Float = -0.4f,
 ) = TextStyle(fontFamily = InterFontFamily, fontWeight = weight, fontSize = size.sp, letterSpacing = tracking.sp, color = color)
 

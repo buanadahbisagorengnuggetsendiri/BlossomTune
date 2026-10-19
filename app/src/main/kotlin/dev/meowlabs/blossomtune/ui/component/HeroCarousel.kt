@@ -1426,7 +1426,7 @@ private fun QuietHero(modifier: Modifier = Modifier) {
         modifier = modifier.background(
             // QuietHero tidak punya artwork di belakangnya - cuma halaman. Putih 6% di
             // atas halaman putih = kotak yang tidak ada.
-            Brush.verticalGradient(listOf(Color(0xFF0A1424).copy(alpha = 0.05f), Color.Transparent))
+            Brush.verticalGradient(listOf(Color(0xFF101A33).copy(alpha = 0.05f), Color.Transparent))
         )
     ) {
         Column(
@@ -1436,11 +1436,11 @@ private fun QuietHero(modifier: Modifier = Modifier) {
         ) {
             // QuietHero tidak punya artwork di belakangnya: HeroLabelColor (putih 69%)
             // cuma benar di atas cover, di sini jadi teks yang nyaris tidak ada.
-            Text(text = "Nothing here yet", style = HomeLabelStyle, color = Color(0xFF5B6B82), maxLines = 1)
+            Text(text = "Nothing here yet", style = HomeLabelStyle, color = Color(0xFF5D6B85), maxLines = 1)
             Text(
                 text = "Play something and it shows up here",
                 style = HomeTitleStyle,
-                color = Color(0xFF0A1424),
+                color = Color(0xFF101A33),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

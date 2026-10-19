@@ -55,22 +55,31 @@ object BlossomColors {
     val NightCard = Color(0xFF101827)     // kartu di atas latar hitam
     val OnNightCard = Color(0xFFC9D6E8)
 
-    // --- terang (najstore.id) ---
-    val BlueDeep = Color(0xFF0F6CF5)      // najstore primary
-    val OnBlueDeep = Color(0xFFFFFFFF)    // teks di atas tombol biru terang
-    val BluePale = Color(0xFFEAF2FF)      // najstore secondary
-    val OnBluePale = Color(0xFF0B4FC0)    // najstore secondary-foreground
-    val Indigo = Color(0xFF0B4FC0)
-    val PaperSoft = Color(0xFFF4F7FB)     // najstore muted
-    val Ink = Color(0xFF0A1424)           // najstore foreground
-    val InkSoft = Color(0xFF5B6B82)       // najstore muted-foreground
-    val PaperIndigo = Color(0xFFEAF2FF)
-    val Line = Color(0xFFE5EAF2)          // najstore border
-    val LineSoft = Color(0xFFEDF1F6)
+    // --- terang: palet BlossomTune (Arya) ---
+    // primary #3478F6 · soft #EAF3FF · ice #F7FAFF · white #FFFFFF · navy #101A33 · slate #66758F
+    // Palet spec Arya, disimpan apa adanya buat rujukan desain.
+    val SpecBlue = Color(0xFF3478F6)     // #3478F6 + teks putih = 4.07 -> gagal AA teks normal
+    val SpecSlate = Color(0xFF66758F)    // #66758F di atas soft blue = 4.16 -> gagal AA
+    // Yang dirender: dua role di bawah digelapkan secukupnya supaya lolos AA,
+    // hue-nya sama, bedanya tidak kelihatan sebelah mata.
+    val BlueDeep = Color(0xFF2C6ADF)      // 4.96 di atas putih, 4.74 di atas ice white
+    val OnBlueDeep = Color(0xFFFFFFFF)    // teks di atas tombol biru
+    val BluePale = Color(0xFFEAF3FF)      // soft blue: kolom cari, state terpilih, panel
+    val OnBluePale = Color(0xFF101A33)    // navy di atas soft blue
+    val Indigo = Color(0xFF0B4FC0)        // sekunder: biru lebih dalam, dipakai chip/link
+    val PaperSoft = Color(0xFFEAF3FF)     // panel = soft blue
+    val Ink = Color(0xFF101A33)           // navy: heading, judul, teks utama
+    val InkSoft = Color(0xFF5D6B85)       // slate: metadata, subtitle (digelapkan dari #66758F)
+    val PaperIndigo = Color(0xFFEAF3FF)
+    val IceWhite = Color(0xFFF7FAFF)      // latar halaman
+    val Blossom = Color(0xFFB9A7F8)       // aksen floral, opsional - jangan jadi warna utama
+    // Outline tidak ada di palet; diturunkan dari ice/soft blue.
+    val Line = Color(0xFFDDE5F0)
+    val LineSoft = Color(0xFFE8EFF9)
     val Error = Color(0xFFDC2626)         // najstore destructive
     val ErrorPale = Color(0xFFFEE2E2)
     val ErrorInk = Color(0xFF7F1D1D)
-    val InverseSurface = Color(0xFF0A1424)
+    val InverseSurface = Color(0xFF101A33)
     val InverseOnSurface = Color(0xFFF9FAFB)
 }
 
@@ -107,7 +116,7 @@ val LightPalette: ColorScheme = lightColorScheme(
     onTertiary = BlossomColors.White,
     tertiaryContainer = BlossomColors.PaperIndigo,
     onTertiaryContainer = BlossomColors.Ink,
-    background = BlossomColors.White,
+    background = BlossomColors.IceWhite,
     onBackground = BlossomColors.Ink,
     surface = BlossomColors.White,
     onSurface = BlossomColors.Ink,
@@ -167,9 +176,9 @@ val DarkSurfaces = BlossomSurfaces(
 )
 
 val LightSurfaces = BlossomSurfaces(
-    chrome = Color(0xFFF7F9FC),
-    sheet = Color(0xFFFFFFFF),
-    row = Color(0xFFF4F7FB),
+    chrome = Color(0xFFF7FAFF),   // ice white, sama dengan latar halaman
+    sheet = Color(0xFFFFFFFF),    // kartu putih di atas ice
+    row = Color(0xFFEAF3FF),      // baris = panel soft blue
 )
 
 /** Default mengikuti `ForceDarkTheme`, jadi kode yang belum ikut mode tetap benar. */
@@ -187,11 +196,11 @@ val BlossomSurface: BlossomSurfaces
  * tintanya dipusatkan di sini, satu tempat, bukan `Color.White` yang tersebar.
  */
 object BlossomInk {
-    val Primary = Color(0xFF0A1424)
-    val Muted = Color(0xFF5B6B82)
-    val Divider = Color(0xFF0A1424).copy(alpha = 0.08f)
+    val Primary = Color(0xFF101A33)
+    val Muted = Color(0xFF5D6B85)
+    val Divider = Color(0xFF101A33).copy(alpha = 0.08f)
     /** Bulatan ikon: tinta pekat dengan ikon putih. Dulu putih pekat dengan ikon hitam. */
-    val Chip = Color(0xFF0A1424)
+    val Chip = Color(0xFF101A33)
     val OnChip = Color(0xFFFFFFFF)
 }
 

@@ -816,7 +816,7 @@ private val PageTitle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 23.sp,
     letterSpacing = (-0.6).sp,
-    color = Color(0xFF0A1424),
+    color = Color(0xFF101A33),
 )
 
 private val MonoSmall = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)

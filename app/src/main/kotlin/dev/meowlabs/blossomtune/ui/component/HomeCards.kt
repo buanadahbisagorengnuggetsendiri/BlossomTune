@@ -99,9 +99,9 @@ private val HomeRankStyle = TextStyle(
 // nomor rank. Dulu putih karena halaman hitam; sekarang ikut tinta halaman terang.
 // Yang tetap putih adalah teks di atas cover/video (HomeVideoCard) - di situ
 // latarnya gambar, bukan halaman.
-private val SectionLabelColor = Color(0xFF0A1424)
-private val PageInk = Color(0xFF0A1424)
-private val PageInkMuted = Color(0xFF5B6B82)
+private val SectionLabelColor = Color(0xFF101A33)
+private val PageInk = Color(0xFF101A33)
+private val PageInkMuted = Color(0xFF5D6B85)
 private val HomeRowShape = RoundedCornerShape(14.dp)
 val HomeRowHeight = 54.dp
 

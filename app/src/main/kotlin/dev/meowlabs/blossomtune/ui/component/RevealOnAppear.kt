@@ -60,7 +60,7 @@ private const val BurstMaxSteps = 6
  * `ForceDarkTheme` suatu saat dinyalakan lagi, nilai ini harus ikut mode -
  * putih 22% di atas hitam, gelap 10% di atas putih.
  */
-val BoneColor = Color(0xFF0A1424).copy(alpha = 0.10f)
+val BoneColor = Color(0xFF101A33).copy(alpha = 0.10f)
 
 /**
  * which keys already played their reveal. kept with rememberSaveable so coming back to a screen

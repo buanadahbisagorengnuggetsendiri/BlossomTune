@@ -98,14 +98,14 @@ val SearchTopClearance = 18.dp
  * token ini, karena tintanya akan hilang di atas foto terang.
  */
 object SearchColors {
-    val Field = Color(0xFFF4F7FB)          // kolom cari
-    val FieldFocused = Color(0xFFEAF2FF)   // najstore secondary
-    val Tile = Color(0xFFF7F9FC)
-    val TileHigh = Color(0xFFEDF1F6)
-    val Divider = Color(0xFFE5EAF2)        // najstore border
-    val Primary = Color(0xFF0A1424)        // tinta utama di halaman
+    val Field = Color(0xFFEAF3FF)          // soft blue: kolom cari
+    val FieldFocused = Color(0xFFFFFFFF)   // fokus: putih, dibedakan lewat border
+    val Tile = Color(0xFFFFFFFF)           // kartu putih di atas page ice white
+    val TileHigh = Color(0xFFEAF3FF)       // state terpilih / hover = soft blue
+    val Divider = Color(0xFFDDE5F0)
+    val Primary = Color(0xFF101A33)        // navy: tinta utama di halaman
     val OnPrimary = Color(0xFFFFFFFF)      // teks di atas state terpilih
-    val Secondary = Color(0xFF5B6B82)      // najstore muted-foreground
+    val Secondary = Color(0xFF5D6B85)      // slate: metadata
     val Placeholder = Color(0xFF94A3B8)
 
     /**
