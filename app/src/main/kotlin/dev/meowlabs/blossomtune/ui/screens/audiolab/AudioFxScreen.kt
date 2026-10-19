@@ -414,7 +414,7 @@ private fun SpeedCard(viewModel: AudioLabViewModel) {
         header = {
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Playback speed", fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White)
+                    Text("Playback speed", fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary)
                     Text(
                         if (playback.preservePitch) "Pitch stays where it is" else "Pitch follows the speed, like a record",
                         fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Secondary,
@@ -423,7 +423,7 @@ private fun SpeedCard(viewModel: AudioLabViewModel) {
                 StepButton("−") { viewModel.updatePlayback { it.copy(speed = ((it.speed - 0.05f) * 100).roundToInt() / 100f) } }
                 Text(
                     String.format("%.2f×", playback.speed),
-                    fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.White,
+                    fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = LabColors.Primary,
                     modifier = Modifier.padding(horizontal = 10.dp),
                 )
                 StepButton("+") { viewModel.updatePlayback { it.copy(speed = ((it.speed + 0.05f) * 100).roundToInt() / 100f) } }
@@ -486,7 +486,7 @@ private fun StepButton(label: String, onClick: () -> Unit) {
         modifier = Modifier.size(32.dp).clip(CircleShape).background(LabColors.Row).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+        Text(label, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LabColors.Primary)
     }
 }
 

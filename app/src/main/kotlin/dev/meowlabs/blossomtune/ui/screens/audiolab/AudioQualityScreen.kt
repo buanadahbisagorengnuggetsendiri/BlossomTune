@@ -234,7 +234,7 @@ private fun ProviderHeader(
         ProviderLogo(logo, size = 36)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+            Text(name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LabColors.Primary)
             Text(status, fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Secondary)
         }
         if (checked != null) dev.meowlabs.blossomtune.ui.component.AppSwitch(checked = checked, onCheckedChange = onCheckedChange)
@@ -268,13 +268,13 @@ private fun QualityRow(title: String, description: String, selected: Boolean, en
             .graphicsLayer { this.alpha = alpha }
             .clip(RoundedCornerShape(16.dp))
             .background(bg)
-            .border(1.dp, if (selected) Color.White.copy(alpha = 0.25f) else Color.Transparent, RoundedCornerShape(16.dp))
+            .border(1.dp, if (selected) LabColors.Primary.copy(alpha = 0.25f) else Color.Transparent, RoundedCornerShape(16.dp))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White)
+            Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary)
             Text(description, fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 15.sp, color = LabColors.Secondary)
         }
         Spacer(Modifier.width(10.dp))
@@ -282,7 +282,7 @@ private fun QualityRow(title: String, description: String, selected: Boolean, en
             modifier = Modifier.size(22.dp).graphicsLayer { scaleX = check; scaleY = check; this.alpha = check },
             contentAlignment = Alignment.Center,
         ) {
-            Icon(painterResource(R.drawable.check), null, tint = Color.White, modifier = Modifier.size(20.dp))
+            Icon(painterResource(R.drawable.check), null, tint = LabColors.Primary, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -344,7 +344,7 @@ private fun QualityPicture(quality: AudioQuality) {
                 while (x <= right) {
                     val a = amplitude(x + layer * 40f, t + layer)
                     val half = a * maxHalf * (1f - 0.18f * layer)
-                    drawLine(Color.White.copy(alpha = alpha), Offset(x + shift, cy - shift - half), Offset(x + shift, cy - shift + half),
+                    drawLine(LabColors.Primary.copy(alpha = alpha), Offset(x + shift, cy - shift - half), Offset(x + shift, cy - shift + half),
                         1.2.dp.toPx())
                     x += step * 1.4f
                 }
@@ -358,20 +358,20 @@ private fun QualityPicture(quality: AudioQuality) {
             val p = (x - left) / (right - left)
             if (p > 0.72f && q < 0.05f) {
                 // the dotted tail
-                drawCircle(Color.White.copy(alpha = 0.45f), 0.9.dp.toPx(), Offset(x, cy))
+                drawCircle(LabColors.Primary.copy(alpha = 0.45f), 0.9.dp.toPx(), Offset(x, cy))
             } else if (resolution < 0.7f) {
                 // pixels: stacked squares, mirrored, snapped to the grid
                 val n = (q * maxHalf / pixel).roundToInt().coerceAtLeast(1)
                 val cell = pixel * 0.84f
                 for (k in 0 until n) {
                     val alpha = 0.95f - k * 0.06f
-                    drawRect(Color.White.copy(alpha = alpha.coerceAtLeast(0.35f)), Offset(x, cy - (k + 1) * pixel), Size(cell, cell))
-                    drawRect(Color.White.copy(alpha = alpha.coerceAtLeast(0.35f)), Offset(x, cy + k * pixel), Size(cell, cell))
+                    drawRect(LabColors.Primary.copy(alpha = alpha.coerceAtLeast(0.35f)), Offset(x, cy - (k + 1) * pixel), Size(cell, cell))
+                    drawRect(LabColors.Primary.copy(alpha = alpha.coerceAtLeast(0.35f)), Offset(x, cy + k * pixel), Size(cell, cell))
                 }
             } else {
                 val half = (q * maxHalf).coerceAtLeast(1.dp.toPx())
                 val width = (1.6f - 0.6f * resolution).dp.toPx()
-                drawRoundRect(Color.White.copy(alpha = 0.92f), Offset(x - width / 2, cy - half), Size(width, half * 2), CornerRadius(width / 2))
+                drawRoundRect(LabColors.Primary.copy(alpha = 0.92f), Offset(x - width / 2, cy - half), Size(width, half * 2), CornerRadius(width / 2))
             }
             x += step
         }

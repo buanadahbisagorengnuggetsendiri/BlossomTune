@@ -530,7 +530,7 @@ private fun GenreCommunityCard(
             .width(268.dp)
             .height(320.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF10151E))
+            .background(SearchColors.Tile)
             .searchCardBorder(20.dp)
             .clickable(onClick = onClick),
     ) {
@@ -599,7 +599,7 @@ private fun GenreCommunityCard(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                 ),
-                color = Color.White,
+                color = SearchColors.Primary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -607,7 +607,7 @@ private fun GenreCommunityCard(
                 Text(
                     text = count,
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = Color.White.copy(alpha = 0.75f),
+                    color = SearchColors.Secondary,
                     maxLines = 1,
                 )
             }

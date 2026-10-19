@@ -257,11 +257,11 @@ private fun TransitionPicture(style: TransitionStyle, overlap: Float, active: Bo
             val bright = if (playhead >= 0f && x <= playhead) 1f else 0.62f
             if (x <= fadeEnd) {
                 val a = wave(x, 0f) * outgoing(x) * half
-                if (a > 0.5f) drawLine(Color.White.copy(alpha = 0.5f * bright), Offset(x, cy - a), Offset(x, cy + a), 1.2.dp.toPx())
+                if (a > 0.5f) drawLine(LabColors.Primary.copy(alpha = 0.5f * bright), Offset(x, cy - a), Offset(x, cy + a), 1.2.dp.toPx())
             }
             if (x >= fadeStart) {
                 val a = wave(x, 2.7f) * incoming(x) * half
-                if (a > 0.5f) drawLine(Color.White.copy(alpha = 0.5f * bright), Offset(x + step / 2, cy - a), Offset(x + step / 2, cy + a),
+                if (a > 0.5f) drawLine(LabColors.Primary.copy(alpha = 0.5f * bright), Offset(x + step / 2, cy - a), Offset(x + step / 2, cy + a),
                     1.2.dp.toPx())
             }
             x += step
@@ -271,7 +271,7 @@ private fun TransitionPicture(style: TransitionStyle, overlap: Float, active: Bo
         if (style == TransitionStyle.CrossMix) {
             val glow = 0.25f + 0.35f * on + 0.3f * level.punch
             drawCircle(
-                Brush.radialGradient(listOf(Color.White.copy(alpha = glow), Color.Transparent), center = Offset(mid, cy), radius = o * 0.55f),
+                Brush.radialGradient(listOf(LabColors.Primary.copy(alpha = glow), Color.Transparent), center = Offset(mid, cy), radius = o * 0.55f),
                 o * 0.55f, Offset(mid, cy),
             )
         }
@@ -285,10 +285,10 @@ private fun TransitionPicture(style: TransitionStyle, overlap: Float, active: Bo
                 px += 2.dp.toPx()
             }
         }
-        val curveColor = Color.White.copy(alpha = 0.55f + 0.45f * on)
+        val curveColor = LabColors.Primary.copy(alpha = 0.55f + 0.45f * on)
         if (style == TransitionStyle.CrossMix) {
-            drawPath(envelope(::outgoing, 1f), Color.White.copy(alpha = 0.12f), style = Stroke(9.dp.toPx(), cap = StrokeCap.Round))
-            drawPath(envelope(::incoming, 1f), Color.White.copy(alpha = 0.12f), style = Stroke(9.dp.toPx(), cap = StrokeCap.Round))
+            drawPath(envelope(::outgoing, 1f), LabColors.Primary.copy(alpha = 0.12f), style = Stroke(9.dp.toPx(), cap = StrokeCap.Round))
+            drawPath(envelope(::incoming, 1f), LabColors.Primary.copy(alpha = 0.12f), style = Stroke(9.dp.toPx(), cap = StrokeCap.Round))
         }
         drawPath(envelope(::outgoing, 1f), curveColor, style = Stroke(1.6.dp.toPx(), cap = StrokeCap.Round))
         drawPath(envelope(::incoming, 1f), curveColor, style = Stroke(1.6.dp.toPx(), cap = StrokeCap.Round))
@@ -299,9 +299,9 @@ private fun TransitionPicture(style: TransitionStyle, overlap: Float, active: Bo
             // each song's line, lit while it's the one you hear
             val outHeard = if (playhead < 0f) 0.55f else 0.35f + 0.65f * outgoing(playhead)
             val inHeard = if (playhead < 0f) 0.55f else 0.35f + 0.65f * incoming(playhead)
-            val a = measurer.measure("i miss you", lyricStyle.copy(color = Color.White.copy(alpha = outHeard)))
+            val a = measurer.measure("i miss you", lyricStyle.copy(color = LabColors.Primary.copy(alpha = outHeard)))
             drawText(a, topLeft = Offset(left + (right - left) * 0.12f, cy + half + 6.dp.toPx()))
-            val b = measurer.measure("ei i i eii", lyricStyle.copy(color = Color.White.copy(alpha = inHeard)))
+            val b = measurer.measure("ei i i eii", lyricStyle.copy(color = LabColors.Primary.copy(alpha = inHeard)))
             drawText(b, topLeft = Offset(right - b.size.width - (right - left) * 0.06f, cy - half - b.size.height - 6.dp.toPx()))
         }
 
@@ -310,6 +310,6 @@ private fun TransitionPicture(style: TransitionStyle, overlap: Float, active: Bo
 }
 
 private fun DrawScope.drawPlayhead(x: Float, cy: Float, reach: Float, alpha: Float) {
-    drawLine(Color.White.copy(alpha = 0.7f * alpha), Offset(x, cy - reach), Offset(x, cy + reach), 1.dp.toPx())
-    drawCircle(Color.White.copy(alpha = alpha), 2.5.dp.toPx(), Offset(x, cy - reach))
+    drawLine(LabColors.Primary.copy(alpha = 0.7f * alpha), Offset(x, cy - reach), Offset(x, cy + reach), 1.dp.toPx())
+    drawCircle(LabColors.Primary.copy(alpha = alpha), 2.5.dp.toPx(), Offset(x, cy - reach))
 }

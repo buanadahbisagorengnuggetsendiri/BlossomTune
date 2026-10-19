@@ -70,7 +70,8 @@ import dev.meowlabs.blossomtune.viewmodels.AudioLabViewModel
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-private val HubCard = Color(0xFF19202E)
+// Plain val, bukan getter @Composable: dipakai juga di dalam drawCircle (scope draw).
+private val HubCard = LabColors.Card
 private val Sketch = Color(0xFF556585)
 
 @Composable
@@ -110,7 +111,7 @@ fun AudioLabScreen(
     ) {
         Text(
             "Let's customize your music experience!",
-            fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White,
+            fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary,
         )
         Spacer(Modifier.height(18.dp))
 
@@ -209,9 +210,9 @@ private fun HubTile(
         ) {
             if (big) {
                 Text(status, fontFamily = InterFontFamily, fontSize = 12.sp, color = Color(0xFF8796B3), maxLines = 1)
-                Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color.White)
+                Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = LabColors.Primary)
             } else {
-                Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
+                Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = LabColors.Primary)
                 Text(status, fontFamily = InterFontFamily, fontSize = 11.sp, color = Color(0xFF8796B3), maxLines = 1)
             }
         }
@@ -282,7 +283,7 @@ private fun BoxScope.FxSketch(active: Boolean) {
             drawText(
                 layout,
                 brush = Brush.horizontalGradient(
-                    listOf(Color.Transparent, Color.White.copy(alpha = 0.85f * glow), Color.Transparent),
+                    listOf(Color.Transparent, LabColors.Primary.copy(alpha = 0.85f * glow), Color.Transparent),
                     startX = x - 60.dp.toPx(), endX = x + 60.dp.toPx(),
                 ),
                 topLeft = topLeft,

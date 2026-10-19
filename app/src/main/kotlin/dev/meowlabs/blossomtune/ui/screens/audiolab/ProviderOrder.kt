@@ -90,7 +90,7 @@ fun ProviderOrder(
                         .offset(y = RowHeight * (i + 1) + ArrowGap * i)
                         .size(width = 24.dp, height = ArrowGap),
                 ) {
-                    val c = Color.White.copy(alpha = 0.35f)
+                    val c = LabColors.Primary.copy(alpha = 0.35f)
                     val stroke = 2.dp.toPx()
                     val top = size.height * 0.22f
                     val bottom = size.height * 0.78f
@@ -137,7 +137,7 @@ fun ProviderOrder(
                         }
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f).graphicsLayer { alpha = if (on) 1f else 0.45f }) {
-                            Text(name(id), fontFamily = InterFontFamily, fontWeight = FontWeight.Medium, fontSize = 19.sp, color = Color.White)
+                            Text(name(id), fontFamily = InterFontFamily, fontWeight = FontWeight.Medium, fontSize = 19.sp, color = LabColors.Primary)
                             if (!on) Text("Off", fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Secondary)
                         }
                         // the handle: dragging it moves the row
@@ -178,7 +178,7 @@ fun ProviderOrder(
                         ) {
                             val w = 26.dp.toPx()
                             val x0 = (size.width - w) / 2
-                            val c = Color.White
+                            val c = LabColors.Primary
                             drawLine(c, Offset(x0, size.height / 2 - 4.dp.toPx()), Offset(x0 + w, size.height / 2 - 4.dp.toPx()), 2.dp.toPx(), StrokeCap.Round)
                             drawLine(c, Offset(x0, size.height / 2 + 4.dp.toPx()), Offset(x0 + w, size.height / 2 + 4.dp.toPx()), 2.dp.toPx(), StrokeCap.Round)
                         }

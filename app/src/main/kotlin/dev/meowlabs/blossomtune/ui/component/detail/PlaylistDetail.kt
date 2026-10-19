@@ -318,6 +318,10 @@ fun PlaylistDetailScaffold(
     }
     val glassState = remember { GlassState() }
     val scope = rememberCoroutineScope()
+    // Latar halaman di belakang header: dulu selalu hitam, jadi halaman detail tetap
+    // gelap walau temanya terang. Diangkat ke luar drawBehind karena draw lambda
+    // bukan scope @Composable.
+    val pageColor = MaterialTheme.colorScheme.background
 
     Box(
         modifier = Modifier
@@ -328,7 +332,7 @@ fun PlaylistDetailScaffold(
                     // pinned to the screen, not the list: the colour holds at the top and settles
                     // into black over the lower half, wherever the rows have scrolled to
                     Modifier.drawBehind {
-                        drawRect(Color.Black)
+                        drawRect(pageColor)
                         drawRect(
                             Brush.verticalGradient(
                                 0f to background.value,

@@ -166,7 +166,7 @@ fun EqGraphSection(
                         .clickable { onAdd(freeFrequency(nodes), 0.0) },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(painterResource(R.drawable.add), "Add a band", tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(painterResource(R.drawable.add), "Add a band", tint = LabColors.Primary, modifier = Modifier.size(18.dp))
                 }
             }
         },
@@ -323,7 +323,7 @@ private fun EqGraph(
             // the sound you hear: every band summed
             drawPath(
                 curvePath(plot, total),
-                Color.White,
+                LabColors.Primary,
                 style = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
             )
         }
@@ -336,9 +336,9 @@ private fun EqGraph(
             if (isSelected) {
                 drawCircle(color.copy(alpha = 0.18f + 0.1f * selectedPulse), r * 2.1f, center)
             }
-            drawCircle(Color.Black, r + 2.dp.toPx(), center)
+            drawCircle(LabColors.Stage, r + 2.dp.toPx(), center)
             drawCircle(color, r, center)
-            if (isSelected) drawCircle(Color.White, r + 2.dp.toPx(), center, style = Stroke(1.5.dp.toPx()))
+            if (isSelected) drawCircle(LabColors.Primary, r + 2.dp.toPx(), center, style = Stroke(1.5.dp.toPx()))
         }
     }
 }
@@ -377,10 +377,10 @@ internal fun DrawScope.drawGrid(
     style: TextStyle,
     yLabels: List<Pair<Double, String>> = listOf(12.0 to "+12", 6.0 to "+6", 0.0 to "0", -6.0 to "-6", -12.0 to "-12"),
 ) {
-    val line = Color.White.copy(alpha = 0.06f)
+    val line = LabColors.Primary.copy(alpha = 0.06f)
     yLabels.forEach { (db, label) ->
         val y = plot.y(db)
-        drawLine(if (db == 0.0) Color.White.copy(alpha = 0.16f) else line, Offset(plot.left, y), Offset(plot.right, y), 1.dp.toPx())
+        drawLine(if (db == 0.0) LabColors.Primary.copy(alpha = 0.16f) else line, Offset(plot.left, y), Offset(plot.right, y), 1.dp.toPx())
         val layout = measurer.measure(label, style)
         drawText(layout, topLeft = Offset(plot.left - layout.size.width - 6.dp.toPx(), y - layout.size.height / 2f))
     }
@@ -412,12 +412,12 @@ private fun DrawScope.drawSpectrum(plot: Plot, levels: FloatArray) {
     drawPath(
         path,
         Brush.verticalGradient(
-            listOf(Color.White.copy(alpha = 0.09f), Color.White.copy(alpha = 0.01f)),
+            listOf(LabColors.Primary.copy(alpha = 0.09f), LabColors.Primary.copy(alpha = 0.01f)),
             startY = plot.bottom - height,
             endY = plot.bottom,
         ),
     )
-    drawPath(stroke, Color.White.copy(alpha = 0.12f), style = Stroke(1.dp.toPx()))
+    drawPath(stroke, LabColors.Primary.copy(alpha = 0.12f), style = Stroke(1.dp.toPx()))
 }
 
 @Composable
@@ -435,7 +435,7 @@ private fun NodeDetail(
             Column(Modifier.weight(1f)) {
                 Text(
                     "${frequencyLabel(node.frequency)} node",
-                    fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White,
+                    fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = LabColors.Primary,
                 )
                 Text(
                     "${filterTypeLabel(node.filterType).lowercase()} · Q ${String.format("%.1f", node.q)}" +
@@ -449,8 +449,8 @@ private fun NodeDetail(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             listOf(FilterType.LSC to "Low shelf", FilterType.PK to "Peak", FilterType.HSC to "High shelf").forEach { (type, label) ->
                 val picked = node.filterType == type
-                val bg by animateColorAsState(if (picked) Color(0xFFCDD1DA) else Color.Black, tween(160), label = "type")
-                val fg by animateColorAsState(if (picked) Color.Black else Color.White, tween(160), label = "typeText")
+                val bg by animateColorAsState(if (picked) Color(0xFFCDD1DA) else LabColors.Stage, tween(160), label = "type")
+                val fg by animateColorAsState(if (picked) LabColors.Stage else LabColors.Primary, tween(160), label = "typeText")
                 Box(
                     modifier = Modifier
                         .weight(1f)

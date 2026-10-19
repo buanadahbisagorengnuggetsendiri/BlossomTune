@@ -104,14 +104,19 @@ object SearchColors {
     val TileHigh = Color(0xFFEDF1F6)
     val Divider = Color(0xFFE5EAF2)        // najstore border
     val Primary = Color(0xFF0A1424)        // tinta utama di halaman
+    val OnPrimary = Color(0xFFFFFFFF)      // teks di atas state terpilih
     val Secondary = Color(0xFF5B6B82)      // najstore muted-foreground
     val Placeholder = Color(0xFF94A3B8)
 
-    /** Halaman ikut skema; `pureBlack` hanya relevan di mode gelap (sudah tidak dipakai). */
+    /**
+     * Halaman selalu ikut skema. `pureBlack` sengaja tidak dipakai lagi: opsi hitam pekat
+     * hanya masuk akal di mode gelap, dan pemanggilnya (Settings/Search/Genre) dulu
+     * mengirim `true` tanpa syarat - hasilnya bar kaca hitam di tengah halaman putih.
+     */
     @androidx.compose.runtime.Composable
     @androidx.compose.runtime.ReadOnlyComposable
-    fun page(pureBlack: Boolean): Color =
-        if (pureBlack) Color.Black else androidx.compose.material3.MaterialTheme.colorScheme.background
+    @Suppress("UNUSED_PARAMETER")
+    fun page(pureBlack: Boolean): Color = androidx.compose.material3.MaterialTheme.colorScheme.background
 }
 
 val SearchCollapseEasing = CubicBezierEasing(0.57f, 0.53f, 0f, 1f)
@@ -736,7 +741,7 @@ fun SearchCategoryRow(
                 modifier = Modifier
                     .height(34.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(if (selected) Color.White else SearchColors.Tile)
+                    .background(if (selected) SearchColors.Primary else SearchColors.Tile)
                     .clickable { onSelect(index) }
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center,
@@ -747,7 +752,7 @@ fun SearchCategoryRow(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                     ),
-                    color = if (selected) Color.Black else SearchColors.Primary,
+                    color = if (selected) SearchColors.OnPrimary else SearchColors.Primary,
                     maxLines = 1,
                 )
             }
@@ -906,7 +911,7 @@ fun SearchLoadingDots(modifier: Modifier = Modifier) {
                         scaleY = s
                     }
                     .clip(CircleShape)
-                    .background(Color.White)
+                    .background(SearchColors.Primary)
             )
         }
     }
@@ -914,7 +919,7 @@ fun SearchLoadingDots(modifier: Modifier = Modifier) {
 
 fun Modifier.searchCardBorder(radius: Dp = 16.dp): Modifier = this.border(
     width = androidx.compose.ui.unit.Dp.Hairline,
-    color = Color.White.copy(alpha = 0.05f),
+    color = SearchColors.Primary.copy(alpha = 0.08f),
     shape = RoundedCornerShape(radius),
 )
 

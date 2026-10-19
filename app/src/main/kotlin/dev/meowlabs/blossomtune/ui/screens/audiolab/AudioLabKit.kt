@@ -80,17 +80,25 @@ import dev.meowlabs.blossomtune.ui.component.damageBoundary
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.flow.first
 
+/**
+ * Kit Audio Lab / Equalizer. Nilainya sekarang terang (najstore); dulu seluruh lab
+ * ini kaca gelap, jadi kartunya jadi balok hitam di halaman terang.
+ *
+ * `Primary` = tinta di atas permukaan, sekaligus isi untuk state terpilih -
+ * pasangannya [OnPrimary]. Jangan pakai `Color.White` langsung di sini.
+ */
 object LabColors {
-    val Card = Color(0xFF141A26)
-    val Stage = Color(0xFF0A0D14)
-    val StageLine = Color(0xFF222B3E)
-    val Row = Color(0xFF1C2434)
-    val RowSelected = Color(0xFF273148)
-    val Chip = Color(0xFF1A2130)
-    val Primary = Color.White
-    val Secondary = Color(0xFF8796B3)
-    val Faint = Color(0xFF4A5875)
-    val Ink = Color(0xFF7586A7)
+    val Card = Color(0xFFF4F7FB)
+    val Stage = Color(0xFFEDF2F8)
+    val StageLine = Color(0xFFD9E1EC)
+    val Row = Color(0xFFFFFFFF)
+    val RowSelected = Color(0xFFEAF2FF)
+    val Chip = Color(0xFFE5EAF2)
+    val Primary = Color(0xFF0A1424)
+    val OnPrimary = Color(0xFFFFFFFF)
+    val Secondary = Color(0xFF5B6B82)
+    val Faint = Color(0xFF94A3B8)
+    val Ink = Color(0xFF5B6B82)
 
     /** the equalizer's node colours: soft enough to sit on BlossomTune's greys, apart enough to tell */
     val Nodes = listOf(
@@ -160,7 +168,7 @@ fun LabToggleRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leadingDot) {
-            val dot by animateColorAsState(if (checked) Color.White else Color(0xFFD6DAE1), tween(200), label = "dot")
+            val dot by animateColorAsState(if (checked) LabColors.Primary else Color(0xFFC7D0DD), tween(200), label = "dot")
             Box(
                 Modifier
                     .size(20.dp)
@@ -284,11 +292,11 @@ fun LabTextAction(text: String, iconRes: Int? = null, enabled: Boolean = true, o
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (iconRes != null) {
-            Icon(painterResource(iconRes), null, tint = if (enabled) Color.White else LabColors.Faint, modifier = Modifier.size(16.dp))
+            Icon(painterResource(iconRes), null, tint = if (enabled) LabColors.Primary else LabColors.Faint, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
         }
         Text(text, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-            color = if (enabled) Color.White else LabColors.Faint)
+            color = if (enabled) LabColors.Primary else LabColors.Faint)
     }
 }
 
@@ -311,8 +319,8 @@ fun LabChips(
     ) {
         chips.forEach { chip ->
             val selected = chip.key == selectedKey
-            val bg by animateColorAsState(if (selected) Color.White else LabColors.Chip, tween(180), label = "chipBg")
-            val fg by animateColorAsState(if (selected) Color.Black else Color.White, tween(180), label = "chipFg")
+            val bg by animateColorAsState(if (selected) LabColors.Primary else LabColors.Chip, tween(180), label = "chipBg")
+            val fg by animateColorAsState(if (selected) LabColors.OnPrimary else LabColors.Primary, tween(180), label = "chipFg")
             val interaction = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
@@ -373,11 +381,11 @@ fun LabSegmented(
                 .width(segment)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(height / 2))
-                .background(Color.White)
+                .background(LabColors.Primary)
         )
         Row(Modifier.fillMaxWidth().fillMaxHeight()) {
             options.forEachIndexed { index, label ->
-                val color by animateColorAsState(if (index == selectedIndex) Color.Black else Color.White, tween(160), label = "segText")
+                val color by animateColorAsState(if (index == selectedIndex) LabColors.OnPrimary else LabColors.Secondary, tween(160), label = "segText")
                 Box(
                     modifier = Modifier
                         .weight(1f)

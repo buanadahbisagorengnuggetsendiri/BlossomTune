@@ -99,7 +99,7 @@ fun ModulesScreen(navController: NavController, viewModel: ModulesViewModel = hi
                 ModuleLogo(id)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(entry.module.info.name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.White)
+                    Text(entry.module.info.name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = LabColors.Primary)
                     Text(statusOf(entry), fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Secondary)
                     Text(
                         (if (entry.packageName == null) "Built in" else "Installed") + " · v${entry.module.info.version}",
@@ -124,7 +124,7 @@ private fun ModuleLogo(id: String, size: Int = 46) {
         if (logo != null) {
             Image(painterResource(logo), null, contentScale = ContentScale.Crop, modifier = Modifier.size(size.dp))
         } else {
-            Icon(painterResource(R.drawable.music_note), null, tint = Color.White, modifier = Modifier.size((size / 2).dp))
+            Icon(painterResource(R.drawable.music_note), null, tint = LabColors.Primary, modifier = Modifier.size((size / 2).dp))
         }
     }
 }
@@ -152,7 +152,7 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                 ModuleLogo(id, size = 56)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(module.info.name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
+                    Text(module.info.name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = LabColors.Primary)
                     Text(statusOf(entry), fontFamily = InterFontFamily, fontSize = 13.sp, color = LabColors.Secondary)
                 }
             }
@@ -226,7 +226,7 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
             if (!testing && steps.isNotEmpty() && steps.all { it.ok == true }) {
                 Text(
                     "Everything works. Turn on “Play from ${module.info.name}” and play anything: a toast says where each song comes from.",
-                    fontFamily = InterFontFamily, fontSize = 13.sp, color = Color.White,
+                    fontFamily = InterFontFamily, fontSize = 13.sp, color = LabColors.Primary,
                     modifier = Modifier.padding(top = 10.dp),
                 )
             }
@@ -246,14 +246,14 @@ private fun StepRow(step: DiagnosticStep) {
     Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.Top) {
         Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) {
             when (step.ok) {
-                null -> CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(15.dp))
+                null -> CircularProgressIndicator(color = LabColors.Primary, strokeWidth = 2.dp, modifier = Modifier.size(15.dp))
                 true -> Icon(painterResource(R.drawable.check), null, tint = Color(0xFF8FD98B), modifier = Modifier.size(18.dp))
                 false -> Icon(painterResource(R.drawable.close), null, tint = Color(0xFFFF8A80), modifier = Modifier.size(18.dp))
             }
         }
         Spacer(Modifier.width(10.dp))
         Column {
-            Text(step.name, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White)
+            Text(step.name, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = LabColors.Primary)
             Text(step.detail, fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 16.sp, color = LabColors.Secondary)
         }
     }
@@ -266,12 +266,12 @@ private fun PrimaryButton(text: String, enabled: Boolean = true, onClick: () -> 
             .fillMaxWidth()
             .height(48.dp)
             .clip(RoundedCornerShape(24.dp))
-            .background(if (enabled) Color.White else LabColors.Row)
+            .background(if (enabled) LabColors.Primary else LabColors.Row)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(text, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
-            color = if (enabled) Color.Black else LabColors.Faint)
+            color = if (enabled) LabColors.Stage else LabColors.Faint)
     }
 }
 

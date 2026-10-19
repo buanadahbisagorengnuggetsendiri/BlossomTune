@@ -161,8 +161,12 @@ private val RecommendedOptions = listOf(
     )
 )
 
-private val BubbleColor = Color(0xFF141A26)
-private val IconBgColor = Color(0xFF253046)
+// Kartu dan bulatan ikon settings. Dulu #141A26/#253046 (kaca gelap) dengan tinta
+// putih; sekarang ikut mode, karena halaman settings sudah terang.
+private val BubbleColor: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.surfaceVariant
+private val IconBgColor: Color
+    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.secondaryContainer
 
 @Composable
 fun BlossomTuneSettingsScreen(navController: NavController) {
@@ -251,7 +255,7 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
                             text = "Nothing matches \"${query.text}\".",
                             fontFamily = InterFontFamily,
                             fontSize = 15.sp,
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp)
                         )
                     } else {
@@ -278,7 +282,7 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
                                         Icon(
                                             painter = painterResource(R.drawable.settings),
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -289,13 +293,13 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
                                             fontFamily = InterFontFamily,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 16.sp,
-                                            color = Color.White
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = entry.page,
                                             fontFamily = InterFontFamily,
                                             fontSize = 12.sp,
-                                            color = Color.White.copy(alpha = 0.55f)
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -328,7 +332,7 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 13.sp,
-                                color = Color.White.copy(alpha = 0.55f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -347,7 +351,7 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
                                     Icon(
                                         painter = painterResource(recommendedItem.iconRes),
                                         contentDescription = null,
-                                        tint = Color.White,
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
@@ -360,13 +364,13 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
                                         fontFamily = InterFontFamily,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp,
-                                        color = Color.White
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = recommendedItem.breadcrumb,
                                         fontFamily = InterFontFamily,
                                         fontSize = 13.sp,
-                                        color = Color.White.copy(alpha = 0.55f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -381,7 +385,7 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp)
                             .height(0.8.dp)
-                            .background(Color.White.copy(alpha = 0.1f))
+                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
                     )
 
                     Spacer(modifier = Modifier.height(18.dp))
@@ -453,7 +457,7 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
                 Icon(
                     painter = painterResource(R.drawable.ic_blossomtune_mark),
                     contentDescription = "BlossomTune",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(32.dp),
                 )
             },
@@ -479,7 +483,7 @@ fun BlossomTuneSettingsScreen(navController: NavController) {
                         Icon(
                             painter = painterResource(R.drawable.close),
                             contentDescription = "Clear",
-                            tint = Color.White.copy(alpha = 0.7f),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .size(20.dp)
                                 .clip(CircleShape)
@@ -524,7 +528,7 @@ internal fun CategoryBubble(
                 Icon(
                     painter = painterResource(iconRes),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -534,7 +538,7 @@ internal fun CategoryBubble(
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 17.sp,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
