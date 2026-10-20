@@ -1,5 +1,19 @@
 [
   {
+    "versionName": "0.5.4",
+    "publishedAt": "2026-10-21",
+    "summary": "Nama pembuat di sheet versi jadi buana, plus link Instagram.",
+    "sections": [
+      {
+        "title": "Identitas",
+        "items": [
+          "Sheet versi menulis \"BlossomTune 0.5.4 by buana\", bukan \"by roo\".",
+          "Baris @buanabeneran dengan ikon Instagram, membuka instagram.com/buanabeneran."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.3",
     "publishedAt": "2026-10-20",
     "summary": "Palet es/azure: halaman biru muda, kartu putih, aksen cyan.",
