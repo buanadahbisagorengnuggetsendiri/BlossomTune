@@ -1,5 +1,27 @@
 [
   {
+    "versionName": "0.5.3",
+    "publishedAt": "2026-10-20",
+    "summary": "Palet es/azure: halaman biru muda, kartu putih, aksen cyan.",
+    "sections": [
+      {
+        "title": "Tema",
+        "items": [
+          "Halaman terang sekarang es biru #E8F3FE dengan kartu putih dan aksen azure #2368D8, bukan putih–navy lagi.",
+          "Scrim bawah dan gradient top bar ikut warna halaman, bukan hitam.",
+          "Logo dan judul Home terbaca saat hero kosong; greeting Profile putih di header biru."
+        ]
+      },
+      {
+        "title": "Keterbacaan",
+        "items": [
+          "Placeholder Search, label Audio Lab, dan chip Equalizer naik ke kontras WCAG AA.",
+          "Palet dikunci PaletteContrastTest; azure mockup digelapkan sedikit karena gagal AA."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.2",
     "publishedAt": "2026-10-19",
     "summary": "Warna tema default navy, bukan biru.",
