@@ -772,6 +772,8 @@ fun HomeScreen(
     }
 
     val heroScrollProgressProvider = remember { { heroScrollProgress } }
+    // QuietHero tidak punya artwork: tinta top bar harus ikut halaman, bukan putih.
+    var heroHasArtwork by remember { mutableStateOf(false) }
 
     // Home's own entry, the one a tap on its tab flags (onTabTapped only does that while Home is the
     // current page). Following the current entry instead recomposed all of Home on every navigation,
@@ -1158,6 +1160,7 @@ fun HomeScreen(
                         similarRecommendations = similarRecommendations,
                         onRepeat = mostPlayedSongsForHome,
                         forgottenFavorites = forgottenFavorites,
+                        onHasArtwork = { heroHasArtwork = it },
                         modifier = Modifier.launchRise(order = 1),
                     )
                 }
@@ -1647,6 +1650,7 @@ fun HomeScreen(
                         )
                     }
 
+                    val pageTint = MaterialTheme.colorScheme.background
                     Box(
                         modifier = Modifier
                             .matchParentSize()
@@ -1655,9 +1659,9 @@ fun HomeScreen(
                                     val p = heroScrollProgressProvider().coerceIn(0f, 1f)
                                     drawRect(
                                         brush = Brush.verticalGradient(
-                                            0f to Color.Black.copy(alpha = p * 0.9f),
-                                            0.3f to Color.Black.copy(alpha = p * 0.6f),
-                                            0.6f to Color.Black.copy(alpha = p * 0.3f),
+                                            0f to pageTint.copy(alpha = p * 0.9f),
+                                            0.3f to pageTint.copy(alpha = p * 0.6f),
+                                            0.6f to pageTint.copy(alpha = p * 0.3f),
                                             1f to Color.Transparent
                                         )
                                     )
@@ -1679,6 +1683,8 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val isScrolled by remember { derivedStateOf { heroScrollProgress > 0.5f } }
+                    // Di atas artwork tinta putih; di halaman es (QuietHero / sudah scroll) tinta tema.
+                    val topBarInk = if (heroHasArtwork && !isScrolled) Color.White else MaterialTheme.colorScheme.onBackground
                     val topBarProgress by animateFloatAsState(
                         targetValue = if (isScrolled) 1f else 0f,
                         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
@@ -1691,7 +1697,7 @@ fun HomeScreen(
                         Icon(
                             painter = painterResource(R.drawable.ic_blossomtune_mark),
                             contentDescription = "BlossomTune",
-                            tint = Color.White,
+                            tint = topBarInk,
                             modifier = Modifier
                                 .launchMarkTarget()
                                 .size(HomeMarkWidth, HomeMarkHeight)
@@ -1713,7 +1719,7 @@ fun HomeScreen(
                                 fontSize = 32.sp,
                                 letterSpacing = (-0.06).em,
                             ),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             maxLines = 1,
                             modifier = Modifier.graphicsLayer {
                                 alpha = topBarProgress

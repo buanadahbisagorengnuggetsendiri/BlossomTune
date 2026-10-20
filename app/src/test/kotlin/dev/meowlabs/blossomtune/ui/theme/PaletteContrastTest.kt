@@ -74,31 +74,32 @@ class PaletteContrastTest {
         assertEquals(BlossomColors.Blue, DarkPalette.primary)
         assertTrue("aksen harus biru", BlossomColors.Blue.blue > BlossomColors.Blue.red)
         assertTrue("aksen harus biru", BlossomColors.Blue.blue > BlossomColors.Blue.green)
-        assertEquals(BlossomColors.Navy, DefaultThemeColor)
+        assertEquals(BlossomColors.Azure, DefaultThemeColor)
     }
 
     /**
-     * Mode terang memakai palet navy/abu/putih, dan itu yang benar-benar dirender
-     * (`ForceDarkTheme` = false).
+     * Mode terang memakai palet es/azure/kartu putih, dan itu yang benar-benar
+     * dirender (`ForceDarkTheme` = false).
      *
-     * Abu spec #8E8E93 (3.26 di atas putih) gagal WCAG AA, jadi yang dirender
-     * #73737B (4.70). Nilai spec tetap disimpan di `BlossomColors.SpecGray`
-     * supaya rujukannya tidak hilang.
+     * Azure mockup #2C7BE5 gagal AA di halaman es (3.68) dan dengan teks putih
+     * (4.14), jadi yang dirender #2368D8 (4.62 / 5.19). Nilai spec tetap
+     * disimpan di [BlossomColors.AzureSpec] sebagai rujukan desain.
      */
     @Test
-    fun lightPalette_isNavyOnWhite() {
+    fun lightPalette_isAzureOnIce() {
         assertEquals(false, ForceDarkTheme)
-        assertEquals(Color(0xFF1C2144), LightPalette.primary)        // navy spec, lolos AA tanpa digelapkan
-        assertEquals(Color(0xFFF2F2F7), LightPalette.primaryContainer)
-        assertEquals(Color(0xFF1C2144), LightPalette.onPrimaryContainer)
-        assertEquals(Color(0xFFFFFFFF), LightPalette.background)     // putih
-        assertEquals(Color(0xFF1C2144), LightPalette.onBackground)   // navy
-        assertEquals(Color(0xFFF2F2F7), LightPalette.surfaceVariant) // panel abu
-        assertEquals(Color(0xFFE5E5EA), LightPalette.outline)
-        assertEquals(Color(0xFFFFFFFF), LightPalette.surface)        // kartu putih
-        assertEquals(Color(0xFF6D6D77), LightPalette.onSurfaceVariant) // abu spec #8E8E93, digelapkan utk AA
-        // Spec asli harus tetap ada di kode, bukan hilang tanpa jejak.
+        assertEquals(Color(0xFF2368D8), LightPalette.primary)
+        assertEquals(Color(0xFFDCEBFF), LightPalette.primaryContainer)
+        assertEquals(Color(0xFF0B2A5B), LightPalette.onPrimaryContainer)
+        assertEquals(Color(0xFFE8F3FE), LightPalette.background)      // halaman es
+        assertEquals(Color(0xFF0E1B2C), LightPalette.onBackground)    // tinta
+        assertEquals(Color(0xFFD9E9FA), LightPalette.surfaceVariant)  // panel es
+        assertEquals(Color(0xFFCFE3F7), LightPalette.outline)
+        assertEquals(Color(0xFFFFFFFF), LightPalette.surface)         // kartu putih
+        assertEquals(Color(0xFF3F5B78), LightPalette.onSurfaceVariant)
+        // Abu spec lama harus tetap ada di kode, bukan hilang tanpa jejak.
         assertEquals(Color(0xFF8E8E93), BlossomColors.SpecGray)
+        assertEquals(Color(0xFF2C7BE5), BlossomColors.AzureSpec)
     }
 
     /**

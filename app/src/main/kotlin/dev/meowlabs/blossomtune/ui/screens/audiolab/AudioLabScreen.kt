@@ -209,11 +209,11 @@ private fun HubTile(
                 .padding(horizontal = if (big) 22.dp else 16.dp, vertical = if (big) 18.dp else 0.dp),
         ) {
             if (big) {
-                Text(status, fontFamily = InterFontFamily, fontSize = 12.sp, color = Color(0xFF8796B3), maxLines = 1)
+                Text(status, fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Ink, maxLines = 1)
                 Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = LabColors.Primary)
             } else {
                 Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = LabColors.Primary)
-                Text(status, fontFamily = InterFontFamily, fontSize = 11.sp, color = Color(0xFF8796B3), maxLines = 1)
+                Text(status, fontFamily = InterFontFamily, fontSize = 11.sp, color = LabColors.Ink, maxLines = 1)
             }
         }
     }

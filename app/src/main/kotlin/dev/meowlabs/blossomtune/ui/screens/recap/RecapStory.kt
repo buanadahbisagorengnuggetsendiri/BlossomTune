@@ -171,7 +171,7 @@ internal const val P_RECEIPT = 9
 internal const val P_END = 10
 
 internal val StoryDark = Color(0xFF080B10)
-internal val HeaderGrey = Color(0xFF141924)
+internal val HeaderGrey = Color(0xFF16357F)
 internal val StoryTextDark = Color(0xFF0C0F16)
 internal val HeaderText = Color(0xFF1B2333)
 internal val StoryDots = Color(0xFF10151E)

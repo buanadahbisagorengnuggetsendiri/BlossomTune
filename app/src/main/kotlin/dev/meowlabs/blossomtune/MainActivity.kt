@@ -1024,8 +1024,10 @@ class MainActivity : ComponentActivity() {
                                 if (!showRail && currentRoute != "wrapped" && currentRoute != "update") {
 
                                     val detailAccent = LocalDetailAccentColor.current.value
+                                    // Di Home tidak ada aksen halaman: scrim harus ikut latar,
+                                    // bukan hitam. Hitam di halaman es = balok gelap di tema terang.
                                     val navScrimTint by androidx.compose.animation.animateColorAsState(
-                                        targetValue = detailAccent ?: Color.Black,
+                                        targetValue = detailAccent ?: MaterialTheme.colorScheme.background,
                                         animationSpec = tween(500),
                                         label = "navScrimTint"
                                     )

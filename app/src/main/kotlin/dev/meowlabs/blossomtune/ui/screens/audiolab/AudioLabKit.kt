@@ -88,17 +88,17 @@ import kotlinx.coroutines.flow.first
  * pasangannya [OnPrimary]. Jangan pakai `Color.White` langsung di sini.
  */
 object LabColors {
-    val Card = Color(0xFFFFFFFF)      // kartu putih di atas page putih
-    val Stage = Color(0xFFF2F2F7)      // panel visualisasi = abu netral
-    val StageLine = Color(0xFFE5E5EA)
+    val Card = Color(0xFFFFFFFF)      // kartu putih di atas halaman es
+    val Stage = Color(0xFFDCEAF9)     // panel visualisasi = es panel
+    val StageLine = Color(0xFFCFE3F7)
     val Row = Color(0xFFFFFFFF)
-    val RowSelected = Color(0xFFF2F2F7)
-    val Chip = Color(0xFFE5E5EA)
-    val Primary = Color(0xFF1C2144)
+    val RowSelected = Color(0xFFE4EFFC)
+    val Chip = Color(0xFFDCEAF9)
+    val Primary = Color(0xFF0E1B2C)
     val OnPrimary = Color(0xFFFFFFFF)
-    val Secondary = Color(0xFF6D6D77)
-    val Faint = Color(0xFF94A3B8)
-    val Ink = Color(0xFF6D6D77)
+    val Secondary = Color(0xFF4E6C8A)
+    val Faint = Color(0xFF4E6C8A)
+    val Ink = Color(0xFF4E6C8A)
 
     /** the equalizer's node colours: soft enough to sit on BlossomTune's greys, apart enough to tell */
     val Nodes = listOf(

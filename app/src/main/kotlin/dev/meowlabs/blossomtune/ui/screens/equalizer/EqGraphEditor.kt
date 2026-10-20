@@ -449,8 +449,8 @@ private fun NodeDetail(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             listOf(FilterType.LSC to "Low shelf", FilterType.PK to "Peak", FilterType.HSC to "High shelf").forEach { (type, label) ->
                 val picked = node.filterType == type
-                val bg by animateColorAsState(if (picked) Color(0xFFCDD1DA) else LabColors.Stage, tween(160), label = "type")
-                val fg by animateColorAsState(if (picked) LabColors.Stage else LabColors.Primary, tween(160), label = "typeText")
+                val bg by animateColorAsState(if (picked) LabColors.Primary else LabColors.Stage, tween(160), label = "type")
+                val fg by animateColorAsState(if (picked) LabColors.OnPrimary else LabColors.Primary, tween(160), label = "typeText")
                 Box(
                     modifier = Modifier
                         .weight(1f)

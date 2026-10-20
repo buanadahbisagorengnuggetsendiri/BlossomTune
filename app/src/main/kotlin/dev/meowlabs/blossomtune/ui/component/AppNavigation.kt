@@ -331,7 +331,11 @@ fun AppNavigationBar(
 
                 .press3D(maxTilt = 4f, pressedScale = 0.985f)
                 .clip(RoundedCornerShape(32.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(32.dp))
+                .border(
+                    1.dp,
+                    if (pureBlack) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.outline,
+                    RoundedCornerShape(32.dp)
+                )
         ) {
             GlassPillBackground(
                 state = glassState,

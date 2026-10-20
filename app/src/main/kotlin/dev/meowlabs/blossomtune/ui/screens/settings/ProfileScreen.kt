@@ -517,6 +517,7 @@ fun ProfileScreen(navController: NavController) {
                     Text(
                         text = "${BlossomTuneGreeting.current}, ${accountName.ifBlank { "there" }}!",
                         style = PageTitle,
+                        color = Color.White,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier

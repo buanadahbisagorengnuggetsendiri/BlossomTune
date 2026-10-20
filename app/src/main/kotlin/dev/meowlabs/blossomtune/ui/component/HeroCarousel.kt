@@ -511,6 +511,8 @@ fun HeroCarousel(
     similarRecommendations: List<SimilarRecommendation>? = null,
     onRepeat: List<dev.meowlabs.blossomtune.db.entities.Song>? = null,
     forgottenFavorites: List<dev.meowlabs.blossomtune.db.entities.Song>? = null,
+    /** true kalau hero benar-benar punya artwork; top bar Home pakai ini untuk warna tinta */
+    onHasArtwork: (Boolean) -> Unit = {},
 ) {
     val showGacha = gachaPool.size >= GachaMinPool
     // only the first song of each list is used, so a reload that reshuffles the tails doesn't
@@ -577,6 +579,7 @@ fun HeroCarousel(
             modifier = Modifier.fillMaxSize(),
             bones = { HeroBones() },
         ) { items ->
+            LaunchedEffect(items.isNotEmpty()) { onHasArtwork(items.isNotEmpty()) }
             if (items.isEmpty()) {
                 QuietHero(modifier = Modifier.fillMaxSize())
             } else {
@@ -1424,9 +1427,9 @@ fun HeroCarouselBones(modifier: Modifier = Modifier) {
 private fun QuietHero(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier.background(
-            // QuietHero tidak punya artwork di belakangnya - cuma halaman. Putih 6% di
-            // atas halaman putih = kotak yang tidak ada.
-            Brush.verticalGradient(listOf(Color(0xFF1C2144).copy(alpha = 0.05f), Color.Transparent))
+            // QuietHero tidak punya artwork di belakangnya - cuma halaman es.
+            // Sedikit azure di atas = kartu, bukan lubang.
+            Brush.verticalGradient(listOf(Color(0xFF2368D8).copy(alpha = 0.06f), Color.Transparent))
         )
     ) {
         Column(
@@ -1436,11 +1439,11 @@ private fun QuietHero(modifier: Modifier = Modifier) {
         ) {
             // QuietHero tidak punya artwork di belakangnya: HeroLabelColor (putih 69%)
             // cuma benar di atas cover, di sini jadi teks yang nyaris tidak ada.
-            Text(text = "Nothing here yet", style = HomeLabelStyle, color = Color(0xFF6D6D77), maxLines = 1)
+            Text(text = "Nothing here yet", style = HomeLabelStyle, color = Color(0xFF4E6C8A), maxLines = 1)
             Text(
                 text = "Play something and it shows up here",
                 style = HomeTitleStyle,
-                color = Color(0xFF1C2144),
+                color = Color(0xFF0E1B2C),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
