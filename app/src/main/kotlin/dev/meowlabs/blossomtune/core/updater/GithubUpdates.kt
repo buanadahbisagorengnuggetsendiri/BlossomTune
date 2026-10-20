@@ -19,6 +19,7 @@ const val GithubRepo = "BlossomTune"
 
 const val GithubProfileUrl = "https://github.com/$GithubOwner"
 const val GithubRepoUrl = "https://github.com/$GithubOwner/$GithubRepo"
+const val InstagramUrl = "https://instagram.com/buanabeneran"
 
 private const val ReleasesApi =
     "https://api.github.com/repos/$GithubOwner/$GithubRepo/releases?per_page=20"

@@ -54,6 +54,7 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.core.updater.GithubProfileUrl
 import dev.meowlabs.blossomtune.core.updater.GithubRelease
 import dev.meowlabs.blossomtune.core.updater.GithubRepoUrl
+import dev.meowlabs.blossomtune.core.updater.InstagramUrl
 import dev.meowlabs.blossomtune.core.updater.UpdateState
 import dev.meowlabs.blossomtune.core.updater.downloadApk
 import dev.meowlabs.blossomtune.core.updater.apkFileFor
@@ -153,7 +154,7 @@ private fun ColumnScope.UpdateSheetContent(updateState: UpdateState, popup: Popu
     Spacer(modifier = Modifier.height(16.dp))
 
     Text(
-        text = "BlossomTune ${BuildConfig.VERSION_NAME} by roo",
+        text = "BlossomTune ${BuildConfig.VERSION_NAME} by buana",
         fontSize = 17.sp,
         fontWeight = FontWeight.Bold,
     )
@@ -267,6 +268,8 @@ private fun ColumnScope.UpdateSheetContent(updateState: UpdateState, popup: Popu
         LinkRow(R.drawable.star, "Star the repo") { context.openUrl(GithubRepoUrl) }
         Spacer(modifier = Modifier.height(8.dp))
         LinkRow(R.drawable.github, "@buanadahbisagorengnuggetsendiri") { context.openUrl(GithubProfileUrl) }
+        Spacer(modifier = Modifier.height(8.dp))
+        LinkRow(R.drawable.instagram, "@buanabeneran") { context.openUrl(InstagramUrl) }
         Spacer(modifier = Modifier.height(8.dp))
 
         LinkRow(R.drawable.heart, "Support", enabled = true) {

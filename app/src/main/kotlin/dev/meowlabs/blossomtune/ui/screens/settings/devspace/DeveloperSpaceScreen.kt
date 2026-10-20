@@ -339,7 +339,7 @@ fun DeveloperSpaceScreen(navController: NavController) {
 internal fun DevAvatar(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(R.drawable.frame_51_3),
-        contentDescription = "roo",
+        contentDescription = "buana",
         contentScale = ContentScale.Crop,
         modifier = modifier.clip(CircleShape).background(Color(0xFFD3D7DF)),
     )
