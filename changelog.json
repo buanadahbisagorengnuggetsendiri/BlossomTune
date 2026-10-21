@@ -1,5 +1,20 @@
 [
   {
+    "versionName": "0.5.6",
+    "publishedAt": "2026-10-22",
+    "summary": "Logo di dalam app pakai mark baru: lima kelopak dengan kepala not di tengah.",
+    "sections": [
+      {
+        "title": "Logo",
+        "items": [
+          "Header Home, Settings, Profile, sheet pembaruan, recap, dan AutoPlaylist menampilkan mark baru.",
+          "Splash dan animasi logo terbang ke header ikut mark baru: ink di layar splash, putih setelah mendarat.",
+          "Stamp logo di gambar share dan ikon notifikasi memakai siluet yang sama."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.5",
     "publishedAt": "2026-10-21",
     "summary": "Ikon app baru: bunga dan not, latar es.",
