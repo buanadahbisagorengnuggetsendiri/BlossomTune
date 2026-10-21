@@ -4,16 +4,16 @@
     android:height="235dp"
     android:viewportWidth="235"
     android:viewportHeight="235">
-    <path
-        android:fillColor="#FFFDFB"
-        android:pathData="M163.5 96.3494C180.167 105.972 180.167 130.028 163.5 139.651L108 171.694C91.3333 181.316 70.5 169.288 70.5 150.043L70.5 85.957C70.5 66.712 91.3333 54.6839 108 64.3064L163.5 96.3494Z" />
-    <path
-        android:strokeColor="#212121"
-        android:strokeWidth="19"
-        android:strokeLineJoin="round"
-        android:pathData="M163.5 96.3494C180.167 105.972 180.167 130.028 163.5 139.651L108 171.694C91.3333 181.316 70.5 169.288 70.5 150.043L70.5 85.957C70.5 66.712 91.3333 54.6839 108 64.3064L163.5 96.3494Z" />
-    <path
-        android:strokeColor="#212121"
-        android:strokeWidth="13"
-        android:pathData="M71.5 120C76 120 86.2 120 91 120C97 120 95 127.5 104 127.5C113 127.5 110.5 112 121.5 112C132.5 112 126.5 126.634 137.5 126.634C148.5 126.634 144.5 119.128 155 119.128C163.4 119.128 167.667 119.128 171 119.128" />
+    <!--
+        The mark in the system splash's units: the same 128-unit geometry as ic_blossomtune_mark,
+        translated so its centre lands on the splash viewport's centre. Ink on the white splash
+        background; LaunchIntro.kt draws these numbers itself while the mark flies into Home.
+    -->
+    <group
+        android:translateX="53.5"
+        android:translateY="53.5">
+        <path
+            android:fillColor="#FF212121"
+            android:pathData="M111.12,64.00A13,11.5 0 1,1 85.12,64.00A13,11.5 0 1,1 111.12,64.00ZM75.88,112.50A13,11.5 72 1,1 67.85,87.78A13,11.5 72 1,1 75.88,112.50ZM18.86,93.98A13,11.5 144 1,1 39.89,78.69A13,11.5 144 1,1 18.86,93.98ZM18.86,34.02A13,11.5 216 1,1 39.89,49.31A13,11.5 216 1,1 18.86,34.02ZM75.88,15.50A13,11.5 288 1,1 67.85,40.22A13,11.5 288 1,1 75.88,15.50ZM71.87,59.72A12.5,9.5 -20 1,1 48.37,68.28A12.5,9.5 -20 1,1 71.87,59.72Z" />
+    </group>
 </vector>

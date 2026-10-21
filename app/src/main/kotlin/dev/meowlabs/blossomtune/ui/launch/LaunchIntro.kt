@@ -66,8 +66,8 @@ import kotlin.math.sin
  *     draws the very same mark in the very same spot and the splash goes (see SplashScreenExit).
  *  2. The mark holds still while the essentials come up underneath it: the player service, the
  *     theme, and Home (its logo and bones). Anything slow here is invisible, nothing moves.
- *  3. The mark flies into Home's logo, crossfading from the filled splash mark into the outline
- *     one with a blur through the middle, while the skeleton rises in ([launchRise]).
+ *  3. The mark flies into Home's logo, crossfading from the splash's ink into the mark's own white
+ *     with a blur through the middle, while the skeleton rises in ([launchRise]).
  *  4. Only then does the heavy work get the main thread: Home swaps its bones for content, the
  *     PoToken WebView boots, auto-sync runs ([LaunchGate.awaitIntro]).
  */
@@ -147,16 +147,18 @@ private val SplashIconSize = 288.dp
 private const val SplashViewport = 235f
 private const val SplashMaskRadius = 96f / 288f * SplashViewport
 
-// ic_splash_mark and ic_blossomtune_mark are the same shapes; the splash one sits 58,48 further in
-private val MarkOffset = Offset(58f, 48f)
+// ic_splash_mark and ic_blossomtune_mark are the same shape; the splash one is the mark's own
+// 128-unit geometry translated onto the splash viewport's centre
+private val MarkOffset = Offset(53.5f, 53.5f)
 private const val MarkViewportWidth = 128f
-private const val MarkViewportHeight = 139f
+private const val MarkViewportHeight = 128f
 
 // the splash viewport's centre: the point the flight scales around
 private val Pivot = Offset(SplashViewport / 2f, SplashViewport / 2f)
 
-// everything the marks draw, plus room for the blur, in splash units: the layer the blur runs on
-private val ArtBounds = RectF(44f, 36f, 204f, 200f)
+// everything the mark draws (bbox 17,15 - 111,113 in its own units, plus MarkOffset), with room
+// for the blur, in splash units: the layer the blur runs on
+private val ArtBounds = RectF(62f, 60f, 173f, 175f)
 
 @Stable
 class LaunchIntroState internal constructor(val plays: Boolean) {
@@ -389,57 +391,35 @@ private fun Density.placementAt(state: LaunchIntroState, size: IntSize): MarkPla
     return MarkPlacement(origin = pivot - Pivot * unit, unit = unit)
 }
 
-/** the two marks, in the splash drawable's units, ready to draw at any scale */
+/** the mark, in the splash drawable's units, ready to draw at any scale */
 private class LaunchMarkArt {
-    private val triangle = path(
-        "M163.5 96.3494C180.167 105.972 180.167 130.028 163.5 139.651L108 171.694C91.3333 181.316 " +
-            "70.5 169.288 70.5 150.043L70.5 85.957C70.5 66.712 91.3333 54.6839 108 64.3064L163.5 96.3494Z"
-    )
-    private val wave = path(
-        "M71.5 120C76 120 86.2 120 91 120C97 120 95 127.5 104 127.5C113 127.5 110.5 112 121.5 112" +
-            "C132.5 112 126.5 126.634 137.5 126.634C148.5 126.634 144.5 119.128 155 119.128" +
-            "C163.4 119.128 167.667 119.128 171 119.128"
+    private val mark = path(
+        "M111.12,64.00A13,11.5 0 1,1 85.12,64.00A13,11.5 0 1,1 111.12,64.00Z" +
+            "M75.88,112.50A13,11.5 72 1,1 67.85,87.78A13,11.5 72 1,1 75.88,112.50Z" +
+            "M18.86,93.98A13,11.5 144 1,1 39.89,78.69A13,11.5 144 1,1 18.86,93.98Z" +
+            "M18.86,34.02A13,11.5 216 1,1 39.89,49.31A13,11.5 216 1,1 18.86,34.02Z" +
+            "M75.88,15.50A13,11.5 288 1,1 67.85,40.22A13,11.5 288 1,1 75.88,15.50Z" +
+            "M71.87,59.72A12.5,9.5 -20 1,1 48.37,68.28A12.5,9.5 -20 1,1 71.87,59.72Z"
     )
     private val mask = Path().apply { addCircle(Pivot.x, Pivot.y, SplashMaskRadius, Path.Direction.CW) }
 
-    // ic_splash_mark: a light shape with a dark outline and a dark wave through it
-    private val fill = paint(0xFFFFFDFB.toInt()) { style = Paint.Style.FILL }
-    private val darkOutline = paint(0xFF212121.toInt()) {
-        style = Paint.Style.STROKE
-        strokeWidth = 19f
-        strokeJoin = Paint.Join.ROUND
-    }
-    private val darkWave = paint(0xFF212121.toInt()) {
-        style = Paint.Style.STROKE
-        strokeWidth = 13f
-    }
+    // ic_splash_mark: ink, on the splash's white
+    private val splashFill = paint(0xFF212121.toInt()) { style = Paint.Style.FILL }
 
-    // ic_blossomtune_mark: the same outline and wave, white, nothing filled
-    private val lightOutline = paint(android.graphics.Color.WHITE) {
-        style = Paint.Style.STROKE
-        strokeWidth = 19f
-        strokeJoin = Paint.Join.ROUND
-    }
-    private val lightWave = paint(android.graphics.Color.WHITE) {
-        style = Paint.Style.STROKE
-        strokeWidth = 13f
-        strokeCap = Paint.Cap.ROUND
-    }
+    // ic_blossomtune_mark: the same shape, white, over the dark backdrop it lands on
+    private val landingFill = paint(android.graphics.Color.WHITE) { style = Paint.Style.FILL }
 
     fun draw(canvas: android.graphics.Canvas, filledAlpha: Float, outlineAlpha: Float) {
-        // each mark is faded as a whole, so its overlapping strokes never show through each other
+        // each version is faded as a whole, so the two never blend into a grey in between
         if (filledAlpha > 0.002f) {
             canvas.saveLayerAlpha(ArtBounds, (filledAlpha * 255f).toInt())
             canvas.clipPath(mask)
-            canvas.drawPath(triangle, fill)
-            canvas.drawPath(triangle, darkOutline)
-            canvas.drawPath(wave, darkWave)
+            canvas.drawPath(mark, splashFill)
             canvas.restore()
         }
         if (outlineAlpha > 0.002f) {
             canvas.saveLayerAlpha(ArtBounds, (outlineAlpha * 255f).toInt())
-            canvas.drawPath(triangle, lightOutline)
-            canvas.drawPath(wave, lightWave)
+            canvas.drawPath(mark, landingFill)
             canvas.restore()
         }
     }
