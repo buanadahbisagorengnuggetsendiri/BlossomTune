@@ -1,5 +1,19 @@
 [
   {
+    "versionName": "0.5.5",
+    "publishedAt": "2026-10-21",
+    "summary": "Ikon app baru: bunga dan not, latar es.",
+    "sections": [
+      {
+        "title": "Ikon",
+        "items": [
+          "Ikon launcher baru di semua density, termasuk versi bulat dan themed icon Android 13+.",
+          "Latar ikon es putih, bukan hitam, jadi mark terbaca di launcher terang maupun gelap."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.4",
     "publishedAt": "2026-10-21",
     "summary": "Nama pembuat di sheet versi jadi buana, plus link Instagram.",
