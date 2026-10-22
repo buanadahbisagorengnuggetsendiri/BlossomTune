@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -186,7 +187,7 @@ private fun AnnotatedString.Builder.appendInline(text: String, strong: SpanStyle
                 appendInline(g[3], strong, link)
             }
             g[4].isNotEmpty() -> withStyle(
-                SpanStyle(fontFamily = FontFamily.Monospace, background = Color.White.copy(alpha = 0.08f))
+                SpanStyle(fontFamily = FontFamily.Monospace, background = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
             ) { append(g[4]) }
             g[5].isNotEmpty() -> withLink(LinkAnnotation.Url(g[6], TextLinkStyles(style = link))) {
                 appendInline(g[5], strong, link)
@@ -215,16 +216,20 @@ private fun inline(text: String, strongColor: Color): AnnotatedString = buildAnn
 fun ChangelogMarkdown(
     markdown: String,
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF8493B0),
-    strongColor: Color = Color.White,
+    color: Color = Color.Unspecified,
+    strongColor: Color = Color.Unspecified,
     fontSize: TextUnit = 12.sp,
     lineHeight: TextUnit = 17.sp,
     emptyText: String = "No changelog for this release.",
 ) {
+    // Defaults follow the sheet's theme. They used to be the dark palette's greys and pure white,
+    // which made headings and bullets disappear once the app got its light theme.
+    val bodyColor = if (color == Color.Unspecified) MaterialTheme.colorScheme.onSurfaceVariant else color
+    val inkColor = if (strongColor == Color.Unspecified) MaterialTheme.colorScheme.onSurface else strongColor
     val blocks = remember(markdown) { parseBlocks(markdown.trim()) }
 
     if (blocks.isEmpty()) {
-        Text(text = emptyText, color = color, fontSize = fontSize, lineHeight = lineHeight, modifier = modifier)
+        Text(text = emptyText, color = bodyColor, fontSize = fontSize, lineHeight = lineHeight, modifier = modifier)
         return
     }
 
@@ -232,8 +237,8 @@ fun ChangelogMarkdown(
         blocks.forEach { block ->
             when (block) {
                 is MdBlock.Heading -> Text(
-                    text = remember(block) { inline(block.text, strongColor) },
-                    color = strongColor,
+                    text = remember(block) { inline(block.text, inkColor) },
+                    color = inkColor,
                     fontSize = when (block.level) {
                         1 -> fontSize * 1.5f
                         2 -> fontSize * 1.32f
@@ -244,8 +249,8 @@ fun ChangelogMarkdown(
                 )
 
                 is MdBlock.Paragraph -> Text(
-                    text = remember(block) { inline(block.text, strongColor) },
-                    color = color,
+                    text = remember(block) { inline(block.text, inkColor) },
+                    color = bodyColor,
                     fontSize = fontSize,
                     lineHeight = lineHeight,
                 )
@@ -253,14 +258,14 @@ fun ChangelogMarkdown(
                 is MdBlock.ListItem -> Row(modifier = Modifier.padding(start = (block.indent * 12).dp)) {
                     Text(
                         text = block.marker,
-                        color = color,
+                        color = bodyColor,
                         fontSize = fontSize,
                         lineHeight = lineHeight,
                         modifier = Modifier.width(if (block.marker == "•") 12.dp else 20.dp),
                     )
                     Text(
-                        text = remember(block) { inline(block.text, strongColor) },
-                        color = color,
+                        text = remember(block) { inline(block.text, inkColor) },
+                        color = bodyColor,
                         fontSize = fontSize,
                         lineHeight = lineHeight,
                     )
@@ -275,8 +280,8 @@ fun ChangelogMarkdown(
                             .background(color.copy(alpha = 0.5f))
                     )
                     Text(
-                        text = remember(block) { inline(block.text, strongColor) },
-                        color = color,
+                        text = remember(block) { inline(block.text, inkColor) },
+                        color = bodyColor,
                         fontSize = fontSize,
                         lineHeight = lineHeight,
                         fontStyle = FontStyle.Italic,
@@ -286,14 +291,14 @@ fun ChangelogMarkdown(
 
                 is MdBlock.Code -> Text(
                     text = block.text,
-                    color = strongColor.copy(alpha = 0.85f),
+                    color = inkColor.copy(alpha = 0.85f),
                     fontSize = fontSize * 0.95f,
                     lineHeight = lineHeight,
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color.White.copy(alpha = 0.06f))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
                         .padding(10.dp),
                 )
 

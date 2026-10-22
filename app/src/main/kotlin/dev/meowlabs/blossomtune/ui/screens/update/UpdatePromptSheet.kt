@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -37,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -117,7 +117,7 @@ fun UpdatePromptSheet(
                 Icon(
                     painter = painterResource(R.drawable.ic_blossomtune_mark),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(52.dp),
                 )
             }
@@ -126,7 +126,7 @@ fun UpdatePromptSheet(
 
             Text(
                 text = if (userName.isBlank()) "Update available!" else "Update available, $userName!",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
@@ -144,7 +144,7 @@ fun UpdatePromptSheet(
             ) {
                 Text(
                     text = "What changed on ${release.version}",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -155,8 +155,8 @@ fun UpdatePromptSheet(
             Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = "To Be Installed -",
-                color = Color(0xFF7081A4),
+                text = "To be installed",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -180,7 +180,7 @@ fun UpdatePromptSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = release.apkName ?: "blossomtune.apk",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -188,7 +188,7 @@ fun UpdatePromptSheet(
                     )
                     Text(
                         text = "${BuildConfig.APPLICATION_ID} · ${formatBytes(release.apkSizeBytes)}",
-                        color = Color(0xFF8493B0),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -198,7 +198,7 @@ fun UpdatePromptSheet(
 
             error?.let {
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(text = it, color = Color(0xFFE0736B), fontSize = 12.sp)
+                Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
             }
 
             Spacer(modifier = Modifier.height(22.dp))
@@ -253,7 +253,7 @@ fun UpdatePromptSheet(
 
             PromptButton(
                 enabled = !downloading,
-                label = "no thanks remind me in 24 hour",
+                label = "No thanks, remind me in 24 hours",
                 dimmed = downloading,
                 onClick = onSnooze,
             )
@@ -291,12 +291,12 @@ private fun PromptButton(
                     .align(Alignment.CenterStart)
                     .fillMaxHeight()
                     .fillMaxWidth(fraction = progress)
-                    .background(Color(0xFF303D58))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
             )
         }
         Text(
             text = label,
-            color = Color.White.copy(alpha = if (dimmed) 0.5f else 1f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (dimmed) 0.5f else 1f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
         )
