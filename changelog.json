@@ -1,5 +1,21 @@
 [
   {
+    "versionName": "0.5.7",
+    "publishedAt": "2026-10-22",
+    "summary": "Sheet pembaruan terbaca lagi: tinta ikut tema terang dan gelap.",
+    "sections": [
+      {
+        "title": "Perbaikan",
+        "items": [
+          "Judul What changed, sub-judul, nama APK, dan label tombol di sheet pembaruan tidak lagi putih di atas kartu pucat.",
+          "Penyebabnya sheet ini masih memakai tinta palet gelap setelah app pindah ke palet es di 0.5.3. Sekarang warnanya diambil dari warna tema, jadi ikut mode terang maupun gelap.",
+          "Ikon mark di sheet ikut warna tema, tidak lagi putih di atas kartu es.",
+          "Label tombol jadi To be installed dan No thanks, remind me in 24 hours."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.6",
     "publishedAt": "2026-10-22",
     "summary": "Logo di dalam app pakai mark baru: lima kelopak dengan kepala not di tengah.",
