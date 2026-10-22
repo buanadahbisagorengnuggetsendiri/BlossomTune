@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -170,7 +171,12 @@ private val InlinePattern = Regex(
         """|(https?://[^\s<>()]+[^\s<>().,;:!?'"])""", // 9: bare link
 )
 
-private fun AnnotatedString.Builder.appendInline(text: String, strong: SpanStyle, link: SpanStyle) {
+private fun AnnotatedString.Builder.appendInline(
+    text: String,
+    strong: SpanStyle,
+    link: SpanStyle,
+    codeBackground: Color,
+) {
     var cursor = 0
     while (cursor < text.length) {
         val match = InlinePattern.find(text, cursor)
@@ -181,31 +187,33 @@ private fun AnnotatedString.Builder.appendInline(text: String, strong: SpanStyle
         append(text.substring(cursor, match.range.first))
         val g = match.groupValues
         when {
-            g[2].isNotEmpty() -> withStyle(strong) { appendInline(g[2], strong, link) }
+            g[2].isNotEmpty() -> withStyle(strong) { appendInline(g[2], strong, link, codeBackground) }
             g[3].isNotEmpty() -> withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) {
-                appendInline(g[3], strong, link)
+                appendInline(g[3], strong, link, codeBackground)
             }
             g[4].isNotEmpty() -> withStyle(
-                SpanStyle(fontFamily = FontFamily.Monospace, background = Color.White.copy(alpha = 0.08f))
+                SpanStyle(fontFamily = FontFamily.Monospace, background = codeBackground)
             ) { append(g[4]) }
             g[5].isNotEmpty() -> withLink(LinkAnnotation.Url(g[6], TextLinkStyles(style = link))) {
-                appendInline(g[5], strong, link)
+                appendInline(g[5], strong, link, codeBackground)
             }
-            g[7].isNotEmpty() -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { appendInline(g[7], strong, link) }
-            g[8].isNotEmpty() -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { appendInline(g[8], strong, link) }
+            g[7].isNotEmpty() -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { appendInline(g[7], strong, link, codeBackground) }
+            g[8].isNotEmpty() -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { appendInline(g[8], strong, link, codeBackground) }
             g[9].isNotEmpty() -> withLink(LinkAnnotation.Url(g[9], TextLinkStyles(style = link))) { append(g[9]) }
         }
         cursor = match.range.last + 1
     }
 }
 
-private fun inline(text: String, strongColor: Color): AnnotatedString = buildAnnotatedString {
-    appendInline(
-        text = text,
-        strong = SpanStyle(fontWeight = FontWeight.Bold, color = strongColor),
-        link = SpanStyle(color = strongColor, textDecoration = TextDecoration.Underline),
-    )
-}
+private fun inline(text: String, strongColor: Color, codeBackground: Color): AnnotatedString =
+    buildAnnotatedString {
+        appendInline(
+            text = text,
+            strong = SpanStyle(fontWeight = FontWeight.Bold, color = strongColor),
+            link = SpanStyle(color = strongColor, textDecoration = TextDecoration.Underline),
+            codeBackground = codeBackground,
+        )
+    }
 
 /**
  * A release body as styled text and images. [color] is the body text colour; bold text, headings
@@ -215,16 +223,21 @@ private fun inline(text: String, strongColor: Color): AnnotatedString = buildAnn
 fun ChangelogMarkdown(
     markdown: String,
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF8493B0),
-    strongColor: Color = Color.White,
+    color: Color = Color.Unspecified,
+    strongColor: Color = Color.Unspecified,
     fontSize: TextUnit = 12.sp,
     lineHeight: TextUnit = 17.sp,
     emptyText: String = "No changelog for this release.",
 ) {
+    // Defaults follow the sheet's theme. They used to be the dark palette's greys and pure white,
+    // which made headings and bullets disappear once the app got its light theme.
+    val bodyColor = if (color == Color.Unspecified) MaterialTheme.colorScheme.onSurfaceVariant else color
+    val inkColor = if (strongColor == Color.Unspecified) MaterialTheme.colorScheme.onSurface else strongColor
+    val codeBackground = inkColor.copy(alpha = 0.08f)
     val blocks = remember(markdown) { parseBlocks(markdown.trim()) }
 
     if (blocks.isEmpty()) {
-        Text(text = emptyText, color = color, fontSize = fontSize, lineHeight = lineHeight, modifier = modifier)
+        Text(text = emptyText, color = bodyColor, fontSize = fontSize, lineHeight = lineHeight, modifier = modifier)
         return
     }
 
@@ -232,8 +245,8 @@ fun ChangelogMarkdown(
         blocks.forEach { block ->
             when (block) {
                 is MdBlock.Heading -> Text(
-                    text = remember(block) { inline(block.text, strongColor) },
-                    color = strongColor,
+                    text = remember(block) { inline(block.text, inkColor, codeBackground) },
+                    color = inkColor,
                     fontSize = when (block.level) {
                         1 -> fontSize * 1.5f
                         2 -> fontSize * 1.32f
@@ -244,8 +257,8 @@ fun ChangelogMarkdown(
                 )
 
                 is MdBlock.Paragraph -> Text(
-                    text = remember(block) { inline(block.text, strongColor) },
-                    color = color,
+                    text = remember(block) { inline(block.text, inkColor, codeBackground) },
+                    color = bodyColor,
                     fontSize = fontSize,
                     lineHeight = lineHeight,
                 )
@@ -253,14 +266,14 @@ fun ChangelogMarkdown(
                 is MdBlock.ListItem -> Row(modifier = Modifier.padding(start = (block.indent * 12).dp)) {
                     Text(
                         text = block.marker,
-                        color = color,
+                        color = bodyColor,
                         fontSize = fontSize,
                         lineHeight = lineHeight,
                         modifier = Modifier.width(if (block.marker == "•") 12.dp else 20.dp),
                     )
                     Text(
-                        text = remember(block) { inline(block.text, strongColor) },
-                        color = color,
+                        text = remember(block) { inline(block.text, inkColor, codeBackground) },
+                        color = bodyColor,
                         fontSize = fontSize,
                         lineHeight = lineHeight,
                     )
@@ -275,8 +288,8 @@ fun ChangelogMarkdown(
                             .background(color.copy(alpha = 0.5f))
                     )
                     Text(
-                        text = remember(block) { inline(block.text, strongColor) },
-                        color = color,
+                        text = remember(block) { inline(block.text, inkColor, codeBackground) },
+                        color = bodyColor,
                         fontSize = fontSize,
                         lineHeight = lineHeight,
                         fontStyle = FontStyle.Italic,
@@ -286,14 +299,14 @@ fun ChangelogMarkdown(
 
                 is MdBlock.Code -> Text(
                     text = block.text,
-                    color = strongColor.copy(alpha = 0.85f),
+                    color = inkColor.copy(alpha = 0.85f),
                     fontSize = fontSize * 0.95f,
                     lineHeight = lineHeight,
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color.White.copy(alpha = 0.06f))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
                         .padding(10.dp),
                 )
 
@@ -331,5 +344,5 @@ fun changelogSummaryLine(markdown: String): String =
             is MdBlock.ListItem -> block.text
             is MdBlock.Quote -> block.text
             else -> null
-        }?.let { inline(it, Color.Unspecified).text.trim() }?.takeIf { it.isNotEmpty() }
+        }?.let { inline(it, Color.Unspecified, Color.Transparent).text.trim() }?.takeIf { it.isNotEmpty() }
     }.orEmpty()
