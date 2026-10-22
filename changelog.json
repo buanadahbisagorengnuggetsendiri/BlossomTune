@@ -131,7 +131,7 @@
       {
         "title": "Nama dan paket",
         "items": [
-          "Aplikasi ini sekarang bernama BlossomTune; rilis sebelumnya memakai nama Stereonism.",
+          "Aplikasi ini sekarang bernama BlossomTune.",
           "Paket berubah jadi dev.meowlabs.blossomtune. Pemasangan versi lama tidak bisa ditimpa versi ini, jadi perlu dipasang ulang.",
           "Nama repositori GitHub ikut berganti jadi BlossomTune."
         ]
@@ -150,12 +150,12 @@
   {
     "versionName": "0.1.0",
     "publishedAt": "2026-10-17",
-    "summary": "Rilis pertama BlossomTune: pemutar musik Android dari basis Musicfy.",
+    "summary": "Rilis pertama BlossomTune: pemutar musik Android.",
     "sections": [
       {
         "title": "Dasar",
         "items": [
-          "Basis kode Musicfy 8.0.0 (GPL-3.0), sudah di-rebrand ke dev.meowlabs.blossomtune.",
+          "Paket aplikasi dev.meowlabs.blossomtune, versi dimulai dari 0.1.0.",
           "Build lewat GitHub Actions: lint, unit test, APK debug dan APK rilis.",
           "Rilis ditandai tag, APK dan changelog.json diunggah sebagai aset rilis."
         ]
@@ -163,9 +163,9 @@
       {
         "title": "Belum dikerjakan",
         "items": [
-          "Ikon aplikasi masih ikon bawaan basis.",
-          "Palet dan tipografi masih milik basis.",
-          "Avatar di kartu Tentang masih foto pengembang basis.",
+          "Ikon aplikasi belum diganti.",
+          "Palet dan tipografi belum diganti.",
+          "Avatar di kartu Tentang belum diganti.",
           "Belum pernah diuji di perangkat."
         ]
       }
