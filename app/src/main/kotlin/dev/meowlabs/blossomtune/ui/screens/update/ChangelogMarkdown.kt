@@ -344,5 +344,5 @@ fun changelogSummaryLine(markdown: String): String =
             is MdBlock.ListItem -> block.text
             is MdBlock.Quote -> block.text
             else -> null
-        }?.let { inline(it, Color.Unspecified).text.trim() }?.takeIf { it.isNotEmpty() }
+        }?.let { inline(it, Color.Unspecified, Color.Transparent).text.trim() }?.takeIf { it.isNotEmpty() }
     }.orEmpty()
