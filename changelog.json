@@ -1,5 +1,25 @@
 [
   {
+    "versionName": "0.5.8",
+    "publishedAt": "2026-10-26",
+    "summary": "Teks yang hilang di mode terang terbaca lagi: menu, kartu hasil cari, picker Stats, urutan provider, Dev Spaces.",
+    "sections": [
+      {
+        "title": "Perbaikan",
+        "items": [
+          "Label di semua menu lagu, album, playlist, artis, dan antrean tidak lagi putih di atas baris pucat. Ikon hati di header menu ikut tinta gelap.",
+          "Kartu Top Result di hasil cari: judul, metadata, dan tombol putar sekarang putih di atas sampul yang digelapkan.",
+          "Lagu yang sedang diputar di hasil cari ditandai warna aksen, bukan biru muda yang nyaris tak terlihat di halaman es.",
+          "Kartu album di More by, halaman artis, dan playlist memakai teks putih di atas warna sampul.",
+          "Sheet Show by di Stats: judul, pilihan tahun dan bulan, serta tombol Done kembali terlihat.",
+          "Urutan provider di Audio Quality: baris tidak lagi hitam, nama provider terbaca.",
+          "Dev Spaces: judul kartu, judul issue, dan tombol kembali terbaca di kartu gelap.",
+          "Dialog Add to playlist, sisa waktu sleep timer, dan menu urutkan di playlist dan artis ikut tema terang."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.7",
     "publishedAt": "2026-10-22",
     "summary": "Sheet pembaruan terbaca lagi: tinta ikut tema terang dan gelap.",

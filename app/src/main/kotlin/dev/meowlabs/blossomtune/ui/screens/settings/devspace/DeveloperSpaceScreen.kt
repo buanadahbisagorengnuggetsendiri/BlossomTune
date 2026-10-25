@@ -105,7 +105,9 @@ private fun devText(
     size: Float,
     weight: FontWeight = FontWeight.Bold,
     // Plain value: devText bukan @Composable, jadi default-nya tidak boleh membaca MaterialTheme.
-    color: Color = Color(0xFF1C2144),
+    // Putih karena hampir semua teks di layar ini duduk di kartu gelap DevCard; judul halaman
+    // yang duduk di latar es mengirim onBackground sendiri.
+    color: Color = Color.White,
     tracking: Float = -0.4f,
 ) = TextStyle(fontFamily = InterFontFamily, fontWeight = weight, fontSize = size.sp, letterSpacing = tracking.sp, color = color)
 
@@ -182,7 +184,7 @@ fun DeveloperSpaceScreen(navController: NavController) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Dev Spaces",
-                        style = devText(34f, tracking = -1.4f),
+                        style = devText(34f, color = MaterialTheme.colorScheme.onBackground, tracking = -1.4f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.graphicsLayer { renderEffect = BlurEffectCache.get(titleP * 10f) },
@@ -310,7 +312,7 @@ fun DeveloperSpaceScreen(navController: NavController) {
                     .background(Color(0xFF33425F))
                     .clickable { navController.navigateUp() },
             ) {
-                Icon(painterResource(R.drawable.chevron_leftpx), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+                Icon(painterResource(R.drawable.chevron_leftpx), contentDescription = "Back", tint = Color.White, modifier = Modifier.size(22.dp))
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -325,7 +327,7 @@ fun DeveloperSpaceScreen(navController: NavController) {
                 Spacer(Modifier.width(10.dp))
                 Text(
                     "Dev Spaces",
-                    style = devText(20f, tracking = -0.6f),
+                    style = devText(20f, color = MaterialTheme.colorScheme.onBackground, tracking = -0.6f),
                     maxLines = 1,
                     modifier = Modifier.graphicsLayer { renderEffect = BlurEffectCache.get((1f - titleP) * 10f) },
                 )
@@ -456,7 +458,7 @@ private fun FilterChips(selected: IssueFilter, countOf: (IssueFilter) -> Int, on
             val n = countOf(f)
             Text(
                 text = if (n > 0) "${f.label} $n" else f.label,
-                style = devText(13f, FontWeight.SemiBold, if (on) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, -0.2f),
+                style = devText(13f, FontWeight.SemiBold, if (on) Color.White else Color(0xFFCDD1DA), -0.2f),
                 maxLines = 1,
                 modifier = Modifier
                     .clip(CircleShape)
@@ -476,7 +478,7 @@ private fun IssueList(issues: List<DevIssue>, showAll: Boolean, context: android
         if (!showAll && issues.size > IssueRowsShown) {
             Text(
                 "Show all ${issues.size}",
-                style = devText(13f, FontWeight.SemiBold, MaterialTheme.colorScheme.onSurface, -0.2f),
+                style = devText(13f, FontWeight.SemiBold, Color.White, -0.2f),
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .clip(CircleShape)

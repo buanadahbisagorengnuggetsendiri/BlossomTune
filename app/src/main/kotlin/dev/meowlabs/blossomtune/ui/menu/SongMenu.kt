@@ -98,6 +98,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.Color
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun SongMenu(
@@ -312,7 +313,7 @@ fun SongMenu(
             SheetHeaderButton(
                 icon = if (song.song.liked) R.drawable.favorite else R.drawable.favorite_border,
                 active = song.song.liked,
-                tint = if (song.song.liked) MaterialTheme.colorScheme.error else Color.White,
+                tint = if (song.song.liked) MaterialTheme.colorScheme.error else BlossomInk.Primary,
                 onClick = {
                     val s = song.song.toggleLike()
                     database.query {

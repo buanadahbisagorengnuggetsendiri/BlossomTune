@@ -37,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -128,7 +127,7 @@ fun ProviderOrder(
                             .fillMaxWidth()
                             .height(RowHeight)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(if (isDragged) Color(0xFF1B2231) else Color(0xFF0F131B))
+                            .background(if (isDragged) LabColors.Stage else LabColors.RowSelected)
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

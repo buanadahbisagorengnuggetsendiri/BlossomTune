@@ -416,6 +416,8 @@ private fun LazyListScope.albumShelf(
         ) {
             items(items = distinct, key = { it.id }) { item ->
                 HomeCoverCard(
+                    titleColor = Color.White,
+                    subtitleColor = Color.White.copy(alpha = 0.62f),
                     title = item.title,
                     subtitle = listOfNotNull(
                         item.artists?.joinToString { it.name }?.ifBlank { null },

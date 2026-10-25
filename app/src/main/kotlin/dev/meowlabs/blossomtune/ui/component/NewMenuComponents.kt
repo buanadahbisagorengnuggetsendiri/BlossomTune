@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun NewActionButton(
@@ -221,7 +222,7 @@ fun NewActionGrid(
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = action.text,
-                    color = Color.White.copy(alpha = contentAlpha),
+                    color = BlossomInk.Primary.copy(alpha = contentAlpha),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,

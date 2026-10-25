@@ -89,6 +89,7 @@ import dev.meowlabs.blossomtune.ui.component.SongListItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @SuppressLint("MutableCollectionMutableState")
 @Composable
@@ -273,7 +274,7 @@ fun AlbumMenu(
             SheetHeaderButton(
                 icon = if (album.album.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border,
                 active = album.album.bookmarkedAt != null,
-                tint = if (album.album.bookmarkedAt != null) MaterialTheme.colorScheme.error else Color.White,
+                tint = if (album.album.bookmarkedAt != null) MaterialTheme.colorScheme.error else BlossomInk.Primary,
                 onClick = {
                     database.query {
                         update(album.album.toggleLike())

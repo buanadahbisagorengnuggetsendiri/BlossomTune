@@ -431,6 +431,11 @@ private fun TopResultCard(
             .joinToString("  •  ")
     }
 
+    // Dengan sampul, kartu ini digelapkan scrim hitam (lihat di bawah), jadi tintanya putih.
+    // Tanpa sampul kartunya tetap putih dan memakai tinta halaman.
+    val hasArt = item.thumbnail != null
+    val ink = if (hasArt) Color.White else SearchColors.Primary
+    val inkMuted = if (hasArt) Color.White.copy(alpha = 0.72f) else SearchColors.Secondary
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -488,7 +493,7 @@ private fun TopResultCard(
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                     ),
-                    color = SearchColors.Primary,
+                    color = ink,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -496,7 +501,7 @@ private fun TopResultCard(
                 Text(
                     text = detail,
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = SearchColors.Secondary,
+                    color = inkMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -508,7 +513,7 @@ private fun TopResultCard(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(SearchColors.Primary)
+                        .background(ink)
                         .clickable(onClick = onClick),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -517,7 +522,7 @@ private fun TopResultCard(
                             if (isActive && isPlaying) R.drawable.ic_untitled_pause else R.drawable.play
                         ),
                         contentDescription = null,
-                        tint = SearchColors.OnPrimary,
+                        tint = if (hasArt) SearchColors.Primary else SearchColors.OnPrimary,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -579,7 +584,7 @@ private fun ResultRow(
                         fontWeight = FontWeight.SemiBold,
                     ),
 
-                    color = if (isActive) Color(0xFF7FD1FF) else SearchColors.Primary,
+                    color = if (isActive) MaterialTheme.colorScheme.primary else SearchColors.Primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

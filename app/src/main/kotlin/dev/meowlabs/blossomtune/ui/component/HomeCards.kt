@@ -208,6 +208,10 @@ fun HomeCoverCard(
     sharedElementKey: String? = null,
     badges: @Composable RowScope.() -> Unit = {},
     cover: (@Composable (Dp) -> Unit)? = null,
+    // Default = tinta halaman es (Home). Halaman detail yang latarnya warna sampul gelap
+    // (album, artis, playlist) mengirim putih.
+    titleColor: Color = PageInk,
+    subtitleColor: Color = PageInkMuted,
 ) {
     val size = homeCardSize()
     val shape = if (circular) CircleShape else RoundedCornerShape(HomeCardCornerRadius)
@@ -236,7 +240,7 @@ fun HomeCoverCard(
         Text(
             text = title,
             style = HomeCardTitleStyle,
-            color = PageInk,
+            color = titleColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = if (circular) TextAlign.Center else TextAlign.Start,
@@ -248,7 +252,7 @@ fun HomeCoverCard(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle,
-                    color = PageInkMuted,
+                    color = subtitleColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

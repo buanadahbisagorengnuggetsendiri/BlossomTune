@@ -112,6 +112,8 @@ import dev.meowlabs.blossomtune.ui.player.CanvasArtworkPlayer
 import dev.meowlabs.blossomtune.ui.screens.search.SearchAvatar
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.viewmodels.ArtistRelease
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import androidx.compose.material3.MaterialTheme
 
 // the round photo sits this far down the banner, and the page's header starts there
 internal const val ArtistAvatarAt = 0.45f
@@ -690,7 +692,7 @@ internal fun ArtistShelfTitle(
                     expanded = menuOpen,
                     onDismissRequest = { menuOpen = false },
                     shape = RoundedCornerShape(18.dp),
-                    containerColor = Color(0xFF171D2A),
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ) {
                     menu { menuOpen = false }
                 }
@@ -718,12 +720,12 @@ internal fun ArtistShelfTitle(
 @Composable
 internal fun ArtistMenuItem(text: String, icon: Int, onClick: () -> Unit) {
     DropdownMenuItem(
-        text = { Text(text = text, style = TrackTitleStyle, color = Color.White) },
+        text = { Text(text = text, style = TrackTitleStyle, color = BlossomInk.Primary) },
         leadingIcon = {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.8f),
+                tint = BlossomInk.Muted,
                 modifier = Modifier.size(18.dp),
             )
         },

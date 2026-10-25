@@ -92,6 +92,8 @@ import java.time.Month
 import java.time.YearMonth
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 
 private val StatsCard = Color(0xFF0A0D14)
 private val ChipBg = Color(0xFF1D2637)
@@ -672,7 +674,7 @@ private fun ColumnScope.StatsPicker(
     if (m !in months) m = months.last()
 
     Column(modifier = Modifier.padding(horizontal = 22.dp).padding(bottom = 20.dp)) {
-        Text("Show by", style = statsText(36f, tracking = -1.4f))
+        Text("Show by", style = statsText(36f, color = BlossomInk.Primary, tracking = -1.4f))
         Spacer(Modifier.height(10.dp))
         listOf(StatsRange.Kind.Month to "Month", StatsRange.Kind.Year to "Year").forEach { (value, label) ->
             val on = k == value
@@ -682,25 +684,24 @@ private fun ColumnScope.StatsPicker(
                     .padding(vertical = 5.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (on) Color(0xFF344360) else Color(0xFF1D2637))
-                    .then(if (on) Modifier.border(BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)), RoundedCornerShape(14.dp)) else Modifier)
+                    .background(if (on) BlossomInk.Chip else BlossomColors.IcePanel)
                     .clickable { k = value }
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 Box(Modifier.size(28.dp).clip(CircleShape).background(Color(0xFFD3D7DF)), contentAlignment = Alignment.Center) {
-                    if (on) Box(Modifier.size(12.dp).clip(CircleShape).background(Color(0xFF1D2637)))
+                    if (on) Box(Modifier.size(12.dp).clip(CircleShape).background(BlossomInk.Chip))
                 }
                 Spacer(Modifier.width(14.dp))
-                Text(label, style = statsText(18f), modifier = Modifier.weight(1f))
-                if (on) Text("Selected", style = statsText(13f, FontWeight.SemiBold, StatsInkMuted, 0f))
+                Text(label, style = statsText(18f, color = if (on) BlossomInk.OnChip else BlossomInk.Primary), modifier = Modifier.weight(1f))
+                if (on) Text("Selected", style = statsText(13f, FontWeight.SemiBold, StatsInkSecondary, 0f))
             }
         }
-        Box(Modifier.padding(vertical = 18.dp).fillMaxWidth().height(1.dp).background(Color(0xFF3B4C6E)))
-        Text("What year?", style = statsText(36f, tracking = -1.4f))
+        Box(Modifier.padding(vertical = 18.dp).fillMaxWidth().height(1.dp).background(BlossomInk.Divider))
+        Text("What year?", style = statsText(36f, color = BlossomInk.Primary, tracking = -1.4f))
         Wheel(items = years, selected = y, label = { "$it" }, onSelected = { y = it })
         AnimatedVisibility(visible = k == StatsRange.Kind.Month) {
             Column {
-                Text("What month?", style = statsText(36f, tracking = -1.4f), modifier = Modifier.padding(top = 10.dp))
+                Text("What month?", style = statsText(36f, color = BlossomInk.Primary, tracking = -1.4f), modifier = Modifier.padding(top = 10.dp))
                 Wheel(
                     items = months,
                     selected = m,
@@ -715,11 +716,11 @@ private fun ColumnScope.StatsPicker(
                 .fillMaxWidth()
                 .height(54.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF505F7C))
+                .background(BlossomColors.Azure)
                 .clickable { onDone(k, y, m) },
             contentAlignment = Alignment.Center,
         ) {
-            Text("Done", style = statsText(20f))
+            Text("Done", style = statsText(20f, color = Color.White))
         }
     }
 }
@@ -746,7 +747,7 @@ private fun <T> Wheel(items: List<T>, selected: T, label: (T) -> String, onSelec
                 .align(Alignment.Center)
                 .fillMaxWidth()
                 .height(rowH)
-                .border(BorderStroke(1.dp, Color(0xFF7081A4)), CircleShape),
+                .border(BorderStroke(1.dp, BlossomColors.InkMuted), CircleShape),
         )
         androidx.compose.foundation.lazy.LazyColumn(
             state = state,
@@ -771,7 +772,7 @@ private fun <T> Wheel(items: List<T>, selected: T, label: (T) -> String, onSelec
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(label(item), style = statsText(15f, if (i == centre) FontWeight.Bold else FontWeight.SemiBold))
+                    Text(label(item), style = statsText(15f, if (i == centre) FontWeight.Bold else FontWeight.SemiBold, BlossomInk.Primary))
                 }
             }
         }

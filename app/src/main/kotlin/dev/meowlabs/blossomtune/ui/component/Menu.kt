@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun Material3MenuGroup(
@@ -115,7 +116,7 @@ private fun Material3MenuItemRow(
                 MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = contentAlpha),
+                    color = BlossomInk.Primary.copy(alpha = contentAlpha),
                 )
             ) {
                 item.title()

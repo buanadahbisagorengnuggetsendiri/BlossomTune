@@ -73,6 +73,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import androidx.compose.ui.graphics.Color
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun PlaylistMenu(
@@ -238,7 +239,7 @@ fun PlaylistMenu(
                 SheetHeaderButton(
                     icon = if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border,
                     active = dbPlaylist?.playlist?.bookmarkedAt != null,
-                    tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else Color.White,
+                    tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else BlossomInk.Primary,
                     onClick = {
                         database.query {
                             dbPlaylist?.playlist?.toggleLike()?.let { update(it) }

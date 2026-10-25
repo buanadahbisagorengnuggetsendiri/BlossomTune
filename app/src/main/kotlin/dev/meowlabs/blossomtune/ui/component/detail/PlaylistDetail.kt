@@ -129,6 +129,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // geometry and type from the Figma playlist frames (16:1162 open, 16:1354 scrolled). internal so
 // the album, artist and generated pages line up on the same inset and type
@@ -1049,7 +1050,7 @@ fun <T : Enum<T>> PlaylistSortControl(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             shape = RoundedCornerShape(18.dp),
-            containerColor = Color(0xFF171D2A),
+            containerColor = MaterialTheme.colorScheme.surface,
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
@@ -1057,7 +1058,7 @@ fun <T : Enum<T>> PlaylistSortControl(
                         Text(
                             text = label(option),
                             style = TrackTitleStyle,
-                            color = if (option == current) Color.White else Color.White.copy(alpha = 0.7f),
+                            color = if (option == current) BlossomInk.Primary else BlossomInk.Muted,
                         )
                     },
                     trailingIcon = if (option == current && showDirection(option)) {
@@ -1065,7 +1066,7 @@ fun <T : Enum<T>> PlaylistSortControl(
                             Icon(
                                 painter = painterResource(R.drawable.expand_more),
                                 contentDescription = if (descending) "Descending" else "Ascending",
-                                tint = Color.White,
+                                tint = BlossomInk.Primary,
                                 modifier = Modifier
                                     .size(18.dp)
                                     .graphicsLayer { rotationZ = if (descending) 0f else 180f }

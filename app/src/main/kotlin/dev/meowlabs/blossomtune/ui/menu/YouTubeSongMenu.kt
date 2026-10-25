@@ -89,6 +89,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import androidx.compose.ui.graphics.Color
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @SuppressLint("MutableCollectionMutableState")
 @Composable
@@ -197,7 +198,7 @@ fun YouTubeSongMenu(
             SheetHeaderButton(
                 icon = if (librarySong?.song?.liked == true) R.drawable.favorite else R.drawable.favorite_border,
                 active = librarySong?.song?.liked == true,
-                tint = if (librarySong?.song?.liked == true) MaterialTheme.colorScheme.error else Color.White,
+                tint = if (librarySong?.song?.liked == true) MaterialTheme.colorScheme.error else BlossomInk.Primary,
                 onClick = {
                     database.transaction {
                         librarySong.let { librarySong ->

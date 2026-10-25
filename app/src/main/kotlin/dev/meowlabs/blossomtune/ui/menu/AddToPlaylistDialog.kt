@@ -61,6 +61,7 @@ import kotlinx.coroutines.launch
 import java.text.Collator
 import java.time.LocalDateTime
 import java.util.Locale
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** How many playlists the "recents" section shows. */
 private const val RecentCount = 4
@@ -294,7 +295,7 @@ private fun AddToPlaylistContent(
                 item(key = "empty") {
                     Text(
                         text = if (sections.searching) "No playlists found" else "No playlists yet",
-                        color = Color.White.copy(alpha = 0.55f),
+                        color = BlossomInk.Muted,
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -336,7 +337,7 @@ private fun PlaylistPickRow(playlist: Playlist, onClick: () -> Unit) {
                 Icon(
                     painter = painterResource(R.drawable.queue_music),
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = BlossomInk.Muted,
                     modifier = Modifier.size(24.dp),
                 )
             },
@@ -346,7 +347,7 @@ private fun PlaylistPickRow(playlist: Playlist, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = playlist.playlist.name,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -354,7 +355,7 @@ private fun PlaylistPickRow(playlist: Playlist, onClick: () -> Unit) {
             )
             Text(
                 text = pluralStringResource(R.plurals.n_song, count, count),
-                color = Color.White.copy(alpha = 0.55f),
+                color = BlossomInk.Muted,
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

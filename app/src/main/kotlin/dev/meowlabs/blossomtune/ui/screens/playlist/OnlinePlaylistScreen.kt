@@ -442,6 +442,8 @@ fun OnlinePlaylistScreen(
                     ) {
                         items(relatedItems.distinctBy { it.id }, key = { it.id }) { item ->
                             HomeCoverCard(
+                                titleColor = Color.White,
+                                subtitleColor = Color.White.copy(alpha = 0.62f),
                                 title = item.title,
                                 subtitle = when (item) {
                                     is PlaylistItem -> listOfNotNull(item.author?.name, item.songCountText).joinToString(" · ").ifBlank { null }

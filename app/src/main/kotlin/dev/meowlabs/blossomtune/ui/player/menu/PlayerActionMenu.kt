@@ -493,7 +493,7 @@ private fun SleepTimerRow(onClick: () -> Unit) {
             if (remainingLabel.isNotEmpty()) {
                 Text(
                     text = "$remainingLabel remaining",
-                    color = Color(0xFF8493B0),
+                    color = BlossomInk.Muted,
                     fontSize = 12.sp,
                 )
             }

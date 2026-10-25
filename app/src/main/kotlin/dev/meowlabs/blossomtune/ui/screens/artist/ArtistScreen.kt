@@ -718,6 +718,8 @@ private fun LazyListScope.coverShelf(
         ) {
             items(items = distinct, key = { it.id }) { item ->
                 HomeCoverCard(
+                    titleColor = Color.White,
+                    subtitleColor = Color.White.copy(alpha = 0.62f),
                     title = item.title,
                     subtitle = when (item) {
                         is AlbumItem -> item.year?.toString()
@@ -848,6 +850,8 @@ private fun LazyListScope.librarySection(
             ) {
                 items(items = albums, key = { it.id }) { album ->
                     HomeCoverCard(
+                        titleColor = Color.White,
+                        subtitleColor = Color.White.copy(alpha = 0.62f),
                         title = album.album.title,
                         subtitle = album.album.year?.toString(),
                         thumbnailUrl = album.album.thumbnailUrl,

@@ -347,6 +347,8 @@ internal fun SimilarPage(
                             ) {
                                 items(groups.albums, key = { it.id }) { album ->
                                     HomeCoverCard(
+                                        titleColor = Color.White,
+                                        subtitleColor = Color.White.copy(alpha = 0.62f),
                                         title = album.title,
                                         subtitle = listOfNotNull(
                                             album.artists?.joinToString { it.name }?.ifBlank { null },
