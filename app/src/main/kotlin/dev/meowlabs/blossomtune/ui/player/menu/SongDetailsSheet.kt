@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -49,6 +48,7 @@ import dev.meowlabs.blossomtune.LocalDatabase
 import dev.meowlabs.blossomtune.LocalPlayerConnection
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.models.MediaMetadata
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.utils.resize
 import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
@@ -121,12 +121,12 @@ fun SongDetailsSheet(
                             modifier = Modifier
                                 .size(DetailImageSize)
                                 .clip(RoundedCornerShape(7.dp))
-                                .background(Color.White.copy(alpha = 0.9f)),
+                                .background(BlossomInk.Chip),
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.info),
                                 contentDescription = null,
-                                tint = Color.Black.copy(alpha = 0.75f),
+                                tint = BlossomInk.OnChip,
                                 modifier = Modifier.size(16.dp),
                             )
                         }
@@ -161,7 +161,7 @@ private fun AboutSongSheet(song: MediaMetadata, onDismiss: () -> Unit) {
             Spacer(modifier = Modifier.height(20.dp))
             Text(
                 text = "About song",
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.04).em,
@@ -180,7 +180,7 @@ private fun AboutSongSheet(song: MediaMetadata, onDismiss: () -> Unit) {
                         description.isNullOrEmpty() -> "There's no description for this song."
                         else -> description.orEmpty()
                     },
-                    color = Color.White.copy(alpha = 0.82f),
+                    color = BlossomInk.Primary.copy(alpha = 0.82f),
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
                 )
@@ -215,13 +215,13 @@ private fun SongHeader(song: MediaMetadata) {
             modifier = Modifier
                 .size(52.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.White.copy(alpha = 0.08f)),
+                .background(BlossomInk.Primary.copy(alpha = 0.06f)),
         )
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -231,7 +231,7 @@ private fun SongHeader(song: MediaMetadata) {
             if (artists.isNotBlank()) {
                 Text(
                     text = artists,
-                    color = Color(0xFFA7AFBF),
+                    color = BlossomInk.Muted,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -267,7 +267,7 @@ private fun DetailRow(
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = title,
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
@@ -285,12 +285,12 @@ private fun DetailImage(url: String?, shape: Shape, placeholder: Int) {
         modifier = Modifier
             .size(DetailImageSize)
             .clip(shape)
-            .background(Color.White.copy(alpha = 0.9f)),
+            .background(BlossomInk.Chip),
     ) {
         Icon(
             painter = painterResource(placeholder),
             contentDescription = null,
-            tint = Color.Black.copy(alpha = 0.6f),
+            tint = BlossomInk.OnChip,
             modifier = Modifier.size(16.dp),
         )
         if (url != null) {
@@ -313,14 +313,14 @@ private fun DoneButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .height(46.dp)
             .clip(RoundedCornerShape(50))
-            .background(Color.White.copy(alpha = 0.24f))
+            .background(BlossomInk.Chip)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
             ),
     ) {
-        Text(text = "done", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text = "done", color = BlossomInk.OnChip, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 

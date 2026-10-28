@@ -168,7 +168,7 @@ fun PlayerActionMenu(
                                     append(trackInfo.album)
                                 }
                             },
-                            color = Color(0xFFA7AFBF),
+                            color = BlossomInk.Muted,
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
