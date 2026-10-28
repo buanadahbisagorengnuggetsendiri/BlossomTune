@@ -52,6 +52,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -516,7 +517,7 @@ fun MenuSheetSurface(
                         .width(64.dp)
                         .height(4.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.5f))
+                        .background(BlossomInk.Primary.copy(alpha = 0.2f))
                 )
             }
 

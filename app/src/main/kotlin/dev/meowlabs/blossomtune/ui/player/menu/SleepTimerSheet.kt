@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
@@ -88,7 +89,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
         ) {
             Text(
                 text = "Sleep timer",
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -109,7 +110,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
                 ) {
                     Text(
                         text = compactDuration(timeState.hour, timeState.minute),
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                         fontSize = 34.sp,
                         fontWeight = FontWeight.Bold,
                         textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
@@ -118,7 +119,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
                     Icon(
                         painter = painterResource(R.drawable.arrow_forward),
                         contentDescription = "Edit duration",
-                        tint = Color.White.copy(alpha = 0.8f),
+                        tint = BlossomInk.Primary.copy(alpha = 0.8f),
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -134,10 +135,10 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
                     androidx.compose.material3.TimeInput(
                         state = timeState,
                         colors = androidx.compose.material3.TimePickerDefaults.colors(
-                            timeSelectorSelectedContainerColor = Color.White.copy(alpha = 0.12f),
-                            timeSelectorUnselectedContainerColor = Color.White.copy(alpha = 0.06f),
-                            timeSelectorSelectedContentColor = Color.White,
-                            timeSelectorUnselectedContentColor = Color.White.copy(alpha = 0.7f),
+                            timeSelectorSelectedContainerColor = BlossomInk.Primary.copy(alpha = 0.12f),
+                            timeSelectorUnselectedContainerColor = BlossomInk.Primary.copy(alpha = 0.06f),
+                            timeSelectorSelectedContentColor = BlossomInk.Primary,
+                            timeSelectorUnselectedContentColor = BlossomInk.Primary.copy(alpha = 0.7f),
                         ),
                     )
                 }
@@ -155,7 +156,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            Text(text = "or", color = Color(0xFF7081A4), fontSize = 13.sp)
+            Text(text = "or", color = BlossomInk.Muted, fontSize = 13.sp)
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
@@ -170,12 +171,12 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
                     modifier = Modifier
                         .size(26.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.85f))
+                        .background(BlossomInk.Chip)
                 )
                 Spacer(modifier = Modifier.width(14.dp))
                 Text(
                     text = "end after this music ends",
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -190,7 +191,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            Text(text = "or", color = Color(0xFF7081A4), fontSize = 13.sp)
+            Text(text = "or", color = BlossomInk.Muted, fontSize = 13.sp)
             Spacer(modifier = Modifier.height(10.dp))
 
             SheetButton(
@@ -224,7 +225,7 @@ private fun SheetButton(label: String, enabled: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             text = label,
-            color = Color.White.copy(alpha = if (enabled) 1f else 0.35f),
+            color = BlossomInk.Primary.copy(alpha = if (enabled) 1f else 0.35f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,

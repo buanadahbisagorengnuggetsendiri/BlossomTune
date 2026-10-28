@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -164,7 +165,7 @@ private fun Int.deviceIcon(): Int = when (this) {
 private fun SectionLabel(text: String) {
     Text(
         text = text,
-        color = Color(0xFF7081A4),
+        color = BlossomInk.Muted,
         fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(bottom = 10.dp),
@@ -190,7 +191,7 @@ private fun VolumeCard(
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = title,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -205,7 +206,7 @@ private fun VolumeCard(
             Icon(
                 painter = painterResource(R.drawable.volume_down),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = BlossomInk.Primary.copy(alpha = 0.7f),
                 modifier = Modifier.size(16.dp),
             )
             LineSlider(
@@ -216,7 +217,7 @@ private fun VolumeCard(
             Icon(
                 painter = painterResource(R.drawable.volume_up),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = BlossomInk.Primary.copy(alpha = 0.7f),
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -249,7 +250,7 @@ private fun DeviceRow(
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = label,
-            color = Color.White.copy(alpha = alpha),
+            color = BlossomInk.Primary.copy(alpha = alpha),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
@@ -265,12 +266,12 @@ private fun IconDot(icon: Int, alpha: Float = 1f) {
         modifier = Modifier
             .size(22.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.9f * alpha))
+            .background(BlossomInk.Chip.copy(alpha = alpha))
     ) {
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
-            tint = Color.Black.copy(alpha = 0.75f),
+            tint = BlossomInk.OnChip,
             modifier = Modifier.size(13.dp),
         )
     }

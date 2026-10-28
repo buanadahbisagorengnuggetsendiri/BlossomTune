@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -78,7 +79,7 @@ fun PlaybackSpeedSheet(onDismiss: () -> Unit) {
             Spacer(modifier = Modifier.height(22.dp))
             Text(
                 text = "Playback speed and tempo",
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -117,7 +118,7 @@ fun PlaybackSpeedSheet(onDismiss: () -> Unit) {
             ) {
                 Text(
                     text = "RESET TO NORMAL",
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -139,14 +140,14 @@ private fun ValueSlider(label: String, value: Float, onValueChange: (Float) -> U
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = label,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = String.format("%.2f×", value),
-                color = Color(0xFFA7AFBF),
+                color = BlossomInk.Muted,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )

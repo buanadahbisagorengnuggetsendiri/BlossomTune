@@ -158,7 +158,7 @@ fun LyricsEditorSheet(onDismiss: () -> Unit) {
                         Column(modifier = Modifier.padding(bottom = 14.dp)) {
                             Text(
                                 text = formatTimestamp(entry.time),
-                                color = Color(0xFF7081A4),
+                                color = BlossomInk.Muted,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -592,7 +592,7 @@ private fun LanguagePickerSheet(
                     .padding(horizontal = 16.dp)
             ) {
                 if (query.isEmpty()) {
-                    Text(text = "Search language", color = Color(0xFF7081A4), fontSize = 13.sp)
+                    Text(text = "Search language", color = BlossomInk.Muted, fontSize = 13.sp)
                 }
                 BasicTextField(
                     value = query,
