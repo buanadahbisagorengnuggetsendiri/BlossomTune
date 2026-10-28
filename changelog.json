@@ -1,5 +1,22 @@
 [
   {
+    "versionName": "0.5.10",
+    "publishedAt": "2026-10-29",
+    "summary": "Sheet sleep timer, kecepatan putar, dan output perangkat terbaca lagi di mode terang.",
+    "sections": [
+      {
+        "title": "Perbaikan",
+        "items": [
+          "Sleep timer: judul, durasi, input jam dan menit, baris end after this music ends, serta tombol SET TIMER dan CANCEL TIMER tidak lagi putih di atas putih.",
+          "Sheet kecepatan putar: judul, label, dan tombol RESET TO NORMAL memakai tinta tema.",
+          "Sheet output perangkat: nama perangkat, ikon volume, dan bulatan ikon terbaca.",
+          "Garis slider dan pegangan sheet sekarang terlihat di sheet putih.",
+          "Placeholder pencarian bahasa dan timestamp di alat lirik memakai abu tema."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.9",
     "publishedAt": "2026-10-29",
     "summary": "Sheet detail lagu terbaca lagi di mode terang.",
