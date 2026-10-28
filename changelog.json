@@ -1,5 +1,21 @@
 [
   {
+    "versionName": "0.5.9",
+    "publishedAt": "2026-10-29",
+    "summary": "Sheet detail lagu terbaca lagi di mode terang.",
+    "sections": [
+      {
+        "title": "Perbaikan",
+        "items": [
+          "Sheet yang terbuka saat judul atau artis di player diketuk: baris View artis, View album, dan About song tidak lagi putih di atas putih.",
+          "Kotak ikon di tiap baris jadi gelap dengan ikon putih, tombol done jadi pill gelap.",
+          "Sheet About song: judul dan deskripsi memakai tinta tema.",
+          "Subjudul by ... on ... di menu aksi player memakai abu tema, bukan abu pucat."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.8",
     "publishedAt": "2026-10-26",
     "summary": "Teks yang hilang di mode terang terbaca lagi: menu, kartu hasil cari, picker Stats, urutan provider, Dev Spaces.",
