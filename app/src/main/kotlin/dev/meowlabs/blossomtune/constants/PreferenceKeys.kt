@@ -163,6 +163,12 @@ val InfiniteQueueKey = booleanPreferencesKey("infiniteQueue")
 val SetupCompletedKey = booleanPreferencesKey("setupCompleted")
 val UsernameKey = stringPreferencesKey("username")
 val ProfilePicUriKey = stringPreferencesKey("profilePicUri")
+/** Genre favorit di profil, dipisah koma (lihat ProfileTaste). */
+val FavoriteGenresKey = stringPreferencesKey("favoriteGenres")
+/** Artis favorit yang diketik sendiri di Edit profile. */
+val FavoriteArtistKey = stringPreferencesKey("favoriteArtist")
+/** Lagu favorit yang diketik sendiri di Edit profile. */
+val FavoriteSongKey = stringPreferencesKey("favoriteSong")
 val AutoDownloadOnLikeKey = booleanPreferencesKey("autoDownloadOnLike")
 val SimilarContent = booleanPreferencesKey("similarContent")
 val DontSkipOnFailureKey = booleanPreferencesKey("dontSkipOnFailure")
