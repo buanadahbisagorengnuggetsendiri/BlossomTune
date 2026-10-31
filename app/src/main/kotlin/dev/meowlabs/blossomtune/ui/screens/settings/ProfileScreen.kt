@@ -124,6 +124,9 @@ import dev.meowlabs.blossomtune.constants.ProfileCardNumberKey
 import dev.meowlabs.blossomtune.constants.ProfileJoinedEpochDayKey
 import dev.meowlabs.blossomtune.constants.ProfilePicUriKey
 import dev.meowlabs.blossomtune.constants.UsernameKey
+import dev.meowlabs.blossomtune.constants.FavoriteArtistKey
+import dev.meowlabs.blossomtune.constants.FavoriteGenresKey
+import dev.meowlabs.blossomtune.constants.FavoriteSongKey
 import dev.meowlabs.blossomtune.ui.component.BlurDirection
 import dev.meowlabs.blossomtune.ui.component.GlassState
 import dev.meowlabs.blossomtune.ui.component.HomeContentInset
@@ -230,6 +233,9 @@ fun ProfileScreen(navController: NavController) {
     val (cardNumberPref, setCardNumber) = rememberPreference(ProfileCardNumberKey, "")
     val (joinedEpochDay, setJoinedEpochDay) = rememberPreference(ProfileJoinedEpochDayKey, -1L)
     val (forceRecap) = rememberPreference(dev.meowlabs.blossomtune.constants.ForceMonthlyRecapKey, false)
+    val (favoriteGenres) = rememberPreference(FavoriteGenresKey, "")
+    val (favoriteArtist) = rememberPreference(FavoriteArtistKey, "")
+    val (favoriteSong) = rememberPreference(FavoriteSongKey, "")
 
     var liveAccountName by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(innerTubeCookie) {
@@ -663,6 +669,12 @@ fun ProfileScreen(navController: NavController) {
                         },
                 ) {
                     Spacer(Modifier.height(24.dp))
+                    ProfileInfoCard(
+                        name = accountName,
+                        tasteSummary = ProfileTaste.summary(ProfileTaste.parseGenres(favoriteGenres), favoriteArtist, favoriteSong),
+                        onEdit = { navController.navigate(EditProfileRoute) },
+                    )
+                    Spacer(Modifier.height(16.dp))
                     ListeningTimeCard(totalListeningMs, onViewStats = { navController.navigate("stats") })
                     Spacer(Modifier.height(16.dp))
                     VersionCard(
@@ -828,6 +840,50 @@ private fun figureSp(dp: Float): TextUnit = with(LocalDensity.current) { dp.dp.t
 
 /** How much the cards' figures grow or shrink from the design's 360dp-wide phone, by the width they actually get. */
 private fun widthScale(cardWidthDp: Float): Float = (cardWidthDp / 320f).coerceIn(0.72f, 1.2f)
+
+/** Nama dan musik kesukaan, dengan tombol ke Edit profile. */
+@Composable
+private fun ProfileInfoCard(name: String, tasteSummary: String?, onEdit: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(PageCard)
+            .clickable(onClick = onEdit)
+            .padding(CardPadding),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Profil", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant))
+                Text(
+                    name.ifBlank { "Belum ada nama" },
+                    style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 22.sp, letterSpacing = (-0.6).sp, color = MaterialTheme.colorScheme.onSurface),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .clickable(onClick = onEdit)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text("Edit profile", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSecondaryContainer))
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
+        Spacer(Modifier.height(12.dp))
+        Text("Musik kesukaan", style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant))
+        Spacer(Modifier.height(4.dp))
+        Text(
+            tasteSummary ?: "Belum diisi - ketuk untuk menambahkan",
+            style = TextStyle(fontFamily = InterFontFamily, fontSize = 14.sp, lineHeight = 20.sp, color = MaterialTheme.colorScheme.onSurface),
+        )
+    }
+}
 
 @Composable
 private fun ListeningTimeCard(totalMs: Long, onViewStats: () -> Unit) {

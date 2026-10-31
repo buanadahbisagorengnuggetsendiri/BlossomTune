@@ -105,6 +105,8 @@ import dev.meowlabs.blossomtune.ui.screens.search.SearchScreen
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.screens.settings.ProfileScreen
+import dev.meowlabs.blossomtune.ui.screens.settings.EditProfileRoute
+import dev.meowlabs.blossomtune.ui.screens.settings.EditProfileScreen
 import dev.meowlabs.blossomtune.ui.screens.library.LibraryAlbumsScreen
 import dev.meowlabs.blossomtune.ui.screens.SectionDetailScreen
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -368,6 +370,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable("stats") {
         StatsScreen(navController = navController)
+    }
+
+    composable(EditProfileRoute) {
+        EditProfileScreen(navController = navController)
     }
 
     composable("cipher_settings") {
