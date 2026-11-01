@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Package | `dev.meowlabs.blossomtune` |
-| Versi | `0.5.7` (`versionCode` 12) |
+| Versi | `0.5.11` (`versionCode` 16) |
 | Lisensi | GPL-3.0 (lihat [`LICENSE`](LICENSE) dan [`NOTICE.md`](NOTICE.md)) |
 | Min SDK | 26 (Android 8.0) |
 | Compile / Target SDK | 36 |
@@ -30,13 +30,13 @@ kecil, Gradle pernah mematikan proses lain). Compiler-nya GitHub Actions:
 - **Build** — `:app:lintUniversalFossDebug`, unit test app dan modul, APK debug
   (`assembleUniversalFossDebug`), APK rilis (`assembleUniversalFossRelease`),
   plus pemeriksaan "bukan debuggable" dan verifikasi tanda tangan.
-- **Release** — dipicu tag `v0.5.7`: memeriksa tag == `versionName` di
+- **Release** — dipicu tag `v0.5.11`: memeriksa tag == `versionName` di
   `app/build.gradle.kts`, membangun APK rilis, lalu menerbitkan GitHub Release
   berisi APK, checksum `sha256`, dan `changelog.json`. Berkas terakhir itu yang
   dibaca pemeriksa pembaruan di app.
 
 ```bash
-git tag v0.5.7 && git push origin v0.5.7
+git tag v0.5.11 && git push origin v0.5.11
 ```
 
 Varian build: dua dimensi flavor (`abi` × `variant`), jadi nama task-nya

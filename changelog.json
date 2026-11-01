@@ -1,5 +1,21 @@
 [
   {
+    "versionName": "0.5.11",
+    "publishedAt": "2026-11-01",
+    "summary": "Nama profil bisa diganti kapan saja, dan profil sekarang menyimpan musik kesukaanmu.",
+    "sections": [
+      {
+        "title": "Baru",
+        "items": [
+          "Layar Edit profile: ganti nama profil yang tampil di kartu ID, sapaan, dan recap.",
+          "Pilih sampai lima genre favorit, plus satu artis dan satu lagu favorit.",
+          "Kartu Profil di halaman profil menampilkan nama dan musik kesukaan; ketuk untuk mengedit.",
+          "Nama kosong atau lebih dari 24 karakter ditolak dengan pesan yang jelas, dan tidak ada yang tersimpan sebelum Simpan ditekan."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.10",
     "publishedAt": "2026-10-29",
     "summary": "Sheet sleep timer, kecepatan putar, dan output perangkat terbaca lagi di mode terang.",
