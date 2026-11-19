@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -98,7 +99,8 @@ private val HomeRankStyle = TextStyle(
     letterSpacing = HomeTracking,
 )
 
-private val SectionLabelColor = Color.White.copy(alpha = 0.69f)
+private val SectionLabelColor: Color
+    @Composable @ReadOnlyComposable get() = BlossomInk.Primary
 private val HomeRowShape = RoundedCornerShape(14.dp)
 val HomeRowHeight = 54.dp
 

@@ -46,7 +46,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.size
 import dev.meowlabs.blossomtune.LocalGlassState
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Immutable
 private data class NavItemState(
@@ -359,7 +358,7 @@ private fun TabIcons(
         Icon(
             painter = unlitIcon,
             contentDescription = stringResource(screen.titleId),
-            tint = BlossomInk.Primary,
+            tint = Color.White,
             modifier = Modifier
                 .size(iconSize)
                 .graphicsLayer {
@@ -370,7 +369,7 @@ private fun TabIcons(
         Icon(
             painter = litIcon,
             contentDescription = null,
-            tint = BlossomInk.Primary,
+            tint = Color.White,
             modifier = Modifier
                 .size(iconSize)
                 .graphicsLayer {

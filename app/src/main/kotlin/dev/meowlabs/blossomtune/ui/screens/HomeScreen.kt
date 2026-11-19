@@ -188,6 +188,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import dev.meowlabs.blossomtune.ui.component.navigateToTab
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 sealed class HomeSection(val id: String) {
     data object RecentlyPlayed : HomeSection("recently_played")
@@ -531,7 +532,7 @@ private fun HomeShell() {
             Icon(
                 painter = painterResource(R.drawable.ic_blossomtune_mark),
                 contentDescription = "BlossomTune",
-                tint = Color.White,
+                tint = BlossomInk.Primary,
                 modifier = Modifier
                     .launchMarkTarget()
                     .size(HomeMarkWidth, HomeMarkHeight)

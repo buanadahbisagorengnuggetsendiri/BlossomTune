@@ -54,6 +54,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
@@ -210,7 +211,8 @@ private const val HeroSlideMillis = 1150
 private const val HeroAdvanceMillis = 5500L
 private val HeroPillContent = Color(0xFF2F2F2F)
 private val HeroPillFill = Color.White.copy(alpha = 0.64f)
-private val HeroLabelColor = Color.White.copy(alpha = 0.69f)
+private val HeroLabelColor: Color
+    @Composable @ReadOnlyComposable get() = BlossomInk.Muted
 
 // once the hero starts scrolling away its video holds still and the carousel stops turning, so
 // the scroll's blur only ever sees a still frame
