@@ -1,5 +1,16 @@
 @file:Suppress("UnstableApiUsage")
 
+// Plugin diambil dari Google dan Maven Central dulu, bukan cuma Gradle Plugin Portal:
+// hilt 2.60.1 punya marker di Google Maven, dan job rilis di CI sempat gagal karena
+// portal saja tidak menyediakannya.
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
 
