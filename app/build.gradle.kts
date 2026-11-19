@@ -21,6 +21,9 @@ plugins {
 extensions.configure<ApplicationExtension> {
     namespace = "dev.meowlabs.blossomtune"
     compileSdk = 37
+    // sandbox SDK hanya punya platform android-37.0 (api-level 37.0); tanpa ini AGP mencari
+    // hash 'android-37' yang tidak pernah terbit. Hapus bila platform 37 mayor sudah rilis.
+    compileSdkMinor = 0
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
