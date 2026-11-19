@@ -1,11 +1,8 @@
-// CardMoments.kt
-//
-// The two "card" pages: Hello (after the profile) and Done (the very end). Every moving part is
-// driven by one frame clock read only in draw/graphicsLayer lambdas, so nothing recomposes while it
-// animates. Hello doubles as the blur benchmark — see BlurCapability.
+// the hello and done card pages, all motion runs off one frame clock read in draw lambdas so nothing recomposes
 
 package dev.meowlabs.blossomtune.ui.screens.setup.onboarding
 
+import androidx.compose.ui.res.stringResource
 import dev.meowlabs.blossomtune.ui.component.rememberDeviceTilt
 import android.os.Build
 import androidx.compose.animation.core.Animatable
@@ -65,7 +62,7 @@ import kotlin.math.min
 import kotlin.math.sin
 import kotlin.random.Random
 
-/** Both card pages move on to the next step on their own after this long. */
+/** both card pages move on by themselves after this long */
 internal const val CardMomentMillis = 3000L
 
 internal data class CardInfo(
@@ -111,7 +108,7 @@ internal fun HelloCardStep(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.radialGradient(listOf(Color(0xFF1D2637), Color(0xFF0A0D12)), radius = 1400f))
+            .background(Brush.radialGradient(listOf(Color(0xFF2A2A2A), Color(0xFF0E0E0E)), radius = 1400f))
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragEnd = {
@@ -144,7 +141,7 @@ internal fun HelloCardStep(
                 for (i in 0 until 4) {
                     val a = time * (0.6f + i * 0.17f) + i * 1.7f
                     drawCircle(
-                        color = Color(0xFFD5D9E0).copy(alpha = 0.22f - i * 0.04f),
+                        color = Color(0xFFD7D9DE).copy(alpha = 0.22f - i * 0.04f),
                         radius = size.width * (0.28f + 0.05f * i),
                         center = c + Offset(cos(a) * size.width * 0.12f, sin(a * 1.3f) * size.width * 0.1f),
                     )
@@ -208,8 +205,8 @@ internal fun HelloCardStep(
                     translationY = (1f - p) * 40.dp.toPx()
                 },
         ) {
-            Text("Hello!", color = Color.White, fontSize = 64.sp, lineHeight = 66.sp, fontWeight = FontWeight.Bold, letterSpacing = (-2).sp)
-            Text("welcome to blossomtune!", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.onb_hello), color = Color.White, fontSize = 64.sp, lineHeight = 66.sp, fontWeight = FontWeight.Bold, letterSpacing = (-2).sp)
+            Text(stringResource(R.string.onb_welcome_to_blossomtune), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -262,11 +259,11 @@ internal fun DoneStep(card: CardInfo, onFinished: () -> Unit) {
                     .background(Onb.Badge),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(painterResource(R.drawable.check), contentDescription = null, tint = Color(0xFF141924), modifier = Modifier.size(34.dp))
+                Icon(painterResource(R.drawable.check), contentDescription = null, tint = Color(0xFF1C1C1C), modifier = Modifier.size(34.dp))
             }
             Spacer(Modifier.height(18.dp))
             Text(
-                "You're good to go",
+                stringResource(R.string.onb_all_good),
                 color = Onb.Subtitle,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -305,7 +302,7 @@ private fun easeOutBack(t: Float): Float {
     return 1f + c3 * x * x * x + c1 * x * x
 }
 
-/** Silver confetti: one burst from the card, falling with a little flutter. */
+/** silver confetti, one burst from the card falling with a little flutter */
 private class Confetti private constructor(private val pieces: List<Piece>) {
     private class Piece(
         val vx: Float,
@@ -342,11 +339,11 @@ private class Confetti private constructor(private val pieces: List<Piece>) {
     companion object {
         private val palette = listOf(
             Color.White,
-            Color(0xFFE8EAEF),
-            Color(0xFFBFC5D1),
-            Color(0xFF8F9CB7),
-            Color(0xFFF5F6F7),
-            Color(0xFF67799E),
+            Color(0xFFE9EAEE),
+            Color(0xFFC4C6CC),
+            Color(0xFF9EA1A8),
+            Color(0xFFF5F5F7),
+            Color(0xFF7D8088),
         )
 
         fun burst(count: Int, seed: Int): Confetti {

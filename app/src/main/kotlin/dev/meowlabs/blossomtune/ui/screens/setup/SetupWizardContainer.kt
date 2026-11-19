@@ -6,8 +6,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
@@ -15,7 +13,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,8 +31,10 @@ import androidx.compose.ui.unit.dp
 import dev.meowlabs.blossomtune.utils.dataStore
 import dev.meowlabs.blossomtune.constants.SetupCompletedKey
 import dev.meowlabs.blossomtune.ui.launch.LaunchGate
+import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import dev.meowlabs.blossomtune.ui.component.backdropClick
 
 // a beat with the bones settled before the sheet slides over them
 private const val SheetAfterIntroMillis = 120L
@@ -51,15 +50,15 @@ fun SetupWizardContainer(
     val overlayProgress = remember { Animatable(0f) }
     var dragOffsetY by remember { mutableStateOf(0f) }
     var isFirstLaunch by remember { mutableStateOf(true) }
-    val topInset = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
+    // the shown bar's height: this wraps the whole app, and the live one recomposed all of it each time the player hid the bars
+    val topInset = WindowInsets.stableSystemBars.asPaddingValues().calculateTopPadding()
 
     val smoothMotion = tween<Float>(durationMillis = 450, easing = FastOutSlowInEasing)
 
     LaunchedEffect(isVisible) {
         if (isVisible) {
             if (isFirstLaunch) {
-                // on a first launch: the splash mark flies into Home, its bones rise, and only
-                // then does onboarding come up over them
+                // first launch: the splash mark flies into home and its bones rise before onboarding comes up
                 LaunchGate.awaitIntro()
                 kotlinx.coroutines.delay(SheetAfterIntroMillis)
                 isFirstLaunch = false
@@ -105,10 +104,7 @@ fun SetupWizardContainer(
                     .fillMaxSize()
                     .graphicsLayer { alpha = effectiveProgress.coerceIn(0f, 1f) }
                     .background(Color.Black.copy(alpha = 0.7f * effectiveProgress))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {  }
+                    .backdropClick()
             )
 
             Box(

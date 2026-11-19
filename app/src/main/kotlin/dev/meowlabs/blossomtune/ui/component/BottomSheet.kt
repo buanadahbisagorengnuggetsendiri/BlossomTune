@@ -21,7 +21,7 @@ import androidx.compose.foundation.gestures.DraggableState
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import dev.meowlabs.blossomtune.LocalPlayerConnection
 import androidx.compose.ui.unit.IntOffset
@@ -55,14 +55,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
@@ -70,7 +74,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import dev.meowlabs.blossomtune.constants.NavigationBarAnimationSpec
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlin.math.pow
@@ -86,15 +94,90 @@ private val PlayerSheetAnimationSpec = spring<Dp>(
  */
 private val SheetSwipeCommit = 8.dp
 
+// a quick flick down that ended before the sheet was taken still closes it, past this speed and travel
+private val SheetCloseFlick = 900.dp
+private val SheetCloseFlickTravel = 12.dp
+
+// let go of the held sheet faster than this and it goes the way the finger went, whatever the distance
+private val SheetReleaseSpeed = 300.dp
+
+// let go slower, and it closes once it was pulled this far down, as one swipe always has; less springs back open
+private val SheetCloseTravel = 36.dp
+
+// the mini player let go of slowly opens once it was pulled this far up; less drops back into the mini player
+private val SheetOpenTravel = 36.dp
+
+// how quickly a sheet let go of still settles (the soft spring's own pace); a faster finger raises it
+private const val SettleOmega = 8.94f
+private const val MaxSettleOmega = 42f
+
+/**
+ * How far the mini player has to be pulled down, summed over the drag, before it's dismissed
+ * (which stops playback and clears the queue).
+ */
+private val MiniPlayerDismissCommit = 48.dp
+
 private val PlayerSheetHorizontalAnimationSpec = spring<Float>(
     dampingRatio = 0.92f,
     stiffness = 90f
 )
 
+/** How far the mini player tilts and shrinks under a press. */
+private const val PillMaxTilt = 6f
+private const val PillPressedScale = 0.97f
+
+/** A press only tilts the sheet this close to collapsed: the mini player itself. */
+private const val PillPressMaxProgress = 0.02f
+
+/** The progress the mini player's hairline outline and shadow are gone by. */
+private const val PillEdgeFadeEnd = 0.08f
+
+/** The collapsed sheet, the mini player: its corners; how tall it is and how far in from each side are the MiniPillFrame's. */
+private val PillCornerRadius = 20.dp
+private val PillShape = RoundedCornerShape(PillCornerRadius)
+
+private val PillTiltSpring = spring<Float>(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = 420f,
+)
+
+/** The mini player's press: how far in (0 to 1), and where it landed, -1 to 1 across the sheet. */
+@Stable
+private class PillPress {
+    val amount = Animatable(0f)
+
+    // Plain fields: set before each press animates, and read in the layer that animation redraws.
+    var normalizedX = 0f
+    var normalizedY = 0f
+}
+
+/** Where the pill sheet sits, and its tilt under a press. The sheet and its shadow share this. */
+private fun androidx.compose.ui.graphics.GraphicsLayerScope.placeSheet(state: BottomSheetState, pillPress: PillPress, pillHeight: Dp) {
+    translationY = (state.expandedBound - state.value).toPx()
+    translationX = state.horizontalOffset
+
+    val t = pillPress.amount.value
+    if (t > 0f) {
+        val s = 1f - (1f - PillPressedScale) * t
+        scaleX = s
+        scaleY = s
+        rotationX = -pillPress.normalizedY * PillMaxTilt * t
+        rotationY = pillPress.normalizedX * PillMaxTilt * t
+        cameraDistance = size.width * 3f
+        // about the pill's centre
+        transformOrigin = TransformOrigin(
+            0.5f,
+            if (size.height > 0f) (pillHeight / 2).toPx() / size.height else 0f,
+        )
+    }
+}
+
 @Composable
 fun BottomSheet(
     state: BottomSheetState,
     modifier: Modifier = Modifier,
+    /** Added to [modifier] only while the sheet sits fully open (pill transition only). */
+    expandedModifier: Modifier = Modifier,
     background: @Composable (BoxScope.() -> Unit) = { },
     onDismiss: (() -> Unit)? = null,
     collapsedContent: @Composable BoxScope.() -> Unit,
@@ -103,11 +186,31 @@ fun BottomSheet(
     pureBlack: Boolean = false,
     /** Offered vertical swipes on the fully expanded sheet first (pill transition only). */
     expandedSwipe: ExpandedSwipe? = null,
+    /**
+     * Takes sideways swipes on the collapsed sheet (the mini player) instead of the sheet sliding
+     * them itself (pill transition only).
+     */
+    collapsedSwipe: CollapsedSwipe? = null,
+    /**
+     * Told when a finger comes down anywhere on the sheet (true) and when the last one lifts
+     * (false), whatever on it takes the touch (pill transition only).
+     */
+    onTouchActivity: ((touching: Boolean) -> Unit)? = null,
+    // false while what's on the open sheet handles every swipe itself; the sheet then leaves them all alone
+    dragsWhenOpen: () -> Boolean = { true },
     sharedContent: @Composable (BoxScope.() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val density = LocalDensity.current
+    val currentDragsWhenOpen by androidx.compose.runtime.rememberUpdatedState(dragsWhenOpen)
     val currentSwipe by androidx.compose.runtime.rememberUpdatedState(expandedSwipe)
+    val currentSideSwipe by androidx.compose.runtime.rememberUpdatedState(collapsedSwipe)
+    val currentOnTouchActivity by androidx.compose.runtime.rememberUpdatedState(onTouchActivity)
+    val (swipeUpFollows) = dev.meowlabs.blossomtune.utils.rememberPreference(
+        dev.meowlabs.blossomtune.constants.PlayerSwipeUpFollowsKey,
+        defaultValue = true,
+    )
+    val currentSwipeUpFollows by androidx.compose.runtime.rememberUpdatedState(swipeUpFollows)
 
     if (!isPillTransition) {
         Box(
@@ -193,7 +296,7 @@ fun BottomSheet(
                             }
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
+                                indication = RemoteFocus,
                                 onClick = { if (isExpandable) state.expandSoft() },
                             )
                             .fillMaxWidth()
@@ -222,9 +325,18 @@ fun BottomSheet(
 
             val sheetCoordinates = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
 
+            // where the mini player sits across the screen, and whether the wide bar's glass already lies under it
+            val pillFrame = LocalMiniPillFrame.current
+            // a look's glass that draws its own edge leaves blossomtune's hairline and shadow off the mini player
+            val moduleGlass = rememberChromeModuleGlass()
+            val currentPillFrame by androidx.compose.runtime.rememberUpdatedState(pillFrame)
+            // in the wide bar the pill is a stadium like the bar round it, so it lifts out of it cleanly
+            val pillCorner = if (pillFrame.merged) pillFrame.height / 2 else PillCornerRadius
+
             val sheetClipShape = remember {
                 object : androidx.compose.ui.graphics.Shape {
-                    var hp = 0f
+                    var left = 0f
+                    var right = 0f
                     var visibleHeight = 0f
                     var cr = 0f
 
@@ -235,9 +347,9 @@ fun BottomSheet(
                     ): androidx.compose.ui.graphics.Outline {
                         return androidx.compose.ui.graphics.Outline.Rounded(
                             androidx.compose.ui.geometry.RoundRect(
-                                left = hp,
+                                left = left,
                                 top = 0f,
-                                right = size.width - hp,
+                                right = size.width - right,
                                 bottom = visibleHeight,
                                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(cr, cr)
                             )
@@ -246,11 +358,23 @@ fun BottomSheet(
                 }
             }
 
+            // Pressing the mini player tilts it toward the finger. In the sheet's own layer, so the
+            // shape it's clipped to tilts with what's in it, and kept through the open: the tilt
+            // eases back out over the open's first frames. It was a modifier on the player inside,
+            // taken off at 2% open, so a tap's tilt snapped flat a frame or two into every open.
+            val pillPress = remember { PillPress() }
+
             Box(
                 modifier = modifier
+                    .then(if (state.isExpanded) expandedModifier else Modifier)
                     .fillMaxSize()
                     .nestedScroll(remember(state) { state.preUpPostDownNestedScrollConnection })
             ) {
+
+                // The mini player's faint shadow. The sheet's clip would cut it off, so it's a
+                // layer of its own placed and tilted exactly like the sheet, and it fades with the
+                // hairline. It stays the pill's size: the opening sheet grows over it.
+                if (!pillFrame.merged && moduleGlass?.shadow != false) PillShadow(state, pillPress, pillFrame)
 
                 Box(
                     modifier = Modifier
@@ -259,28 +383,31 @@ fun BottomSheet(
                         .height(state.expandedBound)
                         .graphicsLayer {
                             val p = state.progress.coerceIn(0f, 1f)
-                            sheetClipShape.cr = androidx.compose.ui.unit.lerp(20.dp, 0.dp, p).toPx()
-                            sheetClipShape.hp = androidx.compose.ui.unit.lerp(24.dp, 0.dp, p).toPx()
-                            sheetClipShape.visibleHeight = androidx.compose.ui.unit.lerp(64.dp, state.expandedBound, p).toPx()
+                            sheetClipShape.cr = androidx.compose.ui.unit.lerp(pillCorner, 0.dp, p).toPx()
+                            sheetClipShape.left = androidx.compose.ui.unit.lerp(pillFrame.start, 0.dp, p).toPx()
+                            sheetClipShape.right = androidx.compose.ui.unit.lerp(pillFrame.end, 0.dp, p).toPx()
+                            sheetClipShape.visibleHeight = androidx.compose.ui.unit.lerp(currentPillFrame.height, state.expandedBound, p).toPx()
 
                             shape = sheetClipShape
                             clip = true
-                            translationY = (state.expandedBound - state.value).toPx()
-                            translationX = state.horizontalOffset
+                            placeSheet(state, pillPress, currentPillFrame.height)
                         }
                         .drawWithContent {
                             drawContent()
                             val p = state.progress.coerceIn(0f, 1f)
-                            if (p < 0.05f) {
-                                val cr = androidx.compose.ui.unit.lerp(20.dp, 0.dp, p).toPx()
-                                val hp = androidx.compose.ui.unit.lerp(24.dp, 0.dp, p).toPx()
-                                val visibleHeight = androidx.compose.ui.unit.lerp(64.dp, state.expandedBound, p).toPx()
-                                drawRoundRect(
-                                    color = Color.White.copy(alpha = 0.1f),
-                                    topLeft = androidx.compose.ui.geometry.Offset(hp, 0f),
-                                    size = androidx.compose.ui.geometry.Size(size.width - hp * 2, visibleHeight),
-                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(cr, cr),
-                                    style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx())
+                            // the pill's hairline fades out as it opens (it used to drop in one frame at 5%); the wide bar draws its own round both halves
+                            val edge = 1f - p / PillEdgeFadeEnd
+                            if (edge > 0f && !pillFrame.merged && moduleGlass?.outline != false) {
+                                val left = androidx.compose.ui.unit.lerp(pillFrame.start, 0.dp, p).toPx()
+                                val right = androidx.compose.ui.unit.lerp(pillFrame.end, 0.dp, p).toPx()
+                                drawChromeOutline(
+                                    topLeft = androidx.compose.ui.geometry.Offset(left, 0f),
+                                    size = androidx.compose.ui.geometry.Size(
+                                        size.width - left - right,
+                                        androidx.compose.ui.unit.lerp(currentPillFrame.height, state.expandedBound, p).toPx(),
+                                    ),
+                                    cornerRadius = androidx.compose.ui.unit.lerp(pillCorner, 0.dp, p).toPx(),
+                                    alpha = edge,
                                 )
                             }
                         }
@@ -302,6 +429,52 @@ fun BottomSheet(
                         // to the swipe handler in root coordinates. Stored, not state: it is only
                         // read when a drag starts.
                         .onPlaced { sheetCoordinates[0] = it }
+                        // Any touch on the sheet, for whoever wants to know it's in use. Watched
+                        // like the press tilt below, so it takes nothing from anyone.
+                        .then(
+                            if (onTouchActivity == null) Modifier else Modifier.pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    var touching = false
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                        val now = event.changes.any { it.pressed }
+                                        if (now != touching) {
+                                            touching = now
+                                            currentOnTouchActivity?.invoke(now)
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                        // The press tilt: watched in the Initial pass and never consumed, so the
+                        // tap and the drags below still get every touch.
+                        .pointerInput(state, isExpandable) {
+                            // A press cut off by this restarting must not leave the sheet tilted.
+                            if (pillPress.amount.targetValue != 0f) {
+                                coroutineScope.launch { pillPress.amount.animateTo(0f, PillTiltSpring) }
+                            }
+                            if (!isExpandable) return@pointerInput
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val down = awaitPointerEvent(PointerEventPass.Initial)
+                                        .changes.firstOrNull { it.changedToDownIgnoreConsumed() } ?: continue
+                                    // in the wide bar the glass round it holds still, so the mini player alone doesn't tilt
+                                    if (state.progress >= PillPressMaxProgress || currentPillFrame.merged) continue
+                                    if (size.width > 0 && size.height > 0) {
+                                        pillPress.normalizedX = ((down.position.x / size.width) * 2f - 1f).coerceIn(-1f, 1f)
+                                        pillPress.normalizedY = ((down.position.y / size.height) * 2f - 1f).coerceIn(-1f, 1f)
+                                    }
+                                    coroutineScope.launch { pillPress.amount.animateTo(1f, PillTiltSpring) }
+                                    // Let go when the finger lifts, or as soon as the sheet leaves
+                                    // the pill under a drag.
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                        if (event.changes.none { it.pressed } || state.progress >= PillPressMaxProgress) break
+                                    }
+                                    coroutineScope.launch { pillPress.amount.animateTo(0f, PillTiltSpring) }
+                                }
+                            }
+                        }
                         .pointerInput(state, isExpandable) {
                             if (!isExpandable) return@pointerInput
                             val velocityTracker = VelocityTracker()
@@ -316,22 +489,56 @@ fun BottomSheet(
                             // small to ever pass it: the player wouldn't swipe closed.
                             var dragSum = Offset.Zero
                             val commitPx = SheetSwipeCommit.toPx()
+                            val flickPx = SheetCloseFlick.toPx()
+                            val releaseSpeedPx = SheetReleaseSpeed.toPx()
+                            val closeTravelPx = SheetCloseTravel.toPx()
+                            val pxPerDp = 1.dp.toPx()
+                            // whether a held sheet let go of now closes: quick enough down, or far enough down and not flicked back up
+                            fun closes(velocityY: Float, travelled: Float): Boolean = when {
+                                velocityY > releaseSpeedPx -> true
+                                velocityY < -releaseSpeedPx -> false
+                                else -> travelled > closeTravelPx
+                            }
+                            val openTravelPx = SheetOpenTravel.toPx()
+                            // the same for a mini player pulled up: quick enough up, or far enough up and not flicked back down
+                            fun opens(velocityY: Float, travelled: Float): Boolean = when {
+                                velocityY < -releaseSpeedPx -> true
+                                velocityY > releaseSpeedPx -> false
+                                else -> -travelled > openTravelPx
+                            }
+                            // the held sheet came up from the mini player, so letting go decides whether it opens
+                            var heldFromMini = false
+                            fun closesOnRelease(velocityY: Float, travelled: Float): Boolean =
+                                if (heldFromMini) !opens(velocityY, travelled) else closes(velocityY, travelled)
+                            val flickTravelPx = SheetCloseFlickTravel.toPx()
+                            val dismissPx = MiniPlayerDismissCommit.toPx()
                             // Whether this drag began on the open player (or one all but settled
                             // open: the open spring's tail runs on for a second after it looks up).
                             var startedOpen = false
                             // The sheet was sent on its way by this drag: once is enough.
                             var acted = false
+                            // A sideways swipe on the mini player handed to [collapsedSwipe].
+                            var sideSwipe: CollapsedSwipe? = null
+                            // the open player is under the finger, following it down (and back up) until it lets go
+                            var holding = false
 
-                            detectDragGestures(
+                            detectSheetDrag(
+                                // the sideways video mode reads to us turned a quarter: its scrolls look like swipes, so it gets them all
+                                enabled = { state.progress <= 0.5f || currentDragsWhenOpen() },
+                                // open, the lists and sliders inside get the first word: a slanted scroll is theirs
+                                slopScale = { if (state.progress > 0.5f) OpenSheetSlopScale else 1f },
                                 onDragStart = { start ->
                                     dragStartTime = System.currentTimeMillis()
                                     totalHorizontalDrag = 0f
                                     velocityTracker.resetTracking()
                                     swipe = null
+                                    sideSwipe = null
                                     dragSum = Offset.Zero
                                     acted = false
-                                    startedOpen = state.isExpanded ||
-                                        (state.isExpandedOrExpanding && state.progress > 0.9f)
+                                    holding = false
+                                    // by how open it looks: a sheet showing open whose anchor says
+                                    // otherwise (a cut-short animation) still swipes closed (#109)
+                                    startedOpen = state.isExpanded || state.progress > 0.9f
                                     val coordinates = sheetCoordinates[0]
                                     swipeStart = if (coordinates != null && coordinates.isAttached) {
                                         coordinates.localToRoot(start)
@@ -342,6 +549,11 @@ fun BottomSheet(
                                 onDrag = { change, dragAmount ->
                                     velocityTracker.addPointerInputChange(change)
                                     dragSum += dragAmount
+                                    if (holding) {
+                                        state.dragHeld(dragAmount.y, pxPerDp)
+                                        change.consume()
+                                        return@detectSheetDrag
+                                    }
                                     val vertical = abs(dragSum.y) > abs(dragSum.x)
                                     val pulledUp = vertical && dragSum.y < -commitPx
                                     val pulledDown = vertical && dragSum.y > commitPx
@@ -353,23 +565,57 @@ fun BottomSheet(
                                     if (claimed != null) {
                                         claimed.onDrag(dragAmount.y)
                                         change.consume()
+                                    } else if (sideSwipe != null) {
+                                        totalHorizontalDrag += dragAmount.x
+                                        sideSwipe?.onDrag(totalHorizontalDrag, size.width.toFloat())
+                                        change.consume()
                                     } else if (kotlin.math.abs(dragAmount.x) > kotlin.math.abs(dragAmount.y) && state.isCollapsed) {
                                         totalHorizontalDrag += dragAmount.x
+                                        val handler = currentSideSwipe
+                                        if (handler != null) {
+                                            sideSwipe = handler
+                                            handler.onStart()
+                                            handler.onDrag(totalHorizontalDrag, size.width.toFloat())
+                                            change.consume()
+                                            return@detectSheetDrag
+                                        }
                                         val resistance = 1f - (kotlin.math.abs(state.horizontalOffset) / (size.width / 2f)).coerceIn(0f, 0.8f)
                                         state.horizontalOffset += dragAmount.x * resistance
                                     } else {
                                         if ((dragAmount.y < -2f || pulledUp) && state.isCollapsed) {
-                                            state.expandSoft()
+                                            if (currentSwipeUpFollows) {
+                                                // the player rides the finger up out of the mini player, as slow or as fast as it goes
+                                                acted = true
+                                                holding = true
+                                                heldFromMini = true
+                                                state.hold()
+                                                state.dragHeld(dragAmount.y, pxPerDp)
+                                            } else {
+                                                state.expandSoft()
+                                            }
                                             change.consume()
                                         } else if (
-                                            !acted && startedOpen && (dragAmount.y > 2f || pulledDown) &&
+                                            !acted && startedOpen && pulledDown &&
                                             !state.isCollapsed &&
                                             currentSwipe?.canCollapseFrom(swipeStart) != false
                                         ) {
+                                            // the player now rides the finger down into the mini player, as slow or as fast as it goes
                                             acted = true
-                                            state.collapseSoft()
+                                            holding = true
+                                            heldFromMini = false
+                                            state.hold()
+                                            state.dragHeld(dragAmount.y, pxPerDp)
                                             change.consume()
-                                        } else if (dragAmount.y > 2f && state.isCollapsed && onDismiss != null) {
+                                        } else if (
+                                            !acted && state.isCollapsed && onDismiss != null &&
+                                            dragSum.y > dismissPx && abs(dragSum.y) > abs(dragSum.x) * 2f
+                                        ) {
+                                            // Dismissing stops playback and clears the queue, so it
+                                            // takes a deliberate pull down, summed over the drag and
+                                            // clearly vertical. It used to be any single 2px move
+                                            // down: the first move of a slightly slanted sideways
+                                            // swipe (meant to skip) threw the whole queue away (#47).
+                                            acted = true
                                             state.dismiss()
                                             onDismiss.invoke()
                                             change.consume()
@@ -377,21 +623,55 @@ fun BottomSheet(
                                     }
                                 },
                                 onDragCancel = {
+                                    // a lift that something under the finger took still ends the drag here, so it closes by the same rule
+                                    if (holding) {
+                                        holding = false
+                                        val velocityY = velocityTracker.calculateVelocity().y
+                                        state.release(velocityY, pxPerDp, collapse = closesOnRelease(velocityY, dragSum.y))
+                                    }
                                     velocityTracker.resetTracking()
                                     swipe?.onEnd(0f)
                                     swipe = null
+                                    sideSwipe?.onEnd(totalHorizontalDrag, 0f, size.width.toFloat(), cancelled = true)
+                                    sideSwipe = null
                                     coroutineScope.launch {
                                         state.animateHorizontalOffsetTo(0f)
                                     }
                                 },
                                 onDragEnd = {
+                                    if (holding) {
+                                        holding = false
+                                        val velocityY = velocityTracker.calculateVelocity().y
+                                        velocityTracker.resetTracking()
+                                        state.release(velocityY, pxPerDp, collapse = closesOnRelease(velocityY, dragSum.y))
+                                        return@detectSheetDrag
+                                    }
                                     swipe?.let { handler ->
                                         handler.onEnd(velocityTracker.calculateVelocity().y)
                                         velocityTracker.resetTracking()
                                         swipe = null
-                                        return@detectDragGestures
+                                        return@detectSheetDrag
                                     }
+                                    sideSwipe?.let { handler ->
+                                        handler.onEnd(totalHorizontalDrag, velocityTracker.calculateVelocity().x, size.width.toFloat(), cancelled = false)
+                                        velocityTracker.resetTracking()
+                                        sideSwipe = null
+                                        return@detectSheetDrag
+                                    }
+                                    val velocityY = velocityTracker.calculateVelocity().y
                                     velocityTracker.resetTracking()
+
+                                    // a quick flick down that ended before it got far enough
+                                    if (
+                                        !acted && startedOpen && !state.isCollapsed &&
+                                        abs(dragSum.y) > abs(dragSum.x) && dragSum.y > flickTravelPx &&
+                                        velocityY > flickPx &&
+                                        currentSwipe?.canCollapseFrom(swipeStart) != false
+                                    ) {
+                                        acted = true
+                                        state.release(velocityY, pxPerDp, collapse = true)
+                                        return@detectSheetDrag
+                                    }
 
                                     if (state.isCollapsed || state.progress < 0.2f) {
                                         val dragDuration = System.currentTimeMillis() - dragStartTime
@@ -401,9 +681,10 @@ fun BottomSheet(
                                         val shouldChangeSong = (kotlin.math.abs(currentOffset) > 50f && kotlin.math.abs(horizontalVelocity) > 2f) ||
                                                 (kotlin.math.abs(currentOffset) > size.width / 3f)
 
+                                        // through the connection, so the swipe fades or blends like the skip buttons
                                         if (shouldChangeSong && playerConnection != null) {
-                                            if (currentOffset > 0) playerConnection.player.seekToPreviousMediaItem()
-                                            else playerConnection.player.seekToNext()
+                                            if (currentOffset > 0) playerConnection.skipToPreviousSong()
+                                            else playerConnection.seekToNext()
                                         }
                                     }
 
@@ -464,7 +745,7 @@ fun BottomSheet(
                             }
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
+                                indication = RemoteFocus,
                                 onClick = { if (isExpandable) state.expandSoft() },
                             ),
                         contentAlignment = androidx.compose.ui.Alignment.TopStart
@@ -473,12 +754,87 @@ fun BottomSheet(
                     }
                 }
 
-                if (!state.isCollapsed && !state.isDismissed) {
-                    BackHandler(onBack = state::collapseSoft)
-                }
+                SheetBackHandler(state)
             }
         }
     }
+
+// its own function, so the shadow showing or hiding at 8% open recomposes only this
+@Composable
+private fun BoxScope.PillShadow(state: BottomSheetState, pillPress: PillPress, pillFrame: MiniPillFrame) {
+    val showPillShadow by remember(state) {
+        derivedStateOf { !state.isDismissed && state.progress < PillEdgeFadeEnd }
+    }
+    if (showPillShadow) {
+        Box(
+            modifier = Modifier
+                .align(androidx.compose.ui.Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(state.expandedBound)
+                .graphicsLayer {
+                    placeSheet(state, pillPress, pillFrame.height)
+                    alpha = (1f - state.progress / PillEdgeFadeEnd).coerceIn(0f, 1f)
+                    compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
+                }
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(start = pillFrame.start, end = pillFrame.end)
+                    .fillMaxWidth()
+                    .height(pillFrame.height)
+                    .dropShadow(PillShape, ChromeShadow)
+            )
+        }
+    }
+}
+
+// how much further than the touch slop a finger must go before the open sheet takes a drag
+private const val OpenSheetSlopScale = 2f
+
+// like detectDragGestures, but it gives way: a drag a list or slider inside already took stays theirs, and it waits longer so a slanted scroll starts the list
+private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.detectSheetDrag(
+    enabled: () -> Boolean,
+    slopScale: () -> Float,
+    onDragStart: (Offset) -> Unit,
+    onDrag: (androidx.compose.ui.input.pointer.PointerInputChange, Offset) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
+) = awaitEachGesture {
+    val down = awaitFirstDown(requireUnconsumed = false)
+    if (!enabled()) return@awaitEachGesture
+    val slop = viewConfiguration.touchSlop * slopScale()
+    var total = Offset.Zero
+    var started: androidx.compose.ui.input.pointer.PointerInputChange? = null
+    while (started == null) {
+        val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: return@awaitEachGesture
+        if (!change.pressed || change.isConsumed) return@awaitEachGesture
+        total += change.positionChange()
+        if (total.getDistance() >= slop) {
+            change.consume()
+            started = change
+        } else {
+            // something inside may still claim this same move after us; then it's theirs
+            awaitPointerEvent(PointerEventPass.Final)
+            if (change.isConsumed) return@awaitEachGesture
+        }
+    }
+    val distance = total.getDistance()
+    onDragStart(started.position)
+    onDrag(started, if (distance > 0f) total * ((distance - slop) / distance) else Offset.Zero)
+    val finished = drag(started.id) {
+        onDrag(it, it.positionChange())
+        it.consume()
+    }
+    if (finished) onDragEnd() else onDragCancel()
+}
+
+// its own function, so the sheet leaving collapsed or dismissed doesn't recompose the whole sheet
+@Composable
+private fun SheetBackHandler(state: BottomSheetState) {
+    if (!state.isCollapsed && !state.isDismissed) {
+        BackHandler(onBack = state::collapseSoft)
+    }
+}
 
 val LocalPlayerBottomSheetState = compositionLocalOf<BottomSheetState?> { null }
 
@@ -589,6 +945,45 @@ class BottomSheetState(
         coroutineScope.launch {
             animatable.snapTo(value)
         }
+    }
+
+    // where the held sheet is, ahead of the snaps that put it there, so quick moves add up exactly
+    private var heldAt: Dp = 0.dp
+
+    // a finger has the sheet: nothing may send it home under the finger (see the settle watchdog)
+    var isHeld by mutableStateOf(false)
+        private set
+
+    // the finger takes the open sheet: whatever it was doing stops, and it follows from where it is
+    fun hold() {
+        heldAt = animatable.value
+        isHeld = true
+        coroutineScope.launch { animatable.stop() }
+    }
+
+    // moves the held sheet with the finger (px, down positive), never past open or the mini player
+    fun dragHeld(deltaPx: Float, density: Float) {
+        heldAt = (heldAt - (deltaPx / density).dp).coerceIn(collapsedBound, expandedBound)
+        val target = heldAt
+        coroutineScope.launch { animatable.snapTo(target) }
+    }
+
+    // lets the sheet go at the finger's speed (px/s, down positive): a fast flick lands fast, a slow one eases in slowly, never past the end
+    fun release(velocityPx: Float, density: Float, collapse: Boolean) {
+        val target = if (collapse) collapsedBound else expandedBound
+        onAnchorChanged(if (collapse) collapsedAnchor else expandedAnchor)
+        // the sheet's value grows upward, the finger's speed is measured downward
+        val velocity = -velocityPx / density
+        // a held sheet may still have a snap on its way, so it starts from where the finger left it
+        val from = if (isHeld) heldAt else animatable.value
+        isHeld = false
+        val distance = abs((target - from).value)
+        val toward = if (target < from) -velocity else velocity
+        // critically damped: at least as quick as the finger was going, so it never overshoots and never stalls
+        val omega = maxOf(SettleOmega, if (distance > 0.5f && toward > 0f) toward / distance else 0f)
+            .coerceAtMost(MaxSettleOmega)
+        val spec = spring<Dp>(dampingRatio = 1f, stiffness = omega * omega)
+        coroutineScope.launch { animatable.animateTo(target, spec, initialVelocity = velocity.dp) }
     }
 
     fun performFling(velocity: Float, onDismiss: (() -> Unit)?) {
@@ -707,7 +1102,7 @@ fun rememberBottomSheetState(
         Animatable(0.dp, Dp.VectorConverter)
     }
 
-    return remember(dismissedBound, expandedBound, collapsedBound, coroutineScope) {
+    val state = remember(dismissedBound, expandedBound, collapsedBound, coroutineScope) {
         val initialValue = when (previousAnchor) {
             expandedAnchor -> expandedBound
             collapsedAnchor -> collapsedBound
@@ -735,6 +1130,50 @@ fun rememberBottomSheetState(
             anchor = { previousAnchor },
         )
     }
+
+    // The sheet always ends where it was last sent. collapse()/expand() set the anchor first and
+    // animate after, in a coroutine of their own, and the window resizing under the open player
+    // (the navigation bar hiding, a rotation) swaps in a new state mid-way. Should that animation
+    // be cut short, the anchor and the drawn sheet disagree: the player looks open but reads as
+    // closing, so the handle, the swipe down and the open player's own state all refuse it - the
+    // "stuck in the player" report (#109). Whenever nothing is animating the sheet and it rests
+    // somewhere other than its anchor's bound, it is sent the rest of the way.
+    LaunchedEffect(state) {
+        snapshotFlow {
+            val target = when (previousAnchor) {
+                expandedAnchor -> state.expandedBound
+                collapsedAnchor -> state.collapsedBound
+                else -> state.dismissedBound
+            }
+            // a finger holding the sheet keeps it where it is; sending it home then fought the drag and yanked the player back
+            if (state.isHeld || animatable.isRunning || animatable.value == target) null else target
+        }.collectLatest { target ->
+            if (target == null) return@collectLatest
+            // a beat first: an animation just launched (a bounds change, a swipe's settle) starts
+            // running within a frame, and this then stands down
+            delay(SheetSettleGraceMs)
+            // launched on its own, so the next emission (the animation starting) can't cancel it
+            coroutineScope.launch { animatable.animateTo(target, PlayerSheetAnimationSpec) }
+        }
+    }
+    return state
+}
+
+/** How long the sheet may rest away from its anchor, with nothing animating it, before it's sent home. */
+private const val SheetSettleGraceMs = 250L
+
+/**
+ * A sideways swipe on the collapsed sheet, the mini player. The player hands it to its row of
+ * songs, so the mini player's cover and title slide under the finger like the open player's do.
+ */
+interface CollapsedSwipe {
+    fun onStart()
+
+    /** The finger is [travelledPx] from where it went down, on a sheet [widthPx] wide. */
+    fun onDrag(travelledPx: Float, widthPx: Float)
+
+    /** It lifted moving at [velocityPx] px/s, or was taken away ([cancelled]). */
+    fun onEnd(travelledPx: Float, velocityPx: Float, widthPx: Float, cancelled: Boolean)
 }
 
 /**

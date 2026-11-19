@@ -1,5 +1,3 @@
-// Song.kt
-
 package dev.meowlabs.blossomtune.db.entities
 
 import androidx.compose.runtime.Immutable

@@ -2,7 +2,7 @@
 
 package dev.meowlabs.blossomtune.ui.menu
 
-import dev.meowlabs.blossomtune.ui.component.SheetDivider
+import dev.meowlabs.blossomtune.ui.component.SheetHeaderGap
 import dev.meowlabs.blossomtune.ui.component.SheetHeaderButton
 import dev.meowlabs.blossomtune.ui.component.SheetHeader
 import android.annotation.SuppressLint
@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -91,7 +90,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.Color
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /**
  * add a YouTube playlist to the library, or take it out again. the first save imports it, songs
@@ -160,8 +158,8 @@ fun YouTubePlaylistMenu(
     val database = LocalDatabase.current
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val dbPlaylist by database.playlistByBrowseId(playlist.id).collectAsState(initial = null)
-    val isPinned by database.speedDialDao.isPinned(playlist.id).collectAsState(initial = false)
+    val dbPlaylist by remember(database, playlist.id) { database.playlistByBrowseId(playlist.id) }.collectAsState(initial = null)
+    val isPinned by remember(database, playlist.id) { database.speedDialDao.isPinned(playlist.id) }.collectAsState(initial = false)
 
     var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
     var showImportPlaylistDialog by rememberSaveable { mutableStateOf(false) }
@@ -202,8 +200,7 @@ fun YouTubePlaylistMenu(
             {
                 SheetHeaderButton(
                     icon = if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border,
-                    active = dbPlaylist?.playlist?.bookmarkedAt != null,
-                    tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else BlossomInk.Primary,
+                    tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else Color.White,
                     onClick = {
                         database.toggleSavedPlaylist(playlist, dbPlaylist, songs, coroutineScope)
                     },
@@ -211,7 +208,7 @@ fun YouTubePlaylistMenu(
             }
         } else null,
     )
-    SheetDivider()
+    Spacer(Modifier.height(SheetHeaderGap))
 
     var downloadState by remember {
         mutableIntStateOf(Download.STATE_STOPPED)
@@ -289,7 +286,8 @@ fun YouTubePlaylistMenu(
         },
         playlistTitle = playlist.title,
         onDismiss = { showImportPlaylistDialog = false },
-        onImportedPlaylist = onImportedPlaylist
+        onImportedPlaylist = onImportedPlaylist,
+        sourcePlaylistId = playlist.id,
     )
 
     if (showErrorPlaylistAddDialog) {
@@ -504,7 +502,7 @@ fun YouTubePlaylistMenu(
                     Material3MenuItemData(
                         title = {
                             Text(
-                                text = if (isPinned) "Unpin from library" else "Pin to library"
+                                text = stringResource(if (isPinned) R.string.unpin_from_speed_dial else R.string.pin_to_speed_dial)
                             )
                         },
                         icon = {

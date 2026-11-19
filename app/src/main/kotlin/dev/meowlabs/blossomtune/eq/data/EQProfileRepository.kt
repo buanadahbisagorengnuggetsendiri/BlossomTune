@@ -1,5 +1,3 @@
-// EQProfileRepository.kt
-
 package dev.meowlabs.blossomtune.eq.data
 
 import android.content.Context

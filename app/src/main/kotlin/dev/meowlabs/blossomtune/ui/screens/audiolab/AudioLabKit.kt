@@ -1,16 +1,25 @@
-// AudioLabKit.kt
-//
-// The pieces every Audio Lab page is built from, so the hub, the equalizer and Audio FX read as one
-// set: dark rounded cards, an outlined "stage" for each live picture, toggle rows with the app's
-// switch, labelled sliders on the player's seek-bar track, white-pill chips and segments.
+// shared pieces of every audio lab page (cards, stage, toggle rows, sliders, chips, segments) so the hub, equalizer and audio fx read as one set
 
 package dev.meowlabs.blossomtune.ui.screens.audiolab
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.EnterExitState
@@ -54,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -79,28 +89,21 @@ import dev.meowlabs.blossomtune.ui.component.LocalNavAnimatedContentScope
 import dev.meowlabs.blossomtune.ui.component.damageBoundary
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.flow.first
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
-/**
- * Kit Audio Lab / Equalizer. Nilainya sekarang terang (najstore); dulu seluruh lab
- * ini kaca gelap, jadi kartunya jadi balok hitam di halaman terang.
- *
- * `Primary` = tinta di atas permukaan, sekaligus isi untuk state terpilih -
- * pasangannya [OnPrimary]. Jangan pakai `Color.White` langsung di sini.
- */
 object LabColors {
-    val Card = Color(0xFFFFFFFF)      // kartu putih di atas halaman es
-    val Stage = Color(0xFFDCEAF9)     // panel visualisasi = es panel
-    val StageLine = Color(0xFFCFE3F7)
-    val Row = Color(0xFFFFFFFF)
-    val RowSelected = Color(0xFFE4EFFC)
-    val Chip = Color(0xFFDCEAF9)
-    val Primary = Color(0xFF0E1B2C)
-    val OnPrimary = Color(0xFFFFFFFF)
-    val Secondary = Color(0xFF4E6C8A)
-    val Faint = Color(0xFF4E6C8A)
-    val Ink = Color(0xFF4E6C8A)
+    val Card = Color(0xFF1C1C1E)
+    val Stage = Color(0xFF0E0E10)
+    val StageLine = Color(0xFF2E2E32)
+    val Row = Color(0xFF26262A)
+    val RowSelected = Color(0xFF34343A)
+    val Chip = Color(0xFF232327)
+    val Primary = Color.White
+    val Secondary = Color(0xFF9A9AA0)
+    val Faint = Color(0xFF5C5C63)
+    val Ink = Color(0xFF8A8A92)
 
-    /** the equalizer's node colours: soft enough to sit on BlossomTune's greys, apart enough to tell */
+    /** the equalizer's node colours, soft enough to sit on blossomtune's greys and apart enough to tell */
     val Nodes = listOf(
         Color(0xFFF28BA8), Color(0xFFF2A46B), Color(0xFFF2D46B), Color(0xFF8FD98B),
         Color(0xFF6BD9C4), Color(0xFF6BBAF2), Color(0xFF8C9EF2), Color(0xFFB98CF2),
@@ -126,10 +129,7 @@ fun LabCard(
     )
 }
 
-/**
- * The outlined dark box a live picture draws in. It's bounded for the renderer, so a picture
- * animating every frame repaints only itself, not the page and every glass surface over it.
- */
+/** outlined dark box for a live picture, bounded so its animation repaints only itself and not the page and glass over it */
 @Composable
 fun LabStage(
     modifier: Modifier = Modifier,
@@ -159,6 +159,10 @@ fun LabToggleRow(
     enabled: Boolean = true,
     leadingDot: Boolean = false,
 ) {
+    val (hideDescriptions) = dev.meowlabs.blossomtune.utils.rememberPreference(
+        dev.meowlabs.blossomtune.constants.HideSettingsDescriptionsKey,
+        defaultValue = true,
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -168,7 +172,7 @@ fun LabToggleRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leadingDot) {
-            val dot by animateColorAsState(if (checked) LabColors.Primary else Color(0xFFC7D0DD), tween(200), label = "dot")
+            val dot by animateColorAsState(if (checked) Color.White else Color(0xFFD9D9DE), tween(200), label = "dot")
             Box(
                 Modifier
                     .size(20.dp)
@@ -185,7 +189,7 @@ fun LabToggleRow(
                 fontSize = 15.sp,
                 color = if (enabled) LabColors.Primary else LabColors.Faint,
             )
-            if (subtitle != null) {
+            if (subtitle != null && !hideDescriptions) {
                 Text(
                     text = subtitle,
                     fontFamily = InterFontFamily,
@@ -282,21 +286,28 @@ fun LabSectionLabel(text: String, modifier: Modifier = Modifier, actions: @Compo
     }
 }
 
+/** [busy] spins the icon and holds off taps, so a press that waits on the network shows it's working */
 @Composable
-fun LabTextAction(text: String, iconRes: Int? = null, enabled: Boolean = true, onClick: () -> Unit) {
+fun LabTextAction(text: String, iconRes: Int? = null, enabled: Boolean = true, busy: Boolean = false, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled && !busy, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (iconRes != null) {
-            Icon(painterResource(iconRes), null, tint = if (enabled) LabColors.Primary else LabColors.Faint, modifier = Modifier.size(16.dp))
+            // the turn is read in the layer, so spinning never recomposes the row
+            val turn = if (busy) rememberInfiniteTransition(label = "busy")
+                .animateFloat(0f, 360f, infiniteRepeatable(tween(800, easing = LinearEasing)), label = "turn") else null
+            Icon(
+                painterResource(iconRes), null, tint = if (enabled) Color.White else LabColors.Faint,
+                modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = turn?.value ?: 0f },
+            )
             Spacer(Modifier.width(6.dp))
         }
         Text(text, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-            color = if (enabled) LabColors.Primary else LabColors.Faint)
+            color = if (enabled) Color.White else LabColors.Faint)
     }
 }
 
@@ -319,8 +330,8 @@ fun LabChips(
     ) {
         chips.forEach { chip ->
             val selected = chip.key == selectedKey
-            val bg by animateColorAsState(if (selected) LabColors.Primary else LabColors.Chip, tween(180), label = "chipBg")
-            val fg by animateColorAsState(if (selected) LabColors.OnPrimary else LabColors.Primary, tween(180), label = "chipFg")
+            val bg by animateColorAsState(if (selected) Color.White else LabColors.Chip, tween(180), label = "chipBg")
+            val fg by animateColorAsState(if (selected) Color.Black else Color.White, tween(180), label = "chipFg")
             val interaction = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
@@ -352,7 +363,7 @@ private fun Modifier.combinedClickableCompat(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ): Modifier = this.then(
-    Modifier.combinedClickable(interactionSource = interaction, indication = null, onClick = onClick, onLongClick = onLongClick)
+    Modifier.combinedClickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick, onLongClick = onLongClick)
 )
 
 /** a track with a white pill that slides to the picked option */
@@ -381,11 +392,11 @@ fun LabSegmented(
                 .width(segment)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(height / 2))
-                .background(LabColors.Primary)
+                .background(Color.White)
         )
         Row(Modifier.fillMaxWidth().fillMaxHeight()) {
             options.forEachIndexed { index, label ->
-                val color by animateColorAsState(if (index == selectedIndex) LabColors.OnPrimary else LabColors.Secondary, tween(160), label = "segText")
+                val color by animateColorAsState(if (index == selectedIndex) Color.Black else Color.White, tween(160), label = "segText")
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -402,11 +413,11 @@ fun LabSegmented(
     }
 }
 
-/** the 32dp light circle with a dark glyph that BlossomTune's settings rows lead with */
+/** the 32dp light circle with a dark glyph that blossomtune's settings rows lead with */
 @Composable
 fun LabGlyph(iconRes: Int, modifier: Modifier = Modifier, size: Dp = 32.dp) {
     Box(
-        modifier = modifier.size(size).clip(CircleShape).background(Color(0xFFE4E6EB)),
+        modifier = modifier.size(size).clip(CircleShape).background(Color(0xFFE5E5EA)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(painterResource(iconRes), null, tint = Color.Black, modifier = Modifier.size(size * 0.55f))
@@ -420,10 +431,7 @@ fun Modifier.dimmedWhen(off: Boolean, alpha: Float): Modifier = graphicsLayer { 
 fun animatedDim(off: Boolean): Float =
     animateFloatAsState(if (off) 0.45f else 1f, tween(220), label = "dim").value
 
-/**
- * Whether the pictures should be moving: not while the player covers the app, not while this
- * page is opening or closing (it's one cached picture then), and not while scrolled out of view.
- */
+/** whether pictures should move: not while the player covers the app, the page is opening or closing, or it is scrolled out of view */
 @Composable
 fun rememberPicturesHeld(onScreen: State<Boolean>): State<Boolean> {
     val obscured = LocalAppContentObscured.current
@@ -436,11 +444,7 @@ fun rememberPicturesHeld(onScreen: State<Boolean>): State<Boolean> {
     }
 }
 
-/**
- * Seconds, advancing every frame while the picture is free to move. A picture that only moves
- * with the music passes [moving]: while it says no, the clock checks back a few times a second
- * instead of drawing every frame.
- */
+/** seconds, advancing every frame while the picture is free to move, or checking back a few times a second when moving says no */
 @Composable
 fun rememberLabTime(held: State<Boolean>, moving: () -> Boolean = { true }): State<Float> {
     val time = remember { mutableFloatStateOf(0f) }
@@ -495,7 +499,7 @@ class LevelFollower {
         private set
     private var slow = 0f
 
-    /** call once per frame; [dt] seconds since the last */
+    /** call once per frame with the seconds since the last one */
     fun update(dt: Float) {
         val now = AudioTap.level(scratch)
         level += (now - level) * (if (now > level) 0.5f else 0.12f)
@@ -511,3 +515,131 @@ fun rememberOnScreen(): MutableState<Boolean> = remember { mutableStateOf(true) 
 
 @Composable
 fun dpToPx(dp: Dp): Float = with(LocalDensity.current) { dp.toPx() }
+
+/** a discord style select: the choice on the left and a chevron on the right, and opening it unrolls the list right under it as one box with the picked row lit and checked; the first option is the "none" one and reads muted */
+@Composable
+fun LabSelect(
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    mutedIndex: Int = 0,
+    maxListHeight: Dp = 264.dp,
+) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val chevron by animateFloatAsState(if (open) 180f else 0f, spring(dampingRatio = 0.8f, stiffness = 420f), label = "chevron")
+    val edge by animateColorAsState(if (open) LabSelectEdgeOpen else LabSelectEdge, tween(180), label = "selectEdge")
+    val listScroll = rememberScrollState()
+    val rowHeight = with(LocalDensity.current) { LabSelectRowHeight.roundToPx() }
+    val bringIntoView = remember { BringIntoViewRequester() }
+
+    // back closes the list before it leaves the page
+    BackHandler(enabled = open) { open = false }
+    LaunchedEffect(open) {
+        if (!open) return@LaunchedEffect
+        // open with the picked row in sight, then make room for the list once it has unrolled
+        listScroll.scrollTo(((selectedIndex - 2) * rowHeight).coerceAtLeast(0))
+        kotlinx.coroutines.delay(LabSelectUnrollMs.toLong())
+        bringIntoView.bringIntoView()
+    }
+
+    Column(
+        modifier
+            .fillMaxWidth()
+            .bringIntoViewRequester(bringIntoView)
+            .clip(LabSelectShape)
+            .background(LabSelectColor)
+            .border(1.dp, edge, LabSelectShape),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .clickable { open = !open }
+                .padding(start = 16.dp, end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = options.getOrNull(selectedIndex).orEmpty(),
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = if (selectedIndex == mutedIndex) LabColors.Secondary else LabColors.Primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                painter = painterResource(dev.meowlabs.blossomtune.R.drawable.expand_more),
+                contentDescription = contentDescription,
+                tint = if (open) Color.White else LabColors.Secondary,
+                modifier = Modifier.size(22.dp).graphicsLayer { rotationZ = chevron },
+            )
+        }
+        AnimatedVisibility(
+            visible = open,
+            enter = expandVertically(tween(LabSelectUnrollMs, easing = FastOutSlowInEasing), expandFrom = Alignment.Top) + fadeIn(tween(160, 40)),
+            exit = shrinkVertically(tween(200, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Top) + fadeOut(tween(120)),
+        ) {
+            Column {
+                Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).height(1.dp).background(LabSelectEdge))
+                Column(
+                    Modifier
+                        .heightIn(max = maxListHeight)
+                        .verticalScroll(listScroll)
+                        .padding(6.dp),
+                ) {
+                    options.forEachIndexed { index, label ->
+                        LabSelectRow(
+                            label = label,
+                            picked = index == selectedIndex,
+                            onClick = {
+                                onSelect(index)
+                                open = false
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// one option in the open list: the picked one sits on a lighter row with a filled check at its end
+@Composable
+private fun LabSelectRow(label: String, picked: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(LabSelectRowHeight)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (picked) LabColors.Row else Color.Transparent)
+            .selectable(selected = picked, role = Role.RadioButton, onClick = onClick)
+            .padding(start = 10.dp, end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            fontFamily = InterFontFamily,
+            fontWeight = if (picked) FontWeight.SemiBold else FontWeight.Medium,
+            fontSize = 15.sp,
+            color = if (picked) LabColors.Primary else LabColors.Secondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (picked) {
+            Box(Modifier.size(20.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                Icon(painterResource(dev.meowlabs.blossomtune.R.drawable.check), contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
+            }
+        }
+    }
+}
+
+private const val LabSelectUnrollMs = 240
+private val LabSelectRowHeight = 44.dp
+private val LabSelectShape = RoundedCornerShape(16.dp)
+private val LabSelectColor = Color(0xFF141416)
+private val LabSelectEdge = Color(0xFF2A2A2F)
+private val LabSelectEdgeOpen = Color(0xFF3C3C42)

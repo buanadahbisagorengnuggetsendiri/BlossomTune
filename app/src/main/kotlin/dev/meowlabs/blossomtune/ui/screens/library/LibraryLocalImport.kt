@@ -1,72 +1,37 @@
 // LibraryLocalImport.kt
 //
-// "Add local music": the file picker and the import behind it. Used by the card at the top of the
-// Local page, and by the Local card on the Library home while there is no local music yet. The
-// import itself ([importLocalAudio]) is shared with audio files shared into BlossomTune from other
-// apps ([importSharedAudio]): permission grant, tag extraction, artwork extraction, artist dedup,
-// format row.
+// Bringing music in from the phone, from the Library's Local tab. With storage access, BlossomTune
+// lists every song on the phone in the Add music sheet; without it, the system file picker lets
+// the user choose files by hand. Either way the import runs in LocalImportService and its progress
+// sheet opens straight away.
 
 package dev.meowlabs.blossomtune.ui.screens.library
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import dev.meowlabs.blossomtune.LocalDatabase
-import dev.meowlabs.blossomtune.db.entities.ArtistEntity
-import dev.meowlabs.blossomtune.db.entities.FormatEntity
-import dev.meowlabs.blossomtune.db.entities.SongArtistMap
-import dev.meowlabs.blossomtune.db.entities.SongEntity
-import dev.meowlabs.blossomtune.ui.screens.extractAudioMetadata
-import dev.meowlabs.blossomtune.ui.screens.search.SearchColors
-import kotlinx.coroutines.Dispatchers
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.importer.DeviceMusicScanner
+import dev.meowlabs.blossomtune.ui.component.LocalMenuState
+import dev.meowlabs.blossomtune.ui.component.TopToaster
+import dev.meowlabs.blossomtune.viewmodels.LibraryImportViewModel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.time.LocalDateTime
-import java.util.UUID
 
-/** The picker and its import, as one handle: [launch] opens the picker, the rest is its progress. */
-@Stable
-class LocalMusicImporter internal constructor() {
-    var isImporting by mutableStateOf(false)
-        internal set
-
-    /** 0..1 while [isImporting]. */
-    var progress by mutableFloatStateOf(0f)
-        internal set
-
-    internal var openPicker: () -> Unit = {}
-
-    fun launch() {
-        if (!isImporting) openPicker()
-    }
-}
-
-/** Audio types the picker offers: every audio type, plus the common ones named outright. */
+// every audio type plus lyrics files and pictures, which go to the song with the same name; .lrc and .krc often come without a proper type, so plain binary files show too
 private val LocalAudioMimeTypes = arrayOf(
     "audio/*",
     "audio/mpeg",
@@ -76,215 +41,116 @@ private val LocalAudioMimeTypes = arrayOf(
     "audio/wav",
     "audio/x-wav",
     "audio/aac",
+    "text/*",
+    "application/octet-stream",
+    "application/xml",
+    "application/ttml+xml",
+    "application/x-subrip",
+    "image/*",
 )
 
-/**
- * The importer for one screen. The import runs in this screen's scope, and how it went is shown in
- * [snackbarHostState] once it finishes.
- */
+/** The Local tab's ways in, as one handle. */
+@Stable
+class LocalImportActions internal constructor(hasStorageAccess: Boolean) {
+    /** BlossomTune may read the phone's music; until then the tab offers to ask. */
+    var hasStorageAccess by mutableStateOf(hasStorageAccess)
+        internal set
+
+    internal var pickFiles: () -> Unit = {}
+    internal var askForStorage: () -> Unit = {}
+    internal var openAddMusic: () -> Unit = {}
+    internal var pickFolderLauncher: () -> Unit = {}
+    internal var refreshThenScan: () -> Unit = {}
+
+    /** The import card: the songs found on the phone when BlossomTune may look, the file picker otherwise. */
+    fun importFromPhone() = if (hasStorageAccess) openAddMusic() else pickFiles()
+
+    /** The storage card: asks for access first if needed, then lists what's on the phone. */
+    fun scanPhone() = if (hasStorageAccess) openAddMusic() else askForStorage()
+
+    /** A music folder of the user's own: everything in it comes in, and Re-scan reads it again later. */
+    fun pickFolder() = pickFolderLauncher()
+
+    /**
+     * Re-scan: brings back missing covers and reads the picked folders again, then lists what's
+     * new on the phone. Someone who only uses folders isn't asked for storage access.
+     */
+    fun rescan() = refreshThenScan()
+}
+
 @Composable
-fun rememberLocalMusicImporter(snackbarHostState: SnackbarHostState): LocalMusicImporter {
+fun rememberLocalImportActions(viewModel: LibraryImportViewModel): LocalImportActions {
     val context = LocalContext.current
-    val database = LocalDatabase.current
-    val coroutineScope = rememberCoroutineScope()
-    val importer = remember { LocalMusicImporter() }
+    val menuState = LocalMenuState.current
+    val scope = rememberCoroutineScope()
+    val actions = remember { LocalImportActions(DeviceMusicScanner.hasAccess(context)) }
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments(),
-        onResult = { uris: List<Uri> ->
-            if (uris.isEmpty()) return@rememberLauncherForActivityResult
-            importer.isImporting = true
-            importer.progress = 0f
-            coroutineScope.launch {
-                var successCount = 0
-                var failCount = 0
-                val total = uris.size
-                for ((index, uri) in uris.withIndex()) {
-                    try {
-                        withContext(Dispatchers.IO) {
-                            context.contentResolver.takePersistableUriPermission(
-                                uri,
-                                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                            )
-                            importLocalAudio(context, database, uri)
-                        }
-                        successCount++
-                    } catch (e: Exception) {
-                        failCount++
-                    }
-                    importer.progress = (index + 1).toFloat() / total
-                }
-                importer.isImporting = false
-                importer.progress = 0f
-
-                val message = if (failCount == 0) {
-                    "Imported $successCount song${if (successCount != 1) "s" else ""}"
-                } else {
-                    "Imported $successCount, failed $failCount"
-                }
-                snackbarHostState.showSnackbar(message)
-            }
-        },
-    )
-    SideEffect { importer.openPicker = { launcher.launch(LocalAudioMimeTypes) } }
-
-    return importer
-}
-
-/** "Importing… 40%" while [LocalMusicImporter.isImporting]. */
-internal fun LocalMusicImporter.progressLabel(): String = "Importing… ${(progress * 100).toInt()}%"
-
-@Composable
-fun LibraryAddLocalMusicCard(
-    snackbarHostState: SnackbarHostState,
-    modifier: Modifier = Modifier,
-) {
-    val importer = rememberLocalMusicImporter(snackbarHostState)
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(84.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(SearchColors.Tile)
-            .clickable(enabled = !importer.isImporting, onClick = importer::launch)
-            .padding(18.dp),
-    ) {
-        Text(
-            text = if (importer.isImporting) importer.progressLabel() else "Add local music",
-            color = SearchColors.Primary,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
-/**
- * Adds one audio file to the library as a local song: tags, artwork, artist and format row.
- * [uri] has to stay readable, so a shared file is copied into the app first (see [importSharedAudio]).
- */
-suspend fun importLocalAudio(
-    context: android.content.Context,
-    database: dev.meowlabs.blossomtune.db.MusicDatabase,
-    uri: Uri,
-) {
-    val metadata = withContext(Dispatchers.IO) {
-        extractAudioMetadata(context, uri)
+    // access can be given or taken away in Settings while the app is in the background
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        actions.hasStorageAccess = DeviceMusicScanner.hasAccess(context)
     }
 
-    // the file's own lyrics, if its tags have any: saved with it, so they're
-    // there offline from the first play
-    val embeddedLyrics = withContext(Dispatchers.IO) {
-        dev.meowlabs.blossomtune.lyrics.readEmbeddedLyrics(context, uri)
+    val showProgress = { menuState.showTransferSheet(TransferKind.LocalImport, viewModel) }
+    val openAddMusic = {
+        viewModel.scanDevice()
+        menuState.showAddLocalMusicSheet(viewModel, onStarted = showProgress)
     }
 
-    val songId = "LOCAL_${UUID.randomUUID()}"
-    val thumbnailUrl = withContext(Dispatchers.IO) {
-        metadata.embeddedArtwork?.let { artworkData ->
-            try {
-                val artworkFile = java.io.File(
-                    context.cacheDir,
-                    "artwork_${songId.hashCode()}.jpg",
-                )
-                artworkFile.writeBytes(artworkData)
-                Uri.fromFile(artworkFile).toString()
-            } catch (_: Exception) {
-                null
-            }
+    val stillRunning = stringResource(R.string.lib_import_still_running)
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
+        if (!viewModel.importPicked(uris)) {
+            TopToaster.show(stillRunning, iconRes = R.drawable.library_music)
+        }
+        showProgress()
+    }
+
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        actions.hasStorageAccess = granted
+        if (granted) {
+            openAddMusic()
+        } else {
+            // a second "no" stops Android asking at all, so point to where it can still be turned on
+            TopToaster.show(
+                text = context.getString(R.string.lib_local_no_access),
+                iconRes = R.drawable.storage,
+                actionLabel = context.getString(R.string.settings),
+                onAction = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                },
+            )
         }
     }
 
-    withContext(Dispatchers.IO) {
-        database.transaction {
-            insert(
-                SongEntity(
-                    id = songId,
-                    title = metadata.title,
-                    duration = metadata.durationSeconds,
-                    thumbnailUrl = thumbnailUrl,
-                    albumName = metadata.album,
-                    isLocal = true,
-                    inLibrary = LocalDateTime.now(),
-                    localUri = uri.toString(),
-                ),
-            )
-
-            val artistName = metadata.artist
-            val artistId = artistByName(artistName)?.id
-                ?: ArtistEntity.generateArtistId()
-            insert(
-                ArtistEntity(
-                    id = artistId,
-                    name = artistName,
-                    isLocal = true,
-                ),
-            )
-            insert(
-                SongArtistMap(
-                    songId = songId,
-                    artistId = artistId,
-                    position = 0,
-                ),
-            )
-
-            embeddedLyrics?.let { lyrics ->
-                upsert(
-                    dev.meowlabs.blossomtune.db.entities.LyricsEntity(
-                        id = songId,
-                        lyrics = lyrics,
-                        provider = dev.meowlabs.blossomtune.lyrics.EmbeddedLyrics.Provider,
-                    ),
-                )
-            }
-
-            val mimeType = metadata.mimeType ?: "audio/mpeg"
-            val codecs = when {
-                mimeType.contains("flac") -> "flac"
-                mimeType.contains("opus") || mimeType.contains("ogg") -> "opus"
-                mimeType.contains("mp4") || mimeType.contains("m4a") || mimeType.contains("aac") -> "mp4a.40.2"
-                mimeType.contains("wav") -> "pcm"
-                else -> "mp3"
-            }
-            upsert(
-                FormatEntity(
-                    id = songId,
-                    itag = -1,
-                    mimeType = mimeType,
-                    codecs = codecs,
-                    bitrate = metadata.bitrate ?: 0,
-                    sampleRate = metadata.sampleRate,
-                    contentLength = 0L,
-                    loudnessDb = null,
-                    perceptualLoudnessDb = null,
-                    playbackUrl = null,
-                ),
-            )
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
+        if (tree == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            if (viewModel.addFolder(tree)) showProgress()
         }
     }
-}
 
-/** Copies a file another app shared into the app's own storage, then imports it. */
-suspend fun importSharedAudio(
-    context: android.content.Context,
-    database: dev.meowlabs.blossomtune.db.MusicDatabase,
-    shared: Uri,
-) {
-    val name = withContext(Dispatchers.IO) {
-        context.contentResolver.query(shared, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { if (it.moveToFirst()) it.getString(0) else null }
-    }?.replace(Regex("[\\\\/:*?\"<>|]"), "_") ?: "audio"
-    val copy = withContext(Dispatchers.IO) {
-        val dir = java.io.File(context.filesDir, "shared_audio/${UUID.randomUUID()}").apply { mkdirs() }
-        java.io.File(dir, name).also { file ->
-            context.contentResolver.openInputStream(shared)!!.use { input ->
-                file.outputStream().use { input.copyTo(it) }
+    val refreshThenScan = {
+        scope.launch {
+            val started = viewModel.refreshLocal()
+            when {
+                started -> showProgress()
+                actions.hasStorageAccess -> openAddMusic()
+                !viewModel.hasFolders() -> permission.launch(DeviceMusicScanner.permission)
+                else -> TopToaster.show(context.getString(R.string.lib_local_no_new_songs), iconRes = R.drawable.library_music)
             }
         }
+        Unit
     }
-    try {
-        importLocalAudio(context, database, Uri.fromFile(copy))
-    } catch (e: Exception) {
-        copy.parentFile?.deleteRecursively()
-        throw e
+
+    SideEffect {
+        actions.pickFiles = { picker.launch(LocalAudioMimeTypes) }
+        actions.askForStorage = { permission.launch(DeviceMusicScanner.permission) }
+        actions.openAddMusic = openAddMusic
+        actions.pickFolderLauncher = { folderPicker.launch(null) }
+        actions.refreshThenScan = refreshThenScan
     }
+    return actions
 }

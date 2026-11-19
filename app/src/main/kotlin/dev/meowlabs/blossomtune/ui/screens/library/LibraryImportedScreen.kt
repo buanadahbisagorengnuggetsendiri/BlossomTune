@@ -5,6 +5,9 @@
 
 package dev.meowlabs.blossomtune.ui.screens.library
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.screens.search.AvatarSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -17,9 +20,10 @@ import dev.meowlabs.blossomtune.LocalPlayerConnection
 import dev.meowlabs.blossomtune.extensions.toMediaItem
 import dev.meowlabs.blossomtune.playback.queues.ListQueue
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
-import dev.meowlabs.blossomtune.ui.component.SwipeActionsBox
+import dev.meowlabs.blossomtune.ui.component.SongSwipeBox
 import dev.meowlabs.blossomtune.ui.component.librarySwipeAction
 import dev.meowlabs.blossomtune.ui.component.queueSwipeAction
+import dev.meowlabs.blossomtune.ui.component.removeImportSwipeAction
 import dev.meowlabs.blossomtune.ui.menu.SongMenu
 import dev.meowlabs.blossomtune.viewmodels.LibraryImportedViewModel
 
@@ -35,7 +39,8 @@ fun LibraryImportedScreen(
     val menuState = LocalMenuState.current
     val source = viewModel.source
 
-    val label = source?.label ?: "an unknown source"
+    val label = source?.label ?: stringResource(R.string.lib_imported_unknown_source)
+    val queueTitle = stringResource(R.string.lib_imported_queue_title, label)
     val sourceIcon: (@Composable () -> Unit)? = if (source != null) {
         { ImportSourceIcon(source, size = AvatarSize) }
     } else {
@@ -43,12 +48,9 @@ fun LibraryImportedScreen(
     }
 
     LibraryEntityListScreen(
-        title = source?.label ?: "Imported",
-        subtitle = when (songs.size) {
-            1 -> "1 song imported from $label."
-            else -> "${songs.size} songs imported from $label."
-        },
-        searchPlaceholder = "Find a song imported from $label",
+        title = source?.label ?: stringResource(R.string.library_tab_imported),
+        subtitle = pluralStringResource(R.plurals.lib_imported_songs_subtitle, songs.size, songs.size, label),
+        searchPlaceholder = stringResource(R.string.lib_imported_search, label),
         items = songs,
         idOf = { it.id },
         nameOf = { it.song.title },
@@ -60,7 +62,7 @@ fun LibraryImportedScreen(
             val ordered = sortForLibraryIndex(songs) { it.song.title }
             playerConnection.playQueue(
                 ListQueue(
-                    title = "Imported from $label",
+                    title = queueTitle,
                     items = ordered.map { it.toMediaItem() },
                     startIndex = ordered.indexOf(song).coerceAtLeast(0),
                 ),
@@ -78,10 +80,10 @@ fun LibraryImportedScreen(
         modifier = modifier,
         pureBlack = pureBlack,
         rowWrapper = { song, row ->
-            SwipeActionsBox(
+            SongSwipeBox(
                 slab = false,
-                start = { librarySwipeAction(song.song) },
-                end = { queueSwipeAction { song.toMediaItem() } },
+                library = { if (source != null) removeImportSwipeAction(song.song, source) else librarySwipeAction(song.song) },
+                queue = { queueSwipeAction { song.toMediaItem() } },
             ) {
                 row()
             }

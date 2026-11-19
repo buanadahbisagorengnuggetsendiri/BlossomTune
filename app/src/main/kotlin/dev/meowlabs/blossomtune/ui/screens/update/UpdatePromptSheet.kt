@@ -1,5 +1,3 @@
-// UpdatePromptSheet.kt
-
 package dev.meowlabs.blossomtune.ui.screens.update
 
 import androidx.compose.animation.animateContentSize
@@ -25,10 +23,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,9 +50,9 @@ import dev.meowlabs.blossomtune.core.updater.installApk
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
-private val CardSurface: Color
-    @Composable @ReadOnlyComposable get() = MenuRowSurface
+private val CardSurface = MenuRowSurface
 
 @Composable
 fun UpdatePromptSheet(
@@ -118,7 +114,7 @@ fun UpdatePromptSheet(
                 Icon(
                     painter = painterResource(R.drawable.ic_blossomtune_mark),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = Color.White,
                     modifier = Modifier.size(52.dp),
                 )
             }
@@ -127,7 +123,7 @@ fun UpdatePromptSheet(
 
             Text(
                 text = if (userName.isBlank()) "Update available!" else "Update available, $userName!",
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color.White,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
@@ -145,7 +141,7 @@ fun UpdatePromptSheet(
             ) {
                 Text(
                     text = "What changed on ${release.version}",
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -156,8 +152,8 @@ fun UpdatePromptSheet(
             Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = "To be installed",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "To Be Installed -",
+                color = Color(0xFF8A8A8A),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -181,7 +177,7 @@ fun UpdatePromptSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = release.apkName ?: "blossomtune.apk",
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -189,7 +185,7 @@ fun UpdatePromptSheet(
                     )
                     Text(
                         text = "${BuildConfig.APPLICATION_ID} · ${formatBytes(release.apkSizeBytes)}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color(0xFF9A9A9A),
                         fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -199,7 +195,7 @@ fun UpdatePromptSheet(
 
             error?.let {
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                Text(text = it, color = Color(0xFFE0736B), fontSize = 12.sp)
             }
 
             Spacer(modifier = Modifier.height(22.dp))
@@ -254,7 +250,7 @@ fun UpdatePromptSheet(
 
             PromptButton(
                 enabled = !downloading,
-                label = "No thanks, remind me in 24 hours",
+                label = "no thanks remind me in 24 hour",
                 dimmed = downloading,
                 onClick = onSnooze,
             )
@@ -281,7 +277,7 @@ private fun PromptButton(
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = RemoteFocus,
                 onClick = onClick,
             )
     ) {
@@ -292,12 +288,12 @@ private fun PromptButton(
                     .align(Alignment.CenterStart)
                     .fillMaxHeight()
                     .fillMaxWidth(fraction = progress)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    .background(Color(0xFF444444))
             )
         }
         Text(
             text = label,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (dimmed) 0.5f else 1f),
+            color = Color.White.copy(alpha = if (dimmed) 0.5f else 1f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
         )

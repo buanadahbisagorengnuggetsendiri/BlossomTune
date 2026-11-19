@@ -2,7 +2,42 @@
 
 package dev.meowlabs.blossomtune.ui.player
 
+import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import dev.meowlabs.blossomtune.applecanvas.AppleMusicCanvasProvider
 import dev.meowlabs.blossomtune.canvas.CanvasArtwork
+import dev.meowlabs.blossomtune.canvas.MonochromeApiCanvas
+import dev.meowlabs.blossomtune.canvas.SpotifyCanvasProvider
+import dev.meowlabs.blossomtune.constants.CanvasOrder
+import dev.meowlabs.blossomtune.constants.CanvasOrderKey
+import dev.meowlabs.blossomtune.constants.CanvasSource
+import dev.meowlabs.blossomtune.constants.SpotifyCanvasKey
+import dev.meowlabs.blossomtune.extensions.toEnum
+import dev.meowlabs.blossomtune.utils.dataStore
+import dev.meowlabs.blossomtune.utils.get
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+// the animated cover on the player right now, so the player's menu only offers its quality while one plays
+object PlayerCanvasPlayback {
+    // the short side of the picture playing, 0 when no animated cover is up
+    var playingSide by mutableIntStateOf(0)
+        private set
+    private var owner: Any? = null
+
+    // the cover that reported a picture last owns the value, so the song swiping away can't clear the new one's
+    fun report(owner: Any, side: Int) {
+        if (side > 0) {
+            this.owner = owner
+            playingSide = side
+        } else if (this.owner === owner) {
+            this.owner = null
+            playingSide = 0
+        }
+    }
+}
 
 object CanvasArtworkPlaybackCache {
     private const val defaultMaxSize = 256
@@ -50,6 +85,28 @@ object CanvasArtworkPlaybackCache {
             } else {
                 break
             }
+        }
+    }
+}
+
+// asks the canvas sources in the order picked in app behaviour and keeps the first loop one of them has
+internal suspend fun findCanvas(
+    context: Context,
+    title: String,
+    artist: String,
+    album: String? = null,
+    storefront: String = "us",
+    durationSec: Int? = null,
+): CanvasArtwork? {
+    val order = context.dataStore[CanvasOrderKey].toEnum(CanvasOrder.APPLE_TIDAL_SPOTIFY)
+    val spotify = context.dataStore.get(SpotifyCanvasKey, false)
+    return withContext(Dispatchers.IO) {
+        order.sources.firstNotNullOfOrNull { source ->
+            when (source) {
+                CanvasSource.APPLE_MUSIC -> AppleMusicCanvasProvider.getBySongArtist(title, artist, album, storefront, durationSec)
+                CanvasSource.TIDAL -> MonochromeApiCanvas.getBySongArtist(title, artist, album, durationSec)
+                CanvasSource.SPOTIFY -> if (spotify) SpotifyCanvasProvider.getBySongArtist(context, title, artist, durationSec) else null
+            }?.takeIf { !it.preferredAnimationUrl.isNullOrBlank() }
         }
     }
 }

@@ -3,42 +3,61 @@
 package dev.meowlabs.blossomtune.ui.screens.library
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
 import dev.meowlabs.blossomtune.ui.menu.ArtistMenu
 import dev.meowlabs.blossomtune.viewmodels.LibraryHomeViewModel
+import dev.meowlabs.blossomtune.viewmodels.LibraryShelfKind
 
 /**
- * The library's artists, or with [localOnly] the Local page's: only the artists of local songs,
- * each with how many of its songs are local.
+ * The library's artists, or with a [shelf] the Local or Cached tab's: only the artists of that
+ * tab's songs, each with how many of its songs are there.
  */
 @Composable
 fun LibraryArtistsScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
     pureBlack: Boolean = false,
-    localOnly: Boolean = false,
+    shelf: LibraryShelfKind? = null,
 ) {
+    if (shelf == null) {
+        LibraryArtistsPage(navController)
+        return
+    }
     val viewModel: LibraryHomeViewModel = hiltViewModel()
-    val artists by (if (localOnly) viewModel.localArtists else viewModel.artists).collectAsState()
+    val artists by (shelf?.let(viewModel::shelf)?.artists ?: viewModel.artists).collectAsStateWithLifecycle()
     val menuState = LocalMenuState.current
     val coroutineScope = rememberCoroutineScope()
+    val resources = LocalContext.current.resources
 
     LibraryEntityListScreen(
-        title = "Artist",
-        subtitle = if (localOnly) "Artists with music on this device." else "All artist on your library listed here.",
-        searchPlaceholder = "Find an artist by name",
+        title = stringResource(R.string.lib_artist),
+        subtitle = stringResource(
+            when (shelf) {
+                LibraryShelfKind.Local -> R.string.lib_artists_local_subtitle
+                LibraryShelfKind.Cached -> R.string.lib_artists_cached_subtitle
+                null -> R.string.lib_artists_all_subtitle
+            },
+        ),
+        searchPlaceholder = stringResource(R.string.lib_artists_search),
         items = artists,
         idOf = { it.id },
         nameOf = { it.artist.name },
         subtitleOf = {
-            val count = if (it.songCount == 1) "1 song" else "${it.songCount} songs"
-            if (localOnly) "$count on this device" else count
+            val count = resources.getQuantityString(R.plurals.lib_song_count, it.songCount, it.songCount)
+            when (shelf) {
+                LibraryShelfKind.Local -> resources.getString(R.string.lib_count_on_device, count)
+                LibraryShelfKind.Cached -> resources.getString(R.string.lib_count_cached, count)
+                null -> count
+            }
         },
         thumbnailOf = { it.artist.thumbnailUrl },
         roundThumbnails = true,

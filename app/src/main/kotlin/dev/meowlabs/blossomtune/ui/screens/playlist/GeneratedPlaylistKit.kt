@@ -28,27 +28,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -56,15 +53,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.ui.component.IconButton
 import dev.meowlabs.blossomtune.ui.component.detail.CreatorUi
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistDetailScaffold
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistHeader
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistInset
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistModeBar
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistStatsStyle
 import dev.meowlabs.blossomtune.ui.component.detail.SectionTitleStyle
 import dev.meowlabs.blossomtune.ui.component.detail.playlistCompactHeaderHeight
 import dev.meowlabs.blossomtune.ui.screens.search.SearchFieldHeight
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import kotlinx.coroutines.launch
 
 /**
  * the frame every generated page sits in. [rows] fills the list under the header; the header,
@@ -89,10 +88,13 @@ fun GeneratedPlaylistPage(
     creator: String? = null,
     onMoreClick: (() -> Unit)? = null,
     sortControl: (@Composable () -> Unit)? = null,
-    topBarOverride: (@Composable () -> Unit)? = null,
+    modeBar: PlaylistModeBar? = null,
     overlay: @Composable BoxScope.() -> Unit = {},
     rows: LazyListScope.() -> Unit,
 ) {
+    // the round search button beside shuffle jumps to the capsule under the buttons and opens the keyboard
+    val searchFocus = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
     PlaylistDetailScaffold(
         sharedElementKey = null,
         coverUrl = coverUrl,
@@ -105,7 +107,7 @@ fun GeneratedPlaylistPage(
         roundCapsule = true,
         headerHeight = playlistCompactHeaderHeight(),
         contentPadding = contentPadding,
-        topBarOverride = topBarOverride,
+        modeBar = modeBar,
         overlay = overlay,
     ) {
         item(key = "generated_header", contentType = "header") {
@@ -118,11 +120,18 @@ fun GeneratedPlaylistPage(
                 onShuffleClick = onShuffleClick,
                 sortControl = sortControl,
                 compact = true,
+                onSearchClick = {
+                    scope.launch {
+                        lazyListState.animateScrollToItem(0)
+                        runCatching { searchFocus.requestFocus() }
+                    }
+                },
                 below = {
                     GeneratedSearchCapsule(
                         query = query,
                         onQueryChange = onQueryChange,
                         placeholder = searchPlaceholder,
+                        focusRequester = searchFocus,
                     )
                 },
             )
@@ -141,6 +150,7 @@ fun GeneratedSearchCapsule(
     onQueryChange: (TextFieldValue) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
+    focusRequester: FocusRequester = remember { FocusRequester() },
 ) {
     val focusManager = LocalFocusManager.current
     var focused by remember { mutableStateOf(false) }
@@ -154,13 +164,6 @@ fun GeneratedSearchCapsule(
             .background(Color.White.copy(alpha = if (focused) 0.16f else 0.1f))
             .padding(horizontal = 16.dp),
     ) {
-        Icon(
-            painter = painterResource(R.drawable.search),
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.6f),
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(10.dp))
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
             if (query.text.isEmpty()) {
                 Text(
@@ -181,6 +184,7 @@ fun GeneratedSearchCapsule(
                 keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .focusRequester(focusRequester)
                     .onFocusChanged { focused = it.isFocused },
             )
         }
@@ -192,7 +196,7 @@ fun GeneratedSearchCapsule(
                     .size(24.dp)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.16f))
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = RemoteFocus) {
                         onQueryChange(TextFieldValue())
                     },
             ) {
@@ -230,38 +234,6 @@ fun GeneratedNoResults(query: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** the bar while songs are being picked: how many, pick all, and their menu */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun GeneratedSelectionBar(
-    selectionCount: Int,
-    allSelected: Boolean,
-    onToggleSelectAll: () -> Unit,
-    onSelectionMenu: () -> Unit,
-    onClose: () -> Unit,
-) {
-    TopAppBar(
-        title = {
-            Text(
-                text = pluralStringResource(R.plurals.n_song, selectionCount, selectionCount),
-                style = MaterialTheme.typography.titleLarge,
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = onClose, onLongClick = {}) {
-                Icon(painter = painterResource(R.drawable.close), contentDescription = null)
-            }
-        },
-        actions = {
-            Checkbox(checked = allSelected, onCheckedChange = { onToggleSelectAll() })
-            IconButton(enabled = selectionCount > 0, onClick = onSelectionMenu, onLongClick = {}) {
-                Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-    )
-}
-
 /** "21 songs · 1h 23m" */
 fun generatedStats(songCount: Int, totalSeconds: Int): String {
     val count = "$songCount ${if (songCount == 1) "song" else "songs"}"
@@ -271,6 +243,12 @@ fun generatedStats(songCount: Int, totalSeconds: Int): String {
     return "$count · ${if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"}"
 }
 
+private val OnTheirWay = setOf(
+    androidx.media3.exoplayer.offline.Download.STATE_QUEUED,
+    androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING,
+    androidx.media3.exoplayer.offline.Download.STATE_COMPLETED,
+)
+
 /** all downloaded, some on their way, or neither, for the ••• menu's download line */
 @Composable
 fun rememberSongsDownloadState(songIds: List<String>): Int {
@@ -278,18 +256,15 @@ fun rememberSongsDownloadState(songIds: List<String>): Int {
     var state by remember { mutableStateOf(androidx.media3.exoplayer.offline.Download.STATE_STOPPED) }
     androidx.compose.runtime.LaunchedEffect(songIds) {
         if (songIds.isEmpty()) return@LaunchedEffect
+        // walked off the main thread: liked songs can run to thousands and the map changes with every song that finishes
         downloadUtil.downloads.collect { downloads ->
-            state = when {
-                songIds.all { downloads[it]?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED } ->
-                    androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
-                songIds.all {
-                    downloads[it]?.state in setOf(
-                        androidx.media3.exoplayer.offline.Download.STATE_QUEUED,
-                        androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING,
-                        androidx.media3.exoplayer.offline.Download.STATE_COMPLETED,
-                    )
-                } -> androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING
-                else -> androidx.media3.exoplayer.offline.Download.STATE_STOPPED
+            state = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                when {
+                    songIds.all { downloads[it]?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED } ->
+                        androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
+                    songIds.all { downloads[it]?.state in OnTheirWay } -> androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING
+                    else -> androidx.media3.exoplayer.offline.Download.STATE_STOPPED
+                }
             }
         }
     }

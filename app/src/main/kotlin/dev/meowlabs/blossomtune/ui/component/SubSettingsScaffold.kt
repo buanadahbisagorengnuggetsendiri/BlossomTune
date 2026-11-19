@@ -13,9 +13,11 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +25,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,27 +34,32 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.lerp as lerpDp
@@ -64,6 +70,7 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.screens.search.rememberScrollCollapseProgress
 import kotlin.math.PI
 import kotlin.math.sin
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 
 private val PagePadding = 20.dp
 private val BackButtonSize = 40.dp
@@ -86,15 +93,6 @@ private val OverlayEasing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
 
 private val SearchBarHeight = 52.dp
 
-// Dipakai dua composable di file ini (scaffold + kolom cari), jadi file-scope
-// getter - bukan `val` lokal yang cuma hidup di satu fungsi.
-private val fieldFill: Color
-    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.surfaceVariant
-private val fieldInk: Color
-    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurface
-private val fieldInkMuted: Color
-    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurfaceVariant
-
 @Composable
 fun SubSettingsScaffold(
     title: String,
@@ -103,25 +101,31 @@ fun SubSettingsScaffold(
     searchBar: (@Composable () -> Unit)? = null,
     /** the page this one sits under, written beside the back button ("‹ Audio Lab") */
     backLabel: String? = null,
+    /** a small mark beside the title, like a beta tag; it fades as the title shrinks into the bar */
+    titleBadge: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val glassState = remember { GlassState() }
 
-    // Header dan kolom cari ikut halaman. Dulu hitam + tinta putih; di halaman
-    // terang header-nya jadi pita hitam dan tintanya hilang.
-    val headerFoundationColor = MaterialTheme.colorScheme.background
+    val headerFoundationColor = Color.Black
 
     // Latch-and-settle collapse, same as Library/Search: once the threshold is crossed the morph
     // always finishes smoothly, even after the user's finger lifts mid-scroll.
-    val collapseProgress by rememberScrollCollapseProgress(scrollState)
+    val collapse = rememberScrollCollapseProgress(scrollState)
+    // only ever read in layout, draw or a snapshot flow, so the 900 ms morph doesn't recompose the scaffold every frame
+    val collapseProgress by collapse
 
     var titleHeightPx by remember { mutableIntStateOf(0) }
 
     val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues()
 
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarTop = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
     val totalHeaderHeight = statusBarTop + ExpandedHeaderHeight
+    // a highlighted row lands a little under the collapsed header, where it's in plain view
+    val settingsScroll = remember(scrollState, statusBarTop) {
+        SettingsScroll(scrollState, statusBarTop + HeaderTopPadding + BackButtonSize + 20.dp)
+    }
 
     var searchOverlayVisible by remember { mutableStateOf(false) }
 
@@ -137,8 +141,8 @@ fun SubSettingsScaffold(
     val collapsedBarX = screenWidth - PagePadding - BackButtonSize
     val collapsedBarY = statusBarTop + HeaderTopPadding
 
-    LaunchedEffect(collapseProgress) {
-        if (collapseProgress < 0.5f) searchOverlayVisible = false
+    LaunchedEffect(collapse) {
+        snapshotFlow { collapse.value < 0.5f }.collect { opened -> if (opened) searchOverlayVisible = false }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -159,7 +163,7 @@ fun SubSettingsScaffold(
                 Spacer(modifier = Modifier.height(SearchBarHeight + 16.dp))
             }
 
-            content()
+            CompositionLocalProvider(LocalSettingsScroll provides settingsScroll) { content() }
 
             Spacer(modifier = Modifier.height(bottomInset.calculateBottomPadding() + 24.dp))
         }
@@ -180,16 +184,21 @@ fun SubSettingsScaffold(
                 modifier = Modifier.fillMaxSize()
             )
 
+            val progressive = rememberProgressiveBlur()
             Box(
                 modifier = Modifier
                     .matchParentSize()
                     .drawWithCache {
-                        val gradient = Brush.verticalGradient(
-                            0f to headerFoundationColor.copy(alpha = 0.90f),
-                            0.20f to headerFoundationColor.copy(alpha = 0.50f),
-                            0.45f to headerFoundationColor.copy(alpha = 0.18f),
-                            0.75f to Color.Transparent,
-                        )
+                        val gradient = if (progressive) {
+                            Brush.verticalGradient(
+                                0f to Color.Black.copy(alpha = 0.90f),
+                                0.20f to Color.Black.copy(alpha = 0.50f),
+                                0.45f to Color.Black.copy(alpha = 0.18f),
+                                0.75f to Color.Transparent,
+                            )
+                        } else {
+                            SolidColor(Color.Black.copy(alpha = FlatBarScrimAlpha))
+                        }
                         onDrawBehind { drawRect(brush = gradient) }
                     }
             )
@@ -207,14 +216,14 @@ fun SubSettingsScaffold(
                     .padding(top = HeaderTopPadding)
                     .size(BackButtonSize)
                     .clip(CircleShape)
-                    .background(fieldFill)
+                    .background(Color(0xFF2C2C2E))
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
-                    contentDescription = "Back",
-                    tint = fieldInk,
+                    contentDescription = stringResource(R.string.back_content_desc),
+                    tint = Color.White,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -225,7 +234,7 @@ fun SubSettingsScaffold(
                     text = backLabel,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = fieldInk,
+                    color = Color.White,
                     maxLines = 1,
                     modifier = Modifier
                         .padding(top = HeaderTopPadding, start = BackButtonSize + 10.dp)
@@ -236,12 +245,8 @@ fun SubSettingsScaffold(
                 )
             }
 
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .onSizeChanged { titleHeightPx = it.height }
                     .graphicsLayer {
@@ -264,20 +269,29 @@ fun SubSettingsScaffold(
                         // Android 11 and older the first time the header drew: every settings
                         // page crashed on opening. Below 31 there's no blur either way.
                         renderEffect = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                            BlurEffectCache.get(blurPx, android.graphics.Shader.TileMode.DECAL)
+                            BlurEffectCache.element(blurPx, android.graphics.Shader.TileMode.DECAL)
                         } else {
                             null
                         }
-                    }
-            )
+                    },
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (titleBadge != null) {
+                    Spacer(Modifier.width(12.dp))
+                    Box(Modifier.graphicsLayer { alpha = (1f - collapseProgress * 2.5f).coerceIn(0f, 1f) }) { titleBadge() }
+                }
+            }
         }
 
         if (searchBar != null) {
-            val p = collapseProgress
-            val pillX = lerpDp(expandedBarX, collapsedBarX, p)
-            val pillY = lerpDp(expandedBarY, collapsedBarY, p)
-            val pillWidth = lerpDp(expandedBarWidth, BackButtonSize, p)
-            val pillHeight = lerpDp(SearchBarHeight, BackButtonSize, p)
+            val iconTappable by remember { derivedStateOf { collapse.value > 0.6f } }
 
             // One element whose actual layout size and position are animated (a true warp, not a
             // scaled copy): the real search field fades out as it shrinks, an icon fades in on top
@@ -285,27 +299,47 @@ fun SubSettingsScaffold(
             // deforming into a circle rather than a new element appearing elsewhere.
             Box(
                 modifier = Modifier
-                    .offset(x = pillX, y = pillY)
-                    .size(width = pillWidth, height = pillHeight)
-                    .clip(RoundedCornerShape(lerpDp(26.dp, BackButtonSize / 2, p)))
-                    .background(fieldFill)
+                    .layout { measurable, _ ->
+                        val p = collapse.value
+                        val width = lerpDp(expandedBarWidth, BackButtonSize, p).roundToPx()
+                        val height = lerpDp(SearchBarHeight, BackButtonSize, p).roundToPx()
+                        val placeable = measurable.measure(Constraints.fixed(width, height))
+                        layout(width, height) {
+                            placeable.place(
+                                lerpDp(expandedBarX, collapsedBarX, p).roundToPx(),
+                                lerpDp(expandedBarY, collapsedBarY, p).roundToPx(),
+                            )
+                        }
+                    }
+                    .graphicsLayer {
+                        shape = RoundedCornerShape(lerpDp(26.dp, BackButtonSize / 2, collapse.value))
+                        clip = true
+                    }
+                    .background(Color(0xFF2C2C2E))
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = (1f - p / 0.6f).coerceIn(0f, 1f) }
-                ) {
-                    searchBar()
+                if (!iconTappable && !searchOverlayVisible) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = (1f - collapse.value / 0.6f).coerceIn(0f, 1f) }
+                    ) {
+                        searchBar()
+                    }
                 }
 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer { alpha = ((p - 0.45f) / 0.55f).coerceIn(0f, 1f) }
+                        .graphicsLayer { alpha = ((collapse.value - 0.45f) / 0.55f).coerceIn(0f, 1f) }
                         .clip(CircleShape)
-                        .clickable(enabled = p > 0.6f) {
-                            searchOverlayVisible = !searchOverlayVisible
-                        },
+                        // only attach clickable once collapsed so the invisible circle doesn't swallow taps on the open search field
+                        .then(
+                            if (iconTappable) {
+                                Modifier.clickable { searchOverlayVisible = !searchOverlayVisible }
+                            } else {
+                                Modifier
+                            }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -314,8 +348,8 @@ fun SubSettingsScaffold(
                         } else {
                             rememberAsyncImagePainter(model = R.raw.search)
                         },
-                        contentDescription = if (searchOverlayVisible) "Hide search" else "Search",
-                        tint = fieldInk,
+                        contentDescription = stringResource(if (searchOverlayVisible) R.string.pc_hide_search else R.string.search),
+                        tint = Color.White,
                         modifier = Modifier.size(if (searchOverlayVisible) 18.dp else 16.dp)
                     )
                 }
@@ -353,7 +387,7 @@ fun SubSettingsSearchBar(
             .fillMaxWidth()
             .height(52.dp)
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
-            .background(fieldFill)
+            .background(Color(0xFF1C1C1E))
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -368,18 +402,18 @@ fun SubSettingsSearchBar(
                 textStyle = androidx.compose.ui.text.TextStyle(
                     fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
                     fontSize = 16.sp,
-                    color = fieldInk,
+                    color = Color.White,
                     fontWeight = FontWeight.Normal
                 ),
-                cursorBrush = androidx.compose.ui.graphics.SolidColor(fieldInk),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White),
                 modifier = Modifier.weight(1f),
                 decorationBox = { innerTextField ->
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search any settings",
+                            text = stringResource(R.string.settings_search_placeholder),
                             fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
                             fontSize = 16.sp,
-                            color = fieldInkMuted
+                            color = Color.White.copy(alpha = 0.5f)
                         )
                     }
                     innerTextField()
@@ -390,8 +424,8 @@ fun SubSettingsSearchBar(
                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(8.dp))
                 Icon(
                     painter = painterResource(R.drawable.close),
-                    contentDescription = "Clear",
-                    tint = fieldInkMuted,
+                    contentDescription = stringResource(R.string.settings_clear_search),
+                    tint = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier
                         .size(20.dp)
                         .clip(CircleShape)

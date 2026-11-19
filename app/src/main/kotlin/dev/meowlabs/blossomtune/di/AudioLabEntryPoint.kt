@@ -1,8 +1,7 @@
-// AudioLabEntryPoint.kt
-
 package dev.meowlabs.blossomtune.di
 
 import dev.meowlabs.blossomtune.eq.AudioLabStore
+import dev.meowlabs.blossomtune.playback.SongTuning
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -12,4 +11,5 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 interface AudioLabEntryPoint {
     fun audioLabStore(): AudioLabStore
+    fun songTuning(): SongTuning
 }

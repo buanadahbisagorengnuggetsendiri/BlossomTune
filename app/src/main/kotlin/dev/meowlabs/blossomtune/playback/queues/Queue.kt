@@ -9,6 +9,9 @@ import dev.meowlabs.blossomtune.models.MediaMetadata
 interface Queue {
     val preloadItem: MediaMetadata?
 
+    // the song this queue starts on, when that's known before it's read, so a pick can fetch it while the old song still plays
+    val firstSongId: String? get() = preloadItem?.id
+
     suspend fun getInitialStatus(): Status
 
     fun hasNextPage(): Boolean

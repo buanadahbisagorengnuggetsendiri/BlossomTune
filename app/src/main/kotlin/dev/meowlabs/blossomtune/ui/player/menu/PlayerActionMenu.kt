@@ -14,7 +14,6 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -50,13 +48,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import coil3.compose.AsyncImage
@@ -64,12 +62,33 @@ import coil3.request.ImageRequest
 import dev.meowlabs.blossomtune.LocalDatabase
 import dev.meowlabs.blossomtune.LocalDownloadUtil
 import dev.meowlabs.blossomtune.LocalPlayerConnection
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.constants.CanvasBestQualityKey
+import dev.meowlabs.blossomtune.constants.KeepScreenOn
+import dev.meowlabs.blossomtune.constants.PlayVideoBackgroundKey
+import dev.meowlabs.blossomtune.constants.VideoQuality
+import dev.meowlabs.blossomtune.constants.VideoQualityKey
+import dev.meowlabs.blossomtune.ui.menu.songedit.SongEditSheet
+import dev.meowlabs.blossomtune.ui.menu.songedit.VideoPickerSheet
+import dev.meowlabs.blossomtune.ui.player.PlayerCanvasPlayback
+import dev.meowlabs.blossomtune.ui.player.hasFoundVideo
+import dev.meowlabs.blossomtune.ui.player.video.TrailingValue
+import dev.meowlabs.blossomtune.ui.player.video.VideoQualitySheet
+import dev.meowlabs.blossomtune.ui.player.video.YouTubeVideoSessions
+import dev.meowlabs.blossomtune.ui.player.video.qualityLabel
 import dev.meowlabs.blossomtune.playback.ExoDownloadService
+import dev.meowlabs.blossomtune.ui.component.AppSwitch
+import dev.meowlabs.blossomtune.ui.component.SheetActionCard
+import dev.meowlabs.blossomtune.ui.component.SheetActionCardRow
+import dev.meowlabs.blossomtune.ui.component.SheetDownloadCard
+import dev.meowlabs.blossomtune.ui.component.SheetHeaderGap
+import dev.meowlabs.blossomtune.ui.component.SheetIcon
 import dev.meowlabs.blossomtune.ui.menu.AddToPlaylistDialog
 import dev.meowlabs.blossomtune.ui.utils.resize
+import dev.meowlabs.blossomtune.utils.rememberEnumPreference
+import dev.meowlabs.blossomtune.utils.rememberPreference
 import kotlinx.coroutines.flow.flowOf
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
 /**
  * @param fromLyrics true when the menu was opened from the lyrics page. The lyrics tools are only
@@ -84,6 +103,12 @@ fun PlayerActionMenu(
     fromLyrics: Boolean = false,
 
     onReveal: ((Float) -> Unit)? = null,
+    // turns the player into the full video mode; no row without it
+    onFullVideo: (() -> Unit)? = null,
+    // opens the equalizer page; no row without it
+    onEqualizer: (() -> Unit)? = null,
+    // opens a page of the app for a module's row (its own page, a search)
+    onOpenRoute: ((String) -> Unit)? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val trackInfo by playerConnection.uiState.trackInfo.collectAsState()
@@ -100,6 +125,9 @@ fun PlayerActionMenu(
         if (songId != null) downloadUtil.getDownload(songId) else flowOf(null)
     }.collectAsState(initial = null)
     val librarySong by remember(database, songId) { database.song(songId) }.collectAsState(initial = null)
+    // only a song autoplay picked is ours to stop recommending, a song you chose yourself stays as it is
+    val queue by playerConnection.queueSnapshot.collectAsState()
+    val isAutoplaySong = queue.items.getOrNull(queue.currentIndex)?.isAutoplay == true
 
     var showChoosePlaylistDialog by remember { mutableStateOf(false) }
     var showSleepTimer by remember { mutableStateOf(false) }
@@ -108,6 +136,14 @@ fun PlayerActionMenu(
     var showLyricsEditor by remember { mutableStateOf(false) }
     var showLyricsProvider by remember { mutableStateOf(false) }
     var showLyricsTranslation by remember { mutableStateOf(false) }
+    var showLyricsOffset by remember { mutableStateOf(false) }
+    var showSkinCustomise by remember { mutableStateOf(false) }
+    var showVideoQuality by remember { mutableStateOf(false) }
+    var showCanvasQuality by remember { mutableStateOf(false) }
+    // the song as it was when the row was tapped, so a skip doesn't swap the sheet's song under you
+    var songToEdit by remember { mutableStateOf<dev.meowlabs.blossomtune.models.MediaMetadata?>(null) }
+    var songForVideo by remember { mutableStateOf<dev.meowlabs.blossomtune.models.MediaMetadata?>(null) }
+    val videoBackgroundOn by rememberPreference(PlayVideoBackgroundKey, defaultValue = false)
 
     // Only touched by the lyrics section. hiltViewModel() itself is cheap, but the flows are
     // collected lazily so a menu opened from the player does no lyrics work at all.
@@ -147,28 +183,27 @@ fun PlayerActionMenu(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(BlossomInk.Primary.copy(alpha = 0.06f)),
+                            .background(Color.White.copy(alpha = 0.08f)),
                     )
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = trackInfo.title,
-                            color = BlossomInk.Primary,
+                            color = Color.White,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = buildString {
-                                append("by ")
-                                append(trackInfo.artist.ifBlank { "unknown" })
+                            text = trackInfo.artist.ifBlank { stringResource(R.string.ps_menu_unknown) }.let { artist ->
                                 if (trackInfo.album.isNotBlank()) {
-                                    append(" on ")
-                                    append(trackInfo.album)
+                                    stringResource(R.string.ps_menu_by_artist_on_album, artist, trackInfo.album)
+                                } else {
+                                    stringResource(R.string.ps_menu_by_artist, artist)
                                 }
                             },
-                            color = BlossomInk.Muted,
+                            color = Color(0xFFB3B3B3),
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -176,13 +211,15 @@ fun PlayerActionMenu(
                     }
                 }
 
-                if (fromLyrics) {
-                    MenuDivider()
+                Spacer(modifier = Modifier.height(SheetHeaderGap))
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        MenuCard(
+                // Opened from the lyrics page, the lyrics tools are what the menu is for, so they
+                // come first and take the two big cards.
+                if (fromLyrics) {
+                    SheetActionCardRow {
+                        SheetActionCard(
                             icon = R.drawable.translate,
-                            title = "Ai translation",
+                            title = stringResource(R.string.menu_ai_translation),
                             // Greyed out until the AI translation settings are filled in — an
                             // enabled button that silently does nothing is worse than a disabled
                             // one that says so.
@@ -190,9 +227,9 @@ fun PlayerActionMenu(
                             onClick = {},
                             modifier = Modifier.weight(1f),
                         )
-                        MenuCard(
+                        SheetActionCard(
                             icon = R.drawable.edit,
-                            title = "Edit lyrics",
+                            title = stringResource(R.string.edit_lyrics),
                             onClick = { showLyricsEditor = true },
                             modifier = Modifier.weight(1f),
                         )
@@ -205,112 +242,223 @@ fun PlayerActionMenu(
                     // outcome.
                     MenuRow(
                         icon = R.drawable.lyrics,
-                        title = "Lyrics provider",
+                        title = stringResource(R.string.video_mode_lyrics_provider),
                         onClick = { showLyricsProvider = true },
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     MenuRow(
+                        icon = R.drawable.fast_forward,
+                        title = stringResource(R.string.video_mode_lyrics_offset),
+                        onClick = { showLyricsOffset = true },
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    MenuRow(
                         icon = R.drawable.translate,
-                        title = "lyrics translation",
+                        title = stringResource(R.string.video_mode_lyrics_translation),
                         onClick = { showLyricsTranslation = true },
+                    )
+
+                    Spacer(modifier = Modifier.height(SectionGap))
+                }
+
+                // what people open this menu for most, as a two by two grid of big cards
+                SheetActionCardRow {
+                    // the song keeps playing and everything after it becomes songs like it, as spotify and apple music do; a file on the phone has no station
+                    SheetActionCard(
+                        icon = R.drawable.radio,
+                        title = androidx.compose.ui.res.stringResource(R.string.start_radio),
+                        enabled = currentMetadata != null && currentMetadata?.localUri == null,
+                        onClick = {
+                            playerConnection.startRadioSeamlessly()
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    SheetActionCard(
+                        icon = R.drawable.playlist_add,
+                        title = stringResource(R.string.add_to_playlist),
+                        enabled = currentMetadata != null,
+                        onClick = { showChoosePlaylistDialog = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                SheetActionCardRow {
+                    SheetDownloadCard(
+                        downloadState = download?.state,
+                        onDownload = {
+                            currentMetadata?.let { metadata ->
+                                // The song has to be in the database for the download to be
+                                // listed and played back from there.
+                                database.transaction { insert(metadata) }
+                                val request = DownloadRequest.Builder(metadata.id, metadata.id.toUri())
+                                    .setCustomCacheKey(metadata.id)
+                                    .setData(metadata.title.toByteArray())
+                                    .build()
+                                DownloadService.sendAddDownload(
+                                    context, ExoDownloadService::class.java, request, false,
+                                )
+                            }
+                        },
+                        // Done, or on its way: tapping takes it back out.
+                        onRemove = {
+                            currentMetadata?.let { metadata ->
+                                DownloadService.sendRemoveDownload(
+                                    context, ExoDownloadService::class.java, metadata.id, false,
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    // opens the song share over everything: a card, its lyrics, a video with the song, or the link
+                    SheetActionCard(
+                        icon = R.drawable.share,
+                        title = androidx.compose.ui.res.stringResource(R.string.share),
+                        enabled = currentMetadata != null,
+                        onClick = {
+                            currentMetadata?.let { metadata ->
+                                onDismiss()
+                                dev.meowlabs.blossomtune.ui.player.share.song.SongShare.open(metadata)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
                     )
                 }
 
-                MenuDivider()
+                if (onFullVideo != null) {
+                    Spacer(modifier = Modifier.height(SectionGap))
+                    MenuRow(
+                        icon = R.drawable.fullscreen,
+                        title = androidx.compose.ui.res.stringResource(R.string.video_mode),
+                        onClick = {
+                            onDismiss()
+                            onFullVideo()
+                        },
+                    )
+                }
+
+                var videoRowsShown = onFullVideo != null
+                // with videos on, the song's video can be put right: "wrong video?" once one was found, "find video" when none was
+                val videoSong = currentMetadata
+                if (videoSong != null && (videoBackgroundOn || videoSong.isVideoSong)) {
+                    val found = remember(videoSong.id) { hasFoundVideo(videoSong.id, videoSong.isVideoSong) }
+                    Spacer(modifier = Modifier.height(if (videoRowsShown) 8.dp else SectionGap))
+                    MenuRow(
+                        icon = R.drawable.slow_motion_video,
+                        title = androidx.compose.ui.res.stringResource(if (found) R.string.video_wrong else R.string.video_find),
+                        onClick = { songForVideo = videoSong },
+                    )
+                    videoRowsShown = true
+                }
+
+                // how sharp the cover plays, only while it really plays something: the youtube video over it, or else its animated cover
+                val coverVideo = YouTubeVideoSessions.showing?.takeIf { it.hasFrame }
+                val canvasSide = PlayerCanvasPlayback.playingSide
+                if (coverVideo != null) {
+                    val (videoQuality) = rememberEnumPreference(VideoQualityKey, VideoQuality.AUTO)
+                    Spacer(modifier = Modifier.height(if (videoRowsShown) 8.dp else SectionGap))
+                    MenuRow(
+                        icon = R.drawable.tune,
+                        title = stringResource(R.string.video_quality),
+                        onClick = { showVideoQuality = true },
+                        trailing = { TrailingValue(qualityLabel(videoQuality, coverVideo)) },
+                    )
+                } else if (canvasSide > 0) {
+                    val (canvasBest) = rememberPreference(CanvasBestQualityKey, defaultValue = true)
+                    Spacer(modifier = Modifier.height(if (videoRowsShown) 8.dp else SectionGap))
+                    MenuRow(
+                        icon = R.drawable.tune,
+                        title = stringResource(R.string.canvas_quality),
+                        onClick = { showCanvasQuality = true },
+                        trailing = { TrailingValue(canvasQualityLabel(canvasBest, canvasSide)) },
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(SectionGap))
 
                 DeviceVolumeRow()
                 Spacer(modifier = Modifier.height(8.dp))
                 MenuRow(
                     icon = R.drawable.cast,
-                    title = "Change device output",
+                    title = stringResource(R.string.menu_change_output),
                     onClick = { showAudioDevices = true },
                 )
+                // a linked tv with blossomtune open: play there, line it up there, or work it as a remote
+                DeviceMenuRows(onDismiss = onDismiss)
                 Spacer(modifier = Modifier.height(8.dp))
                 SleepTimerRow(onClick = { showSleepTimer = true })
                 Spacer(modifier = Modifier.height(8.dp))
-                MenuRow(
-                    icon = R.drawable.speed,
-                    title = "Playback speed and tempo",
-                    onClick = { showPlaybackSpeed = true },
-                )
-
-                MenuDivider()
-
-                MenuRow(
-                    icon = R.drawable.playlist_add,
-                    title = "add to playlist",
-                    enabled = currentMetadata != null,
-                    onClick = { showChoosePlaylistDialog = true },
-                )
+                KeepScreenOnRow()
+                Spacer(modifier = Modifier.height(8.dp))
+                FloatingLyricsRow()
                 Spacer(modifier = Modifier.height(8.dp))
                 MenuRow(
+                    icon = R.drawable.speed,
+                    title = stringResource(R.string.video_mode_speed),
+                    onClick = { showPlaybackSpeed = true },
+                )
+                if (onEqualizer != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MenuRow(
+                        icon = R.drawable.equalizer,
+                        title = androidx.compose.ui.res.stringResource(R.string.player_menu_equalizer),
+                        onClick = {
+                            onDismiss()
+                            onEqualizer()
+                        },
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(SectionGap))
+
+                MenuRow(
                     icon = if (trackInfo.liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-                    title = if (trackInfo.liked) "remove from liked" else "add to liked",
+                    title = if (trackInfo.liked) stringResource(R.string.menu_remove_from_liked) else stringResource(R.string.menu_add_to_liked),
                     onClick = { playerConnection.toggleLike() },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 val inLibrary = librarySong?.song?.inLibrary != null
                 MenuRow(
                     icon = if (inLibrary) R.drawable.library_add_check else R.drawable.library_add,
-                    title = if (inLibrary) "remove from library" else "add to library",
+                    title = if (inLibrary) stringResource(R.string.remove_from_library) else stringResource(R.string.add_to_library),
                     enabled = currentMetadata != null,
                     onClick = { playerConnection.toggleLibrary() },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                val downloadState = download?.state
                 MenuRow(
-                    icon = if (downloadState == Download.STATE_COMPLETED) R.drawable.offline else R.drawable.download,
-                    title = when (downloadState) {
-                        Download.STATE_COMPLETED -> "remove download"
-                        Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> "downloading, tap to cancel"
-                        else -> "download music"
-                    },
+                    icon = R.drawable.edit,
+                    title = androidx.compose.ui.res.stringResource(R.string.song_edit_menu),
                     enabled = currentMetadata != null,
-                    onClick = {
-                        currentMetadata?.let { metadata ->
-                            when (downloadState) {
-                                // Done, or on its way: tapping takes it back out.
-                                Download.STATE_COMPLETED, Download.STATE_QUEUED, Download.STATE_DOWNLOADING ->
-                                    DownloadService.sendRemoveDownload(
-                                        context, ExoDownloadService::class.java, metadata.id, false,
-                                    )
-                                else -> {
-                                    // The song has to be in the database for the download to be
-                                    // listed and played back from there.
-                                    database.transaction { insert(metadata) }
-                                    val request = DownloadRequest.Builder(metadata.id, metadata.id.toUri())
-                                        .setCustomCacheKey(metadata.id)
-                                        .setData(metadata.title.toByteArray())
-                                        .build()
-                                    DownloadService.sendAddDownload(
-                                        context, ExoDownloadService::class.java, request, false,
-                                    )
-                                }
-                            }
-                        }
-                    },
+                    onClick = { songToEdit = currentMetadata },
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                // Share stays greyed out for now.
-                MenuRow(
-                    icon = R.drawable.share,
-                    title = "share song",
-                    enabled = false,
-                    onClick = {},
-                )
+                if (isAutoplaySong) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MenuRow(
+                        icon = R.drawable.thumb_down,
+                        title = androidx.compose.ui.res.stringResource(R.string.not_recommended_menu),
+                        onClick = {
+                            onDismiss()
+                            playerConnection.stopRecommendingCurrent()
+                        },
+                    )
+                }
 
-                MenuDivider()
+                Spacer(modifier = Modifier.height(SectionGap))
 
                 MenuRow(
                     icon = R.drawable.edit,
-                    title = "edit player",
+                    title = stringResource(R.string.menu_edit_player),
                     onClick = {
                         onDismiss()
                         onEditPlayer()
                     },
                 )
+
+                ModuleMenuRows(currentMetadata, onDismiss, onOpenRoute, onCustomise = { showSkinCustomise = true })
             }
     }
 
@@ -344,76 +492,40 @@ fun PlayerActionMenu(
     if (showLyricsProvider) {
         LyricsProviderSheet(onDismiss = { showLyricsProvider = false })
     }
+    if (showSkinCustomise) {
+        SkinCustomiseSheet(onDismiss = { showSkinCustomise = false })
+    }
+    if (showVideoQuality) {
+        VideoQualitySheet(session = YouTubeVideoSessions.showing, onDismiss = { showVideoQuality = false })
+    }
+    if (showCanvasQuality) {
+        CanvasQualitySheet(onDismiss = { showCanvasQuality = false })
+    }
+    if (showLyricsOffset) {
+        LyricsOffsetSheet(onDismiss = { showLyricsOffset = false })
+    }
     if (showLyricsTranslation) {
         LyricsTranslationSheet(onDismiss = { showLyricsTranslation = false })
     }
+    songToEdit?.let { song ->
+        SongEditSheet(metadata = song, onDismiss = { songToEdit = null })
     }
-}
-
-@Composable
-private fun MenuDivider() {
-    Box(
-        modifier = Modifier
-            .padding(vertical = 14.dp)
-            .fillMaxWidth()
-            .height(1.dp)
-            .background(BlossomInk.Divider)
-    )
-}
-
-/**
- * The tall two-up card used for the headline lyrics actions: icon on its own row, label beneath.
- * Same surface and disabled treatment as [MenuRow], just a different shape.
- */
-@Composable
-private fun MenuCard(
-    icon: Int,
-    title: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    val contentAlpha = if (enabled) 1f else 0.35f
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MenuRowSurface)
-            .clickable(
-                enabled = enabled,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(14.dp)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(BlossomInk.Chip.copy(alpha = contentAlpha))
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = BlossomInk.OnChip,
-                modifier = Modifier.size(13.dp),
-            )
-        }
-        Spacer(modifier = Modifier.height(30.dp))
-        Text(
-            text = title,
-            color = BlossomInk.Primary.copy(alpha = contentAlpha),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+    songForVideo?.let { song ->
+        VideoPickerSheet(
+            songId = song.id,
+            title = song.title,
+            artist = song.artists.joinToString { it.name },
+            onDismiss = { songForVideo = null },
         )
     }
+    }
 }
 
+/** Space between the menu's groups of rows. It used to be a line; the sheets don't draw lines any more. */
+private val SectionGap = 16.dp
+
 @Composable
-private fun MenuRow(
+internal fun MenuRow(
     icon: Int,
     title: String,
     onClick: () -> Unit,
@@ -431,29 +543,16 @@ private fun MenuRow(
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = RemoteFocus,
                 onClick = onClick,
             )
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(BlossomInk.Chip.copy(alpha = contentAlpha))
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = BlossomInk.OnChip,
-                modifier = Modifier.size(13.dp),
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
+        SheetIcon(icon, tint = Color.White.copy(alpha = contentAlpha))
+        Spacer(modifier = Modifier.width(14.dp))
         Text(
             text = title,
-            color = BlossomInk.Primary.copy(alpha = contentAlpha),
+            color = Color.White.copy(alpha = contentAlpha),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
@@ -464,16 +563,41 @@ private fun MenuRow(
     }
 }
 
+/** The phone doesn't sleep while BlossomTune is open: for following lyrics, or a phone on a car mount. */
+@Composable
+private fun KeepScreenOnRow() {
+    val (keepScreenOn, setKeepScreenOn) = rememberPreference(KeepScreenOn, defaultValue = false)
+    MenuRow(
+        icon = R.drawable.lock_open,
+        title = stringResource(R.string.menu_keep_screen_on),
+        onClick = { setKeepScreenOn(!keepScreenOn) },
+        trailing = { AppSwitch(checked = keepScreenOn, onCheckedChange = setKeepScreenOn) },
+    )
+}
+
+// the line being sung floating over other apps once blossomtune is out of sight
+@Composable
+private fun FloatingLyricsRow() {
+    val (floating, setFloating) = dev.meowlabs.blossomtune.floating.rememberFloatingLyricsSwitch()
+    MenuRow(
+        icon = R.drawable.lyrics,
+        title = androidx.compose.ui.res.stringResource(R.string.settings_floating_lyrics),
+        onClick = { setFloating(!floating) },
+        trailing = { AppSwitch(checked = floating, onCheckedChange = setFloating) },
+    )
+}
+
 @Composable
 private fun SleepTimerRow(onClick: () -> Unit) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val sleepTimer = playerConnection.service.sleepTimer
 
+    val endsWithSongLabel = stringResource(R.string.ps_menu_ends_with_song)
     var remainingLabel by remember { mutableStateOf("") }
-    LaunchedEffect(sleepTimer.triggerTime, sleepTimer.pauseWhenSongEnd) {
+    LaunchedEffect(sleepTimer.triggerTime, sleepTimer.pauseWhenSongEnd, endsWithSongLabel) {
         while (true) {
             remainingLabel = when {
-                sleepTimer.pauseWhenSongEnd -> "ends with song"
+                sleepTimer.pauseWhenSongEnd -> endsWithSongLabel
                 sleepTimer.triggerTime > 0L -> {
                     val left = sleepTimer.triggerTime - System.currentTimeMillis()
                     if (left <= 0L) "" else formatRemaining(left)
@@ -484,16 +608,25 @@ private fun SleepTimerRow(onClick: () -> Unit) {
             kotlinx.coroutines.delay(1000)
         }
     }
+    // a paused timer doesn't count down, so it needs no ticking label
+    val pausedLabel = if (sleepTimer.isPaused) {
+        stringResource(R.string.sleep_timer_paused_left, formatRemaining(sleepTimer.remainingMillisWhenPaused))
+    } else null
 
     MenuRow(
         icon = R.drawable.sleep_timer,
-        title = "Sleep timer",
+        title = stringResource(R.string.sleep_timer),
         onClick = onClick,
         trailing = {
-            if (remainingLabel.isNotEmpty()) {
+            val label = pausedLabel ?: when {
+                remainingLabel.isEmpty() -> null
+                sleepTimer.pauseWhenSongEnd -> remainingLabel
+                else -> stringResource(R.string.ps_menu_remaining, remainingLabel)
+            }
+            if (label != null) {
                 Text(
-                    text = "$remainingLabel remaining",
-                    color = BlossomInk.Muted,
+                    text = label,
+                    color = Color(0xFF9A9A9A),
                     fontSize = 12.sp,
                 )
             }
@@ -536,24 +669,11 @@ private fun DeviceVolumeRow() {
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(BlossomInk.Chip)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.volume_up),
-                    contentDescription = null,
-                    tint = BlossomInk.OnChip,
-                    modifier = Modifier.size(13.dp),
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
+            SheetIcon(R.drawable.volume_up)
+            Spacer(modifier = Modifier.width(14.dp))
             Text(
-                text = android.os.Build.MODEL ?: "this device",
-                color = BlossomInk.Primary,
+                text = android.os.Build.MODEL ?: stringResource(R.string.ps_device_this_device),
+                color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -570,7 +690,7 @@ private fun DeviceVolumeRow() {
             Icon(
                 painter = painterResource(R.drawable.volume_down),
                 contentDescription = null,
-                tint = BlossomInk.Muted,
+                tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(16.dp),
             )
             LineSlider(
@@ -588,7 +708,7 @@ private fun DeviceVolumeRow() {
             Icon(
                 painter = painterResource(R.drawable.volume_up),
                 contentDescription = null,
-                tint = BlossomInk.Muted,
+                tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(16.dp),
             )
         }

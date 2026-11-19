@@ -1,5 +1,3 @@
-// DatabaseDao.kt
-
 package dev.meowlabs.blossomtune.db
 
 import androidx.room.Dao
@@ -26,6 +24,7 @@ import dev.meowlabs.blossomtune.constants.SongSortType
 import dev.meowlabs.blossomtune.db.entities.Album
 import dev.meowlabs.blossomtune.db.entities.AlbumArtistMap
 import dev.meowlabs.blossomtune.db.entities.AlbumEntity
+import dev.meowlabs.blossomtune.db.entities.AlbumSongRow
 import dev.meowlabs.blossomtune.db.entities.AlbumWithSongs
 import dev.meowlabs.blossomtune.db.entities.Artist
 import dev.meowlabs.blossomtune.db.entities.ArtistEntity
@@ -36,7 +35,13 @@ import dev.meowlabs.blossomtune.db.entities.LyricsEntity
 import dev.meowlabs.blossomtune.db.entities.PlayCountEntity
 import dev.meowlabs.blossomtune.db.entities.Playlist
 import dev.meowlabs.blossomtune.db.entities.PlaylistEntity
+import dev.meowlabs.blossomtune.db.entities.ImportSession
+import dev.meowlabs.blossomtune.db.entities.ImportSessionSong
+import dev.meowlabs.blossomtune.db.entities.ImportedPlaylist
+import dev.meowlabs.blossomtune.db.entities.ImportedPlaylistTrack
 import dev.meowlabs.blossomtune.db.entities.ImportedSong
+import dev.meowlabs.blossomtune.db.entities.ImportedAlbumRow
+import dev.meowlabs.blossomtune.db.entities.ImportedLike
 import dev.meowlabs.blossomtune.db.entities.ImportedSourceCount
 import dev.meowlabs.blossomtune.db.entities.PlaylistEvent
 import dev.meowlabs.blossomtune.db.entities.PlaylistSong
@@ -48,12 +53,14 @@ import dev.meowlabs.blossomtune.db.entities.SetVideoIdEntity
 import dev.meowlabs.blossomtune.db.entities.Song
 import dev.meowlabs.blossomtune.db.entities.SongAlbumMap
 import dev.meowlabs.blossomtune.db.entities.SongArtistMap
+import dev.meowlabs.blossomtune.db.entities.SongEdit
 import dev.meowlabs.blossomtune.db.entities.SongEntity
 import dev.meowlabs.blossomtune.db.entities.SongWithStats
 import dev.meowlabs.blossomtune.extensions.reversed
 import dev.meowlabs.blossomtune.extensions.toSQLiteQuery
 import dev.meowlabs.blossomtune.models.MediaMetadata
 import dev.meowlabs.blossomtune.models.toMediaMetadata
+import dev.meowlabs.blossomtune.playlistcover.PlaylistCoverStore
 import dev.meowlabs.blossomtune.ui.utils.resize
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -221,7 +228,7 @@ interface DatabaseDao {
     fun likedSongsCount(): Flow<Int>
 
     @Transaction
-    @Query("SELECT song.* FROM song JOIN song_album_map ON song.id = song_album_map.songId WHERE song_album_map.albumId = :albumId")
+    @Query("SELECT song.* FROM song JOIN song_album_map ON song.id = song_album_map.songId WHERE song_album_map.albumId = :albumId ORDER BY song_album_map.`index`, song_album_map.rowid")
     fun albumSongs(albumId: String): Flow<List<Song>>
 
     @Transaction
@@ -696,6 +703,15 @@ interface DatabaseDao {
     @Query("SELECT * FROM song WHERE id IN (:songIds)")
     suspend fun getSongsByIds(songIds: List<String>): List<Song>
 
+    // just the rows, no artists or album, for checking thousands of likes at once
+    @Query("SELECT * FROM song WHERE id IN (:songIds) AND NOT liked")
+    fun unlikedSongEntities(songIds: List<String>): List<SongEntity>
+
+    /** [getSongsByIds] that keeps up: a like or a new artist picture shows without asking again. */
+    @Transaction
+    @Query("SELECT * FROM song WHERE id IN (:songIds)")
+    fun songsByIds(songIds: List<String>): Flow<List<Song>>
+
     @Transaction
     @Query("SELECT * FROM song_artist_map WHERE songId = :songId")
     fun songArtistMap(songId: String): List<SongArtistMap>
@@ -1049,13 +1065,95 @@ interface DatabaseDao {
     @Query("SELECT * FROM album WHERE id = :id")
     fun album(id: String): Flow<Album?>
 
+    // The outer ORDER BY is needed because SQLite can flatten the sorted view's join.
     @Transaction
-    @Query("SELECT * FROM album WHERE id = :albumId")
-    fun albumWithSongs(albumId: String): Flow<AlbumWithSongs?>
+    @Query("""
+        SELECT album.*, song_album_map.songId AS mappedSongId
+        FROM album LEFT JOIN song_album_map ON album.id = song_album_map.albumId
+        WHERE album.id = :albumId
+        ORDER BY song_album_map.`index`, song_album_map.rowid
+    """)
+    fun albumSongRows(albumId: String): Flow<List<AlbumSongRow>>
+
+    fun albumWithSongs(albumId: String): Flow<AlbumWithSongs?> =
+        albumSongRows(albumId).map { rows ->
+            rows.firstOrNull()?.let { first ->
+                AlbumWithSongs(first.album, first.artists, rows.mapNotNull { it.song })
+            }
+        }
 
     @Transaction
     @Query("SELECT * FROM album_artist_map WHERE albumId = :albumId")
     fun albumArtistMaps(albumId: String): List<AlbumArtistMap>
+
+    // the albums your library songs come from, a song that's only in through a like counts when withLiked is on (the old way)
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query(
+        "SELECT * FROM album WHERE EXISTS(SELECT 1 FROM song WHERE song.albumId = album.id " +
+            "AND song.inLibrary IS NOT NULL AND (:withLiked OR NOT song.addedByLike)) ORDER BY rowId DESC"
+    )
+    fun albumsFromLibrarySongs(withLiked: Boolean): Flow<List<Album>>
+
+    @Query("SELECT COUNT(*) FROM song WHERE inLibrary IS NOT NULL OR liked")
+    fun librarySongCount(): Flow<Int>
+
+    // an album is only stored once something opens or saves it, so a song's album that was never opened gets a stand-in the album page fills in later
+    @Query(
+        "INSERT OR IGNORE INTO album (id, title, thumbnailUrl, songCount, duration, lastUpdateTime) " +
+            "SELECT albumId, albumName, thumbnailUrl, 0, 0, :now FROM song " +
+            "WHERE (inLibrary IS NOT NULL OR liked) AND albumId IS NOT NULL AND albumName IS NOT NULL AND albumName != '' " +
+            "GROUP BY albumId"
+    )
+    fun addMissingAlbumRows(now: LocalDateTime)
+
+    // a stand-in album borrows its song's main artist until its page brings the real ones
+    @Query(
+        "INSERT OR IGNORE INTO album_artist_map (albumId, artistId, `order`) " +
+            "SELECT song.albumId, song_artist_map.artistId, 0 FROM song " +
+            "JOIN song_artist_map ON song_artist_map.songId = song.id AND song_artist_map.position = 0 " +
+            "JOIN album ON album.id = song.albumId " +
+            "WHERE (song.inLibrary IS NOT NULL OR song.liked) " +
+            "AND NOT EXISTS(SELECT 1 FROM album_artist_map WHERE album_artist_map.albumId = song.albumId) " +
+            "GROUP BY song.albumId"
+    )
+    fun addMissingAlbumArtists()
+
+    @Transaction
+    fun addMissingLibraryAlbums() {
+        addMissingAlbumRows(LocalDateTime.now())
+        addMissingAlbumArtists()
+    }
+
+    @Query("UPDATE song SET albumId = :albumId WHERE id = :songId")
+    fun setSongAlbum(songId: String, albumId: String)
+
+    // counts a local album's songs and length again, and takes the first cover and year any of its files has
+    @Query(
+        "UPDATE album SET " +
+            "songCount = (SELECT COUNT(*) FROM song_album_map WHERE albumId = :albumId), " +
+            "duration = (SELECT COALESCE(SUM(song.duration), 0) FROM song " +
+            "JOIN song_album_map ON song_album_map.songId = song.id WHERE song_album_map.albumId = :albumId), " +
+            "thumbnailUrl = COALESCE(thumbnailUrl, :thumbnailUrl), year = COALESCE(year, :year) " +
+            "WHERE id = :albumId"
+    )
+    fun refreshLocalAlbum(albumId: String, thumbnailUrl: String?, year: Int?)
+
+    @Transaction
+    @Query("SELECT * FROM song WHERE isLocal AND albumId IS NULL AND albumName IS NOT NULL AND albumName != ''")
+    suspend fun localSongsWithoutAlbum(): List<Song>
+
+    // local files whose genre tag hasn't been read yet
+    @Query("SELECT * FROM song WHERE isLocal AND genre IS NULL AND localUri IS NOT NULL")
+    suspend fun localSongsWithoutGenre(): List<SongEntity>
+
+    @Query("UPDATE song SET genre = :genre WHERE id = :songId")
+    fun setSongGenre(songId: String, genre: String)
+
+    // the local songs that have a genre, for the Genres tab and each genre's page
+    @Transaction
+    @Query("SELECT * FROM song WHERE isLocal AND genre IS NOT NULL AND genre != '' ORDER BY title COLLATE NOCASE")
+    fun localSongsWithGenre(): Flow<List<Song>>
 
     @Transaction
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY rowId")
@@ -1099,6 +1197,25 @@ interface DatabaseDao {
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE id = :playlistId")
     fun playlist(playlistId: String): Flow<Playlist?>
 
+    @Query("SELECT * FROM playlist WHERE id = :playlistId")
+    fun playlistEntity(playlistId: String): PlaylistEntity?
+
+    // the newest entry in a playlist, where "download new songs" starts counting from
+    @Query("SELECT MAX(id) FROM playlist_song_map WHERE playlistId = :playlistId")
+    fun lastPlaylistEntryId(playlistId: String): Long?
+
+    // songs added to a playlist after its entry [afterEntryId]; entry ids only ever grow, so these are the ones added since
+    @Query("SELECT songId FROM playlist_song_map WHERE playlistId = :playlistId AND id > :afterEntryId")
+    fun playlistSongIdsAfter(playlistId: String, afterEntryId: Long): Flow<List<String>>
+
+    // songs liked after [since], in the same stored form as likedDate
+    @Query("SELECT id FROM song WHERE liked = 1 AND likedDate > :since")
+    fun likedSongIdsSince(since: Long): Flow<List<String>>
+
+    // swaps only the cover, and only while it's still [expected], so a redraw that finishes late never undoes a newer edit
+    @Query("UPDATE playlist SET thumbnailUrl = :thumbnailUrl WHERE id = :playlistId AND thumbnailUrl IS :expected")
+    fun replacePlaylistCover(playlistId: String, expected: String?, thumbnailUrl: String): Int
+
     @Transaction
     @Query("SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE isEditable AND bookmarkedAt IS NOT NULL ORDER BY rowId")
     fun editablePlaylistsByCreateDateAsc(): Flow<List<Playlist>>
@@ -1114,6 +1231,10 @@ interface DatabaseDao {
         songId: String,
     ): Int
 
+    /** Just the ids, for ticking off songs that are already in the playlist without loading them. */
+    @Query("SELECT songId FROM playlist_song_map WHERE playlistId = :playlistId")
+    fun playlistSongIds(playlistId: String): Flow<List<String>>
+
     @Query("SELECT songId from playlist_song_map WHERE playlistId = :playlistId AND songId IN (:songIds)")
     fun playlistDuplicates(
         playlistId: String,
@@ -1123,6 +1244,18 @@ interface DatabaseDao {
     /** Takes back songs just appended to a playlist (they sit at [fromPosition] or later). */
     @Query("DELETE FROM playlist_song_map WHERE playlistId = :playlistId AND songId IN (:songIds) AND position >= :fromPosition")
     fun removeAddedSongs(playlistId: String, songIds: List<String>, fromPosition: Int)
+
+    @Query("UPDATE playlist_song_map SET position = position + :by WHERE playlistId = :playlistId")
+    fun shiftPlaylistPositions(playlistId: String, by: Int)
+
+    // songs added to a playlist that mirrors youtube go on top, where people look for what they just added
+    @Transaction
+    fun addSongsToPlaylistTop(playlist: Playlist, songIds: List<String>) {
+        shiftPlaylistPositions(playlist.id, songIds.size)
+        songIds.forEachIndexed { index, id ->
+            insert(PlaylistSongMap(songId = id, playlistId = playlist.id, position = index))
+        }
+    }
 
     @Transaction
     fun addSongToPlaylist(playlist: Playlist, songIds: List<String>) {
@@ -1265,6 +1398,11 @@ interface DatabaseDao {
     @Query("SELECT * FROM event ORDER BY rowId DESC")
     fun events(): Flow<List<EventWithSong>>
 
+    /** The newest [limit] plays, for callers that only need the head of [events]. */
+    @Transaction
+    @Query("SELECT * FROM event ORDER BY rowId DESC LIMIT :limit")
+    fun recentEvents(limit: Int): Flow<List<EventWithSong>>
+
     @Transaction
     @Query("SELECT * FROM event ORDER BY rowId ASC LIMIT 1")
     fun firstEvent(): Flow<EventWithSong?>
@@ -1341,7 +1479,7 @@ interface DatabaseDao {
     }
 
     @Transaction
-    @Query("UPDATE song SET inLibrary = :inLibrary WHERE id = :songId")
+    @Query("UPDATE song SET inLibrary = :inLibrary, addedByLike = 0 WHERE id = :songId")
     fun inLibrary(
         songId: String,
         inLibrary: LocalDateTime?,
@@ -1545,15 +1683,18 @@ interface DatabaseDao {
     @Transaction
     fun update(
         song: Song,
-        mediaMetadata: MediaMetadata,
+        fetched: MediaMetadata,
     ) {
+        // whatever was edited by hand stays, a refetch only freshens the rest
+        val edit = songEditBlocking(song.id)
+        val mediaMetadata = edit?.applyTo(fetched) ?: fetched
         update(
             song.song.copy(
                 title = mediaMetadata.title,
                 duration = mediaMetadata.duration,
                 thumbnailUrl = mediaMetadata.thumbnailUrl,
                 albumId = mediaMetadata.album?.id,
-                albumName = mediaMetadata.album?.title,
+                albumName = edit?.album ?: mediaMetadata.album?.title,
                 libraryAddToken = mediaMetadata.libraryAddToken,
                 libraryRemoveToken = mediaMetadata.libraryRemoveToken
             ),
@@ -1582,18 +1723,43 @@ interface DatabaseDao {
     @Update
     fun update(song: SongEntity)
 
+    @Query("UPDATE song SET lyricsOffset = :offsetMs WHERE id = :songId")
+    fun updateLyricsOffset(songId: String, offsetMs: Int)
+
+    // ---- hand edits from the song edit sheet ----
+
+    @Query("SELECT * FROM song_edit WHERE songId = :songId")
+    fun songEdit(songId: String?): Flow<SongEdit?>
+
+    @Query("SELECT * FROM song_edit WHERE songId = :songId")
+    fun songEditBlocking(songId: String): SongEdit?
+
+    @Query("SELECT * FROM song_edit")
+    fun songEdits(): Flow<List<SongEdit>>
+
+    @Upsert
+    fun upsert(edit: SongEdit)
+
     // ---- imported music ----
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(imported: ImportedSong)
 
-    @Query("SELECT source, COUNT(*) AS songCount FROM imported_song GROUP BY source")
+    // Only songs still in the library or liked count as a service's: one taken back out of both
+    // is gone from the user's music, and listing it under "Spotify" would bring it back.
+
+    @Query(
+        "SELECT imported_song.source, COUNT(*) AS songCount FROM imported_song " +
+            "JOIN song ON song.id = imported_song.songId " +
+            "WHERE song.inLibrary IS NOT NULL OR song.liked GROUP BY imported_song.source"
+    )
     fun importedSourceCounts(): Flow<List<ImportedSourceCount>>
 
     /** The newest few covers of a source, for its card in the Library. */
     @Query(
         "SELECT song.thumbnailUrl FROM song JOIN imported_song ON song.id = imported_song.songId " +
             "WHERE imported_song.source = :source AND song.thumbnailUrl IS NOT NULL " +
+            "AND (song.inLibrary IS NOT NULL OR song.liked) " +
             "ORDER BY imported_song.importedAt DESC LIMIT 4"
     )
     fun importedCovers(source: String): Flow<List<String>>
@@ -1601,13 +1767,175 @@ interface DatabaseDao {
     @Transaction
     @Query(
         "SELECT song.* FROM song JOIN imported_song ON song.id = imported_song.songId " +
-            "WHERE imported_song.source = :source ORDER BY song.title"
+            "WHERE imported_song.source = :source AND (song.inLibrary IS NOT NULL OR song.liked) " +
+            "ORDER BY song.title"
     )
     fun importedSongsByNameAsc(source: String): Flow<List<Song>>
+
+    // one row per service and album, newest import first, for the imported tab's album cards
+    @Query(
+        "SELECT imported_song.source AS source, album.thumbnailUrl AS thumbnailUrl FROM imported_song " +
+            "JOIN song ON song.id = imported_song.songId JOIN album ON album.id = song.albumId " +
+            "WHERE song.inLibrary IS NOT NULL OR song.liked " +
+            "GROUP BY imported_song.source, album.id ORDER BY MAX(imported_song.importedAt) DESC"
+    )
+    fun importedAlbumRows(): Flow<List<ImportedAlbumRow>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query(
+        "SELECT * FROM album WHERE EXISTS(SELECT 1 FROM song JOIN imported_song ON imported_song.songId = song.id " +
+            "WHERE song.albumId = album.id AND imported_song.source = :source " +
+            "AND (song.inLibrary IS NOT NULL OR song.liked)) ORDER BY title"
+    )
+    fun importedAlbums(source: String): Flow<List<Album>>
 
     /** Every song that was imported from anywhere, for the library sync to leave alone. */
     @Query("SELECT DISTINCT songId FROM imported_song")
     fun importedSongIds(): List<String>
+
+    /**
+     * The songs imported from anywhere but [source]. YouTube sync passes its own source: the songs
+     * it brought in follow the YouTube library, so they may leave it again.
+     */
+    @Query("SELECT DISTINCT songId FROM imported_song WHERE source != :source")
+    fun importedSongIdsExcept(source: String): List<String>
+
+    @Query("DELETE FROM imported_song WHERE songId = :songId AND source = :source")
+    fun deleteImportedSong(songId: String, source: String)
+
+    // ---- import sessions ----
+
+    @Insert
+    fun insert(session: ImportSession): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insert(row: ImportSessionSong)
+
+    @Query("UPDATE import_session_song SET liked = 1 WHERE sessionId = :sessionId AND songId = :songId")
+    fun markLikedByImport(sessionId: Long, songId: String)
+
+    @Query(
+        "SELECT import_session_song.songId AS songId, MAX(import_session.startedAt) AS importedAt FROM import_session_song " +
+            "JOIN import_session ON import_session.id = import_session_song.sessionId " +
+            "WHERE import_session_song.liked GROUP BY import_session_song.songId"
+    )
+    fun likesFromImports(): List<ImportedLike>
+
+    @Query("SELECT * FROM import_session WHERE source = :source ORDER BY id DESC")
+    fun importSessions(source: String): List<ImportSession>
+
+    @Query("SELECT * FROM import_session WHERE source != :excluded ORDER BY id DESC")
+    fun importSessionsExcept(excluded: String): List<ImportSession>
+
+    @Query("SELECT * FROM import_session_song WHERE sessionId = :sessionId")
+    fun importSessionSongs(sessionId: Long): List<ImportSessionSong>
+
+    /** Every song an import session brought in, for the library sync to leave alone. */
+    @Query("SELECT DISTINCT songId FROM import_session_song")
+    fun importSessionSongIds(): List<String>
+
+    /** Any other session that still has a claim on the song: it stays in the library for that one. */
+    @Query("SELECT COUNT(*) FROM import_session_song WHERE songId = :songId AND sessionId != :sessionId")
+    fun otherSessionsWithSong(songId: String, sessionId: Long): Int
+
+    /** Another session from the same service still has the song, so it keeps that service's tag. */
+    @Query(
+        "SELECT COUNT(*) FROM import_session_song JOIN import_session ON import_session.id = import_session_song.sessionId " +
+            "WHERE import_session_song.songId = :songId AND import_session.source = :source AND import_session.id != :sessionId"
+    )
+    fun otherSessionsFromSource(songId: String, source: String, sessionId: Long): Int
+
+    @Query("DELETE FROM import_session_song WHERE sessionId = :sessionId")
+    fun deleteImportSessionSongs(sessionId: Long)
+
+    @Query("DELETE FROM import_session_song WHERE songId = :songId")
+    fun deleteImportSessionSong(songId: String)
+
+    /** Forgets that [source]'s imports brought the song in; other services' imports keep it. */
+    @Query(
+        "DELETE FROM import_session_song WHERE songId = :songId " +
+            "AND sessionId IN (SELECT id FROM import_session WHERE source = :source)"
+    )
+    fun deleteImportSessionSong(songId: String, source: String)
+
+    @Query("DELETE FROM import_session WHERE id = :sessionId")
+    fun deleteImportSession(sessionId: Long)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM import_session WHERE id = :sessionId)")
+    fun importSessionExists(sessionId: Long): Boolean
+
+    /** A session that ended up bringing nothing in has nothing to undo, so it isn't kept. */
+    @Query(
+        "DELETE FROM import_session WHERE id = :sessionId " +
+            "AND NOT EXISTS (SELECT 1 FROM import_session_song WHERE sessionId = :sessionId) " +
+            "AND NOT EXISTS (SELECT 1 FROM imported_playlist WHERE sessionId = :sessionId)"
+    )
+    fun deleteImportSessionIfEmpty(sessionId: Long)
+
+    // ---- imported playlists ----
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insert(playlist: ImportedPlaylist)
+
+    /** Which service each imported playlist came from. */
+    @Query("SELECT * FROM imported_playlist")
+    fun importedPlaylists(): Flow<List<ImportedPlaylist>>
+
+    /** Where one playlist came from, for its menu's Re-sync; null for a playlist made here. */
+    @Query("SELECT * FROM imported_playlist WHERE playlistId = :playlistId")
+    fun importedPlaylist(playlistId: String): Flow<ImportedPlaylist?>
+
+    @Query("SELECT * FROM imported_playlist WHERE playlistId = :playlistId")
+    fun getImportedPlaylist(playlistId: String): ImportedPlaylist?
+
+    /** The local copy of a service's playlist, found by its id there; the newest, if one was deleted and imported again. */
+    @Query("SELECT * FROM imported_playlist WHERE source = :source AND remoteId = :remoteId ORDER BY importedAt DESC LIMIT 1")
+    fun importedPlaylistByRemoteId(source: String, remoteId: String): ImportedPlaylist?
+
+    /** Remembers where the playlist lives (an unknown id or link keeps the one already saved). */
+    @Query(
+        "UPDATE imported_playlist SET remoteId = COALESCE(:remoteId, remoteId), " +
+            "remoteUrl = COALESCE(:remoteUrl, remoteUrl), lastSyncedAt = :syncedAt WHERE playlistId = :playlistId"
+    )
+    fun updateImportedPlaylistOrigin(playlistId: String, remoteId: String?, remoteUrl: String?, syncedAt: LocalDateTime)
+
+    @Query("SELECT trackKey FROM imported_playlist_track WHERE playlistId = :playlistId")
+    fun importedPlaylistTrackKeys(playlistId: String): List<String>
+
+    /** About how many songs the playlist had on its service the last time it was read. */
+    @Query("SELECT COUNT(*) FROM imported_playlist_track WHERE playlistId = :playlistId")
+    fun importedPlaylistTrackCount(playlistId: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertImportedPlaylistTracks(tracks: List<ImportedPlaylistTrack>)
+
+    @Query("SELECT playlistId FROM imported_playlist WHERE sessionId = :sessionId")
+    fun importSessionPlaylistIds(sessionId: Long): List<String>
+
+    @Query("DELETE FROM imported_playlist WHERE playlistId = :playlistId")
+    fun deleteImportedPlaylistRow(playlistId: String)
+
+    @Query("DELETE FROM imported_playlist_track WHERE playlistId = :playlistId")
+    fun deleteImportedPlaylistTracks(playlistId: String)
+
+    @Transaction
+    fun deleteImportedPlaylist(playlistId: String) {
+        deleteImportedPlaylistRow(playlistId)
+        deleteImportedPlaylistTracks(playlistId)
+    }
+
+    // ---- files imported from the phone ----
+
+    /** Every file already in the library, so a storage scan only offers the new ones. */
+    @Query("SELECT localUri FROM song WHERE localUri IS NOT NULL")
+    fun localUris(): List<String>
+
+    @Query("DELETE FROM format WHERE id = :songId")
+    fun deleteFormat(songId: String)
+
+    @Query("DELETE FROM lyrics WHERE id = :songId")
+    fun deleteLyrics(songId: String)
 
     /** Where each liked song was imported from, for Liked songs' import order. A song from two services has two rows. */
     @Query("SELECT imported_song.* FROM imported_song JOIN song ON song.id = imported_song.songId WHERE song.liked")
@@ -1705,13 +2033,16 @@ interface DatabaseDao {
         }
     }
 
-    @Update
+    @Transaction
     fun update(playlistEntity: PlaylistEntity, playlistItem: PlaylistItem) {
+        // read fresh: the sync walks every playlist slowly, and a copy from its start wrote over edits made meanwhile
+        val current = playlistEntity(playlistEntity.id) ?: playlistEntity
         update(
-            playlistEntity.copy(
+            current.copy(
                 name = playlistItem.title,
                 browseId = playlistItem.id,
-                thumbnailUrl = playlistItem.thumbnail,
+                // a cover made or picked in blossomtune stays, youtube's own picture went over it on every sync
+                thumbnailUrl = current.thumbnailUrl.takeIf(PlaylistCoverStore::isManaged) ?: playlistItem.thumbnail,
                 isEditable = playlistItem.isEditable,
                 remoteSongCount = playlistItem.songCountText?.let { Regex("""\d+""").find(it)?.value?.toIntOrNull() },
                 playEndpointParams = playlistItem.playEndpoint?.params,

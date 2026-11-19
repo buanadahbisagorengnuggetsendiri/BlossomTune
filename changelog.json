@@ -1,5 +1,32 @@
 [
   {
+    "versionName": "0.6.0",
+    "publishedAt": "2026-11-19",
+    "summary": "Basis baru: BlossomTune sekarang dibangun dari Mochy 8.4.2, bukan musicfy. Paketnya tetap, jadi update ini menimpa 0.5.11 tanpa menghapus library dan unduhan offline.",
+    "sections": [
+      {
+        "title": "Basis baru",
+        "items": [
+          "Semua yang ada di Mochy 8.4.2 ikut: mesin audio baru, crossmix, pemutar video YouTube, canvas Apple Music, dan provider modul yang lebih banyak.",
+          "Model unduhan, ekualizer, lirik, dan sinkronisasi akun memakai kode Mochy, bukan lagi musicfy."
+        ]
+      },
+      {
+        "title": "Perbaikan",
+        "items": [
+          "Pemilih bahasa sekarang memuat seluruh locale yang benar-benar dikirim (82, sebelumnya 56) — bahasa seperti Afrikaans, Denmark, Finlandia, Kroasia, dan Mandarin sebelumnya tidak pernah muncul."
+        ]
+      },
+      {
+        "title": "Yang belum",
+        "items": [
+          "Palet es/azure dan perbaikan tinta mode terang dari 0.5.x belum diport ke basis Mochy; tampilan masih memakai tema Mochy.",
+          "Ikon launcher dan splash masih milik basis."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.5.11",
     "publishedAt": "2026-11-01",
     "summary": "Nama profil bisa diganti kapan saja, dan profil sekarang menyimpan musik kesukaanmu.",

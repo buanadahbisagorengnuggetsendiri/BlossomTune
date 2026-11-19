@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import dev.meowlabs.blossomtune.LocalDatabase
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.db.entities.PlaylistEntity
+import dev.meowlabs.blossomtune.importer.PlaylistSourceRecord
 import dev.meowlabs.blossomtune.ui.component.TextFieldDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
@@ -28,6 +29,8 @@ fun ImportPlaylistDialog(
     playlistTitle: String,
     onDismiss: () -> Unit,
     onImportedPlaylist: (String) -> Unit = {},
+    /** The YouTube playlist being copied, so the copy can be re-synced with it later. */
+    sourcePlaylistId: String? = null,
 ) {
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
@@ -52,6 +55,9 @@ fun ImportPlaylistDialog(
                         if (playlist != null) {
                             val importedSongIds = onGetSong()
                             database.addSongToPlaylist(playlist, importedSongIds)
+                            sourcePlaylistId?.let {
+                                PlaylistSourceRecord(database).rememberYouTubeCopy(newPlaylist.id, it, importedSongIds)
+                            }
                         }
 
                         newPlaylist.id

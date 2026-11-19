@@ -1,5 +1,3 @@
-// ImportedSong.kt
-
 package dev.meowlabs.blossomtune.db.entities
 
 import androidx.compose.runtime.Immutable
@@ -32,4 +30,10 @@ data class ImportedSong(
 data class ImportedSourceCount(
     val source: String,
     val songCount: Int,
+)
+
+// one album a service's songs come from, with its cover
+data class ImportedAlbumRow(
+    val source: String,
+    val thumbnailUrl: String?,
 )

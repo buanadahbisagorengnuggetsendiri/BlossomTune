@@ -6,14 +6,19 @@ import androidx.media3.common.util.UnstableApi
 import dev.meowlabs.blossomtune.crossmix.CrossmixRole
 import dev.meowlabs.blossomtune.crossmix.CrossmixStyle
 import dev.meowlabs.blossomtune.crossmix.FxParams
+import dev.meowlabs.blossomtune.crossmix.evaluate
+import dev.meowlabs.blossomtune.crossmix.headroom
+import dev.meowlabs.blossomtune.constants.TransportEffect
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -56,8 +61,13 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
          */
         val calibrationMs: Double,
         val calibrationNanos: Long,
-        /** the two songs would sing over each other: the outgoing voice is dampened and drawn away */
-        val yieldVocals: Boolean = false,
+        /** 0..1 how much the two songs would sing over each other, and so how far their voices get bands of their own */
+        val yieldAmount: Float = 0f,
+        /** the beat the bass changes hands and the next song lands */
+        val swapBeat: Float = lengthBeats,
+        // a pause, play or skip fade instead of a song-to-song style: beat runs 0..lengthBeats across transportLengthMs
+        val transport: TransportEffect? = null,
+        val transportLengthMs: Float = 0f,
     )
 
     @Volatile private var script: Script? = null
@@ -90,6 +100,8 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
     private var clockCorrectionMs = 0.0
 
     private val params = FxParams()
+    // the other side of the same transition, worked out from the same beat, so both can share the headroom without talking
+    private val otherParams = FxParams()
     private val dsp = Dsp()
 
     /** start a transition on this side. allocation happens here, off the audio thread */
@@ -98,6 +110,9 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
         finishing = false
         fadingOut = false
         silenced = false
+        // this side's beat from its last transition (as the incoming side, it ended well past the
+        // end): read before the new clock has run once, it marked the song "done" and silenced it
+        currentBeat = Float.NaN
         scriptHeard = false
         calibrated = false
         clockCorrectionMs = 0.0
@@ -125,6 +140,7 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
     fun fadeOutNow() { fadingOut = true }
 
     fun clear() {
+        script?.let { JointLevel.release(it.role) }
         script = null
         finishing = false
         fadingOut = false
@@ -193,6 +209,7 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
         }
 
         if (silenced) {
+            JointLevel.release(active.role)
             for (i in 0 until frames * channels) output.putShort(0)
             inputBuffer.position(inputBuffer.limit())
             output.flip()
@@ -259,6 +276,12 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
         private val lowPassL = Svf(); private val lowPassR = Svf()
         private val bandLowL = Svf(); private val bandLowR = Svf()
         private val bandHighL = Svf(); private val bandHighR = Svf()
+        // two stages make the bass cut a steep 24 db per octave, so the kick the swap hands away is really gone
+        private val bassCutL1 = Svf(); private val bassCutL2 = Svf()
+        private val bassCutR1 = Svf(); private val bassCutR2 = Svf()
+        private var bassCutOn = false
+        // how far the cut is in the signal path, faded over 30 ms both ways: dropping a filter out in one step clicks in the bass
+        private var bassCutMix = 0f
         private val noiseFilter = Svf()
 
         private var flangerL = FloatArray(0)
@@ -284,6 +307,9 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
         private var delayFrames = 0.0
         private var finishMix = 0f
         private var outFade = 1f
+        // the joint limiter: this side's recent peak before it, and how far it's turned down
+        private var peak = 0f
+        private var duck = 1f
 
         // smoothed parameters (current value glides toward the block target)
         private var gain = 0f
@@ -328,6 +354,9 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
             echoToneL = 0f; echoToneR = 0f; echoLowL = 0f; echoLowR = 0f
             reverb.clear()
             for (f in arrayOf(highPassL, highPassR, lowPassL, lowPassR, bandLowL, bandLowR, bandHighL, bandHighR, noiseFilter)) f.clear()
+            for (f in arrayOf(bassCutL1, bassCutL2, bassCutR1, bassCutR2)) f.clear()
+            bassCutOn = false
+            bassCutMix = 0f
             flangerL.fill(0f); flangerR.fill(0f)
             flangerCursor = 0
             deckMode = FxParams.Deck.Live
@@ -336,6 +365,8 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
             delayFrames = 0.0
             finishMix = 0f
             outFade = 1f
+            peak = 0f
+            duck = 1f
             started = false
             gateLevel = 1f
         }
@@ -356,8 +387,19 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
                     params.reset()
                     if (s.role == CrossmixRole.Outgoing) params.gain = 1f
                 } else {
-                    s.style.evaluate(s.role, beat, s.lengthBeats, s.variation, params)
-                    if (s.yieldVocals) s.style.yieldVocals(s.role, beat, s.lengthBeats, s.variation, params)
+                    val move = s.transport
+                    if (move != null) {
+                        move.evaluate(s.role, beat / s.lengthBeats, s.transportLengthMs, params)
+                    } else {
+                        s.style.evaluate(s.role, beat, s.lengthBeats, s.swapBeat, s.variation, params)
+                        val other = if (s.role == CrossmixRole.Outgoing) CrossmixRole.Incoming else CrossmixRole.Outgoing
+                        s.style.evaluate(other, beat, s.lengthBeats, s.swapBeat, s.variation, otherParams)
+                        if (s.yieldAmount > 0f) {
+                            s.style.yieldVocals(s.role, beat, s.lengthBeats, s.swapBeat, s.yieldAmount, params)
+                            s.style.yieldVocals(other, beat, s.lengthBeats, s.swapBeat, s.yieldAmount, otherParams)
+                        }
+                        params.gain *= headroom(params.gain, otherParams.gain)
+                    }
                     currentBeat = beat
                     if (beat >= -0.5f) scriptHeard = true
                 }
@@ -427,11 +469,25 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
                 bandLowL.set(220f, 0.6f, sr); bandLowR.copyCoefficients(bandLowL)
                 bandHighL.set(2_600f, 0.6f, sr); bandHighR.copyCoefficients(bandHighL)
             }
+            // the bass cut fades into the path when it's wanted and back out once it's done, never switched in one step
+            val bassCutWanted = params.bassCut > 0.001f
+            if (bassCutWanted) bassCutOn = true
+            val bassCutStep = 1f / (0.03f * sr)
+            if (bassCutOn) {
+                val hz = BassCutFromHz * (BassCutToHz / BassCutFromHz).pow(params.bassCut.coerceIn(0f, 1f))
+                bassCutL1.set(hz, ButterworthQ1, sr); bassCutR1.copyCoefficients(bassCutL1)
+                bassCutL2.set(hz, ButterworthQ2, sr); bassCutR2.copyCoefficients(bassCutL2)
+            }
             val noiseOn = noiseT > 0f || noiseLevel > 0.0001f
             if (noiseOn) noiseFilter.set(params.noiseHz, 1.6f, sr)
 
             val echoFrames = (params.echoBeats * musicalBeatFrames).coerceIn(32.0, echoL.size - 2.0).toInt()
             val feedback = params.echoFeedback.coerceIn(0f, 0.92f)
+            // fed so the repeats settle at the song's own level whatever the feedback; at full send and 0.72 feedback they used to pile up to over three times as loud
+            val echoInput = sqrt(1f - feedback * feedback)
+            val attack = 1f - exp(-1f / (0.001f * sr))
+            val release = 1f - exp(-1f / (0.15f * sr))
+            val partner = JointLevel.partnerOf(s.role)
             val toneCoefficient = 0.08f + 0.85f * params.echoTone
             reverb.configure(params.reverbSize, params.reverbFreeze)
 
@@ -443,8 +499,11 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
 
             // the deck
             updateDeck(params, beat, s)
-            val maxDelayGlide = if (gain < 0.03f) 0.04 else 0.0035  // frames of delay change per frame
             val targetDelayFrames = targetDelayMs * rate / 1_000.0
+            // the beat lock moves the next song like a dj nudging a platter: while it can't be heard yet it jumps straight into place, quiet under the other song it bends up to 2%, out in front it creeps at 0.35%
+            val silentStill = s.role == CrossmixRole.Incoming && !beat.isNaN() && beat < 0f && gain < 0.001f && gainT < 0.001f
+            if (silentStill) delayFrames = targetDelayFrames
+            val maxDelayGlide = 0.0035 + 0.02 * (1f - gain.coerceIn(0f, 1f)).let { it * it * it }  // frames of delay change per frame
 
             val crushStep = 1f + crushT * 15f
             val crushLevels = 65_536f / (1 shl (crushT * 11f).toInt().coerceIn(0, 11))
@@ -459,7 +518,7 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
                 historyL[w] = l; historyR[w] = r
                 writeHead++
 
-                // beat-lock delay glides toward its target, slowly enough never to be heard as pitch
+                // beat-lock delay glides toward its target, no faster than a nudge
                 val delayError = targetDelayFrames - delayFrames
                 delayFrames += delayError.coerceIn(-maxDelayGlide, maxDelayGlide)
 
@@ -515,6 +574,11 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
                 }
                 if (hpOn) { l = highPassL.highPass(l); r = highPassR.highPass(r) }
                 if (lpOn) { l = lowPassL.lowPass(l); r = lowPassR.lowPass(r) }
+                if (bassCutOn) {
+                    bassCutMix = if (bassCutWanted) min(1f, bassCutMix + bassCutStep) else max(0f, bassCutMix - bassCutStep)
+                    val cutL = bassCutL2.highPass(bassCutL1.highPass(l)); val cutR = bassCutR2.highPass(bassCutR1.highPass(r))
+                    l += (cutL - l) * bassCutMix; r += (cutR - r) * bassCutMix
+                }
 
                 if (flangerMix > 0.001f) {
                     flangerPhase += params.flangerRateHz / sr
@@ -560,11 +624,11 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
                     echoLowL += 0.004f * (echoToneL - echoLowL); echoLowR += 0.004f * (echoToneR - echoLowR)
                     val wetL = echoToneL - echoLowL; val wetR = echoToneR - echoLowR
                     if (params.echoPingPong) {
-                        echoL[echoCursor] = sendR * echoSend + wetR * feedback + Denormal
-                        echoR[echoCursor] = sendL * echoSend + wetL * feedback + Denormal
+                        echoL[echoCursor] = sendR * echoSend * echoInput + wetR * feedback + Denormal
+                        echoR[echoCursor] = sendL * echoSend * echoInput + wetL * feedback + Denormal
                     } else {
-                        echoL[echoCursor] = sendL * echoSend + wetL * feedback + Denormal
-                        echoR[echoCursor] = sendR * echoSend + wetR * feedback + Denormal
+                        echoL[echoCursor] = sendL * echoSend * echoInput + wetL * feedback + Denormal
+                        echoR[echoCursor] = sendR * echoSend * echoInput + wetR * feedback + Denormal
                     }
                     echoCursor = (echoCursor + 1) % echoL.size
                     mixL += wetL; mixR += wetR
@@ -604,10 +668,24 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
                     mixL *= outFade; mixR *= outFade
                 }
 
+                // the two songs play on two tracks that android adds together after this, so each side keeps the pair under the ceiling, tails included
+                val level = max(abs(mixL), abs(mixR))
+                if (!level.isNaN()) peak += (level - peak) * (if (level > peak) attack else release)
+                val together = sqrt(peak * peak + partner * partner)
+                val want = if (together > Ceiling) Ceiling / together else 1f
+                duck += (want - duck) * (if (want < duck) attack else release)
+                mixL *= duck; mixR *= duck
+
                 mixL = limit(mixL); mixR = limit(mixR)
                 if (mixL.isNaN() || mixR.isNaN()) { mixL = 0f; mixR = 0f; clearState() }
                 output.putShort((mixL * 32_767f).roundToInt().coerceIn(-32_768, 32_767).toShort())
                 if (channelCount == 2) output.putShort((mixR * 32_767f).roundToInt().coerceIn(-32_768, 32_767).toShort())
+            }
+            JointLevel.publish(s.role, peak)
+            // faded all the way out: off, and fresh for the next time it's wanted
+            if (bassCutOn && !bassCutWanted && bassCutMix <= 0f) {
+                bassCutOn = false
+                for (f in arrayOf(bassCutL1, bassCutL2, bassCutR1, bassCutR2)) f.clear()
             }
         }
 
@@ -792,7 +870,47 @@ class CrossmixTransitionAudioProcessor : AudioProcessor {
         const val MaxEchoSeconds = 2.5f
         const val MaxDelayMs = 450.0
         const val Knee = 0.89f
+        // where the joint limiter holds the two songs together, a little under the soft knee
+        const val Ceiling = 0.85f
+        // the bass cut rides from out of the way (20 hz) to where the kick and bass line end (200 hz)
+        const val BassCutFromHz = 20f
+        const val BassCutToHz = 200f
+        // the two quality factors of a fourth-order butterworth
+        const val ButterworthQ1 = 0.5412f
+        const val ButterworthQ2 = 1.3066f
         const val Denormal = 1e-20f
         val Sqrt2 = sqrt(2f)
+    }
+}
+
+/** each side's recent peak, shared between the two players of a transition so their sum stays under the ceiling; a side that hasn't spoken for a moment counts as quiet */
+private object JointLevel {
+    private const val StaleNanos = 300_000_000L
+
+    @Volatile private var outgoing = 0f
+    @Volatile private var outgoingAt = 0L
+    @Volatile private var incoming = 0f
+    @Volatile private var incomingAt = 0L
+
+    fun publish(role: CrossmixRole, peak: Float) {
+        val now = System.nanoTime()
+        if (role == CrossmixRole.Outgoing) {
+            outgoing = peak
+            outgoingAt = now
+        } else {
+            incoming = peak
+            incomingAt = now
+        }
+    }
+
+    fun release(role: CrossmixRole) = publish(role, 0f)
+
+    fun partnerOf(role: CrossmixRole): Float {
+        val now = System.nanoTime()
+        return if (role == CrossmixRole.Outgoing) {
+            if (now - incomingAt < StaleNanos) incoming else 0f
+        } else {
+            if (now - outgoingAt < StaleNanos) outgoing else 0f
+        }
     }
 }

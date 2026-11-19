@@ -1,5 +1,3 @@
-// TrackMatcher.kt
-
 package dev.meowlabs.blossomtune.module
 
 import kotlin.math.abs

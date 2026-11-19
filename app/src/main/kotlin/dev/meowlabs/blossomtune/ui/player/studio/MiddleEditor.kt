@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,37 +21,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.LocalPlayerConnection
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.player.PressScaleActionButton
 import kotlin.math.roundToInt
-
-private fun smoother(x: Float): Float {
-    val t = x.coerceIn(0f, 1f)
-    return t * t * t * (t * (t * 6f - 15f) + 10f)
-}
-
-private fun lerpF(a: Float, b: Float, t: Float) = a + (b - a) * t
-private fun lerpO(a: Offset, b: Offset, t: Float) = Offset(lerpF(a.x, b.x, t), lerpF(a.y, b.y, t))
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
 /** the player's menu item label, exactly as its chevron menu sets it */
 private val MenuLabelStyle = TextStyle(
@@ -89,6 +76,7 @@ private class MiddleStage(
     /** the point on the player the camera closes in on, and where it ends up */
     val anchor: Offset
     val target: Offset
+    val camera: StudioCamera
 
     val sideTo: Offset
     val chevronTo: Offset
@@ -187,35 +175,7 @@ private class MiddleStage(
                 bottomCy + rowH / 2f,
             )
         }
-    }
-
-    /** where the camera puts point [p] of the player when it's [cz] of the way in */
-    fun camera(p: Offset, cz: Float): Offset {
-        val z = 1f + (zoom - 1f) * cz
-        val a = lerpO(anchor, target, cz)
-        return a + (p - anchor) * z
-    }
-
-    fun cameraZoom(cz: Float) = 1f + (zoom - 1f) * cz
-
-    /**
-     * where the still's top-left goes: the same zoom toward the same spot, held so the picture
-     * always covers the screen (the highlight sits left of centre, and the player ends at its edge)
-     */
-    fun stillOrigin(cz: Float, w: Float, h: Float): Offset {
-        val z = cameraZoom(cz)
-        val o = camera(Offset.Zero, cz)
-        return Offset(o.x.coerceIn(w - w * z, 0f), o.y.coerceIn(h - h * z, 0f))
-    }
-
-    /**
-     * A piece's centre: carried by the camera, and drifting on to its row as the camera lands, so
-     * it flows from where it sits on the player straight to its place
-     */
-    fun pieceCenter(rect: Rect, to: Offset, cz: Float, spread: Float): Offset {
-        val now = camera(rect.center, cz)
-        val landed = camera(rect.center, 1f)
-        return now + (to - landed) * spread
+        camera = StudioCamera(zoom, anchor, target)
     }
 }
 
@@ -240,7 +200,7 @@ internal fun MiddleEditor(
     val connection = LocalPlayerConnection.current ?: return
     val transport by connection.uiState.transportState.collectAsState()
     val density = LocalDensity.current
-    val statusTop = with(density) { WindowInsets.statusBars.asPaddingValues().calculateTopPadding().toPx() }
+    val statusTop = with(density) { WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding().toPx() }
     val navBottom = with(density) { WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding().toPx() }
     val anchors = parts.anchors
     val measurer = rememberTextMeasurer()
@@ -269,26 +229,26 @@ internal fun MiddleEditor(
     fun item(i: Int) = smoother((studio.menu.value - 0.12f - 0.08f * (slots.lastIndex - i)) / 0.56f)
 
     fun chevronCenter(): Offset {
-        val mid = stage.pieceCenter(chevronRect, stage.chevronTo, cz(), spread())
+        val mid = stage.camera.pieceCenter(chevronRect, stage.chevronTo, cz(), spread())
         return lerpO(mid, stage.chevronMenu, menu())
     }
-    fun pieceZoom(menuWeight: Float) = lerpF(stage.cameraZoom(cz()), stage.menuZoom, menuWeight)
+    fun pieceZoom(menuWeight: Float) = lerpF(stage.camera.zoomAt(cz()), stage.menuZoom, menuWeight)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val z = cz()
             val u = menu()
             // the player, as a still, under the camera; it softens as the camera lands
-            drawStill(capture.image, stage, z, 1f)
+            drawStill(capture.image, stage.camera, z, 1f)
             val soft = smoother((studio.middle.value - 0.25f) / 0.6f)
-            if (soft > 0.003f) drawStill(capture.soft, stage, z, soft)
+            if (soft > 0.003f) drawStill(capture.soft, stage.camera, z, soft)
             drawRect(Color.Black.copy(alpha = 0.22f * soft))
 
             // the editor's tiles from before, carried off by the camera as they fade
             withTransform({
-                val a = stage.stillOrigin(z, size.width, size.height)
+                val a = stage.camera.stillOrigin(z, size.width, size.height)
                 translate(a.x, a.y)
-                scale(stage.cameraZoom(z), stage.cameraZoom(z), pivot = Offset.Zero)
+                scale(stage.camera.zoomAt(z), stage.camera.zoomAt(z), pivot = Offset.Zero)
             }) { drawTiles(parts) }
 
             // the middle part's tiles, and the menu's
@@ -300,11 +260,11 @@ internal fun MiddleEditor(
             drawTileOutline(stage.sideTile, smoother((studio.menu.value - 0.2f) / 0.6f))
 
             // the pieces themselves
-            val zoom = stage.cameraZoom(z)
+            val zoom = stage.camera.zoomAt(z)
             val away = u * h * 0.12f
-            drawPiece(pieces.layers[StudioPieces.SEEK_BAR], seekRect, stage.pieceCenter(seekRect, stage.seekTo, z, spread()) + Offset(0f, away), zoom, 1f - u)
-            drawPiece(pieces.layers[StudioPieces.END_TIME], endRect, stage.pieceCenter(endRect, stage.endTo, z, spread()) + Offset(0f, away), zoom, 1f - u)
-            val sideMid = stage.pieceCenter(sideRect, stage.sideTo, z, spread())
+            drawPiece(pieces.layers[StudioPieces.SEEK_BAR], seekRect, stage.camera.pieceCenter(seekRect, stage.seekTo, z, spread()) + Offset(0f, away), zoom, 1f - u)
+            drawPiece(pieces.layers[StudioPieces.END_TIME], endRect, stage.camera.pieceCenter(endRect, stage.endTo, z, spread()) + Offset(0f, away), zoom, 1f - u)
+            val sideMid = stage.camera.pieceCenter(sideRect, stage.sideTo, z, spread())
             drawPiece(pieces.layers[StudioPieces.SIDE], sideRect, lerpO(sideMid, stage.sideMenu, u), pieceZoom(u), 1f)
             // the chevron turns over as its menu opens, as it does on the player
             drawPiece(pieces.layers[StudioPieces.CHEVRON], chevronRect, chevronCenter(), pieceZoom(u) * (1f - 0.08f * u), 1f, rotation = 180f * u)
@@ -321,7 +281,7 @@ internal fun MiddleEditor(
                 alpha = { item(i) },
             )
             MenuItemLabel(
-                text = action.label,
+                text = stringResource(action.labelRes),
                 rightX = { stage.rowCircles[i].x - stage.menuZoom * chevronRect.width / 2f - stage.labelGap },
                 centerY = { lerpF(chevronCenter().y, stage.rowCircles[i].y, item(i)) },
                 scale = stage.labelScale,
@@ -329,7 +289,7 @@ internal fun MiddleEditor(
             )
         }
         MenuItemLabel(
-            text = sideAction.label,
+            text = stringResource(sideAction.labelRes),
             rightX = { stage.sideMenu.x - stage.menuZoom * sideRect.width / 2f - stage.labelGap },
             centerY = { stage.sideMenu.y },
             scale = stage.labelScale,
@@ -338,9 +298,9 @@ internal fun MiddleEditor(
 
         // what each tile edits
         val labelStyle = studioText(StudioType.Title, FontWeight.Bold)
-        MiddleLabel("Edit menus", labelStyle, stage.labelX, stage.menusTile.center.y) { tiles() * (1f - menu() * 2f) }
-        MiddleLabel("Edit Seekbar", labelStyle, stage.labelX, stage.seekTile.center.y) { tiles() * (1f - menu() * 2f) }
-        MiddleLabel("Edit end\ntimestamp", labelStyle, stage.labelX, stage.endTile.center.y) { tiles() * (1f - menu() * 2f) }
+        MiddleLabel(stringResource(R.string.ps_studio_edit_menus), labelStyle, stage.labelX, stage.menusTile.center.y) { tiles() * (1f - menu() * 2f) }
+        MiddleLabel(stringResource(R.string.ps_studio_edit_seekbar), labelStyle, stage.labelX, stage.seekTile.center.y) { tiles() * (1f - menu() * 2f) }
+        MiddleLabel(stringResource(R.string.ps_studio_edit_end_timestamp), labelStyle, stage.labelX, stage.endTile.center.y) { tiles() * (1f - menu() * 2f) }
 
         // taps
         TileTap(stage.menusTile.copy(right = w), stageMiddle) { studio.go(StudioStage.MENU) }
@@ -348,35 +308,6 @@ internal fun MiddleEditor(
         TileTap(Rect(0f, stage.endTile.top, w, stage.endTile.bottom), stageMiddle) { studio.openSheet(StudioSheet.END_TIME) }
         stage.rowTiles.forEachIndexed { i, row -> TileTap(row, stageMenu) { studio.openSheet(StudioSheet.MENU_SLOT, i) } }
         TileTap(stage.sideTile, stageMenu) { studio.openSheet(StudioSheet.MENU_SLOT, PlayerMenuLayout.SideSlot) }
-    }
-}
-
-/** the still of the player, under the camera, at [alpha] */
-private fun DrawScope.drawStill(image: ImageBitmap?, stage: MiddleStage, cz: Float, alpha: Float) {
-    if (image == null || alpha <= 0.003f) return
-    val zoom = stage.cameraZoom(cz)
-    val origin = stage.stillOrigin(cz, size.width, size.height)
-    drawImage(
-        image = image,
-        srcOffset = IntOffset.Zero,
-        srcSize = IntSize(image.width, image.height),
-        dstOffset = IntOffset(origin.x.roundToInt(), origin.y.roundToInt()),
-        dstSize = IntSize((size.width * zoom).roundToInt(), (size.height * zoom).roundToInt()),
-        alpha = alpha.coerceIn(0f, 1f),
-        filterQuality = FilterQuality.Low,
-    )
-}
-
-/** one lifted piece, drawn from its own recording with its centre at [center] */
-private fun DrawScope.drawPiece(layer: GraphicsLayer, rect: Rect, center: Offset, scale: Float, alpha: Float, rotation: Float = 0f) {
-    if (alpha <= 0.003f || rect.width <= 0f) return
-    layer.alpha = alpha.coerceIn(0f, 1f)
-    withTransform({
-        translate(center.x - rect.width / 2f, center.y - rect.height / 2f)
-        scale(scale, scale, pivot = Offset(rect.width / 2f, rect.height / 2f))
-        if (rotation != 0f) rotate(rotation, pivot = Offset(rect.width / 2f, rect.height / 2f))
-    }) {
-        drawLayer(layer)
     }
 }
 
@@ -399,7 +330,7 @@ private fun MenuItemButton(icon: Int, active: Boolean, badge: Boolean, center: (
                     translationY = c.y - basePx / 2f
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         val blur = (1f - a) * 14.dp.toPx()
-                        renderEffect = if (blur > 0.5f) {
+                        renderEffect = if (blur > 0.5f && dev.meowlabs.blossomtune.ui.utils.AppMotion.elementBlur) {
                             androidx.compose.ui.graphics.BlurEffect(blur, blur, androidx.compose.ui.graphics.TileMode.Clamp)
                         } else null
                     }
@@ -475,7 +406,7 @@ private fun TileTap(rect: Rect, enabled: Boolean, onClick: () -> Unit) {
                 .offset(rect.left.coerceAtLeast(0f).toDp(), rect.top.toDp())
                 .size((rect.right - rect.left.coerceAtLeast(0f)).toDp(), rect.height.toDp())
                 .clip(RoundedCornerShape(TileCorner))
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = RemoteFocus, onClick = onClick),
         )
     }
 }

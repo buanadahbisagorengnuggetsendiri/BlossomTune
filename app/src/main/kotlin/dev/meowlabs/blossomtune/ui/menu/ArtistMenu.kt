@@ -2,7 +2,8 @@
 
 package dev.meowlabs.blossomtune.ui.menu
 
-import dev.meowlabs.blossomtune.ui.component.SheetDivider
+import androidx.compose.ui.res.pluralStringResource
+import dev.meowlabs.blossomtune.ui.component.SheetHeaderGap
 import dev.meowlabs.blossomtune.ui.component.SheetHeaderButton
 import dev.meowlabs.blossomtune.ui.component.SheetHeader
 import android.content.Intent
@@ -16,13 +17,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -58,17 +59,17 @@ fun ArtistMenu(
     val context = LocalContext.current
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val artistState = database.artist(originalArtist.id).collectAsState(initial = originalArtist)
+    val artistState = remember(database, originalArtist.id) { database.artist(originalArtist.id) }.collectAsState(initial = originalArtist)
     val artist = artistState.value ?: originalArtist
-    val isPinned by database.speedDialDao.isPinned(artist.id).collectAsState(initial = false)
+    val isPinned by remember(database, artist.id) { database.speedDialDao.isPinned(artist.id) }.collectAsState(initial = false)
 
     SheetHeader(
         thumbnailUrl = artist.artist.thumbnailUrl,
         title = artist.artist.name,
-        subtitle = if (artist.songCount == 1) "1 song in your library" else "${artist.songCount} songs in your library",
+        subtitle = pluralStringResource(R.plurals.pc_artist_songs_in_library, artist.songCount, artist.songCount),
     )
 
-    SheetDivider()
+    Spacer(Modifier.height(SheetHeaderGap))
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -161,7 +162,7 @@ fun ArtistMenu(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
-                            text = if (isPinned) "Unpin" else "Pin",
+                            text = stringResource(if (isPinned) R.string.pc_unpin else R.string.pc_pin),
                             onClick = {
                                 coroutineScope.launch(Dispatchers.IO) {
                                     if (isPinned) {

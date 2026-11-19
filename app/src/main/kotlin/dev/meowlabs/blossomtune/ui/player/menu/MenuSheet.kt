@@ -20,14 +20,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -39,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
-import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,7 +51,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -65,18 +63,11 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
-/**
- * Latar sheet dan barisnya. Ikut mode lewat [BlossomSurface]; dulu nilainya hardcode
- * gelap, dan tinta `Color.White` di atasnya ikut jadi salah di mode terang.
- *
- * Karena `@Composable`, pemakaiannya harus di scope `@Composable` — nilai yang
- * dibaca di dalam `drawBehind`/`Canvas` diangkat dulu ke luar lambda.
- */
-val MenuSurface: Color
-    @Composable @ReadOnlyComposable get() = BlossomSurface.sheet
-val MenuRowSurface: Color
-    @Composable @ReadOnlyComposable get() = BlossomSurface.row
+val MenuSurface = Color(0xFF0B0B0C)
+val MenuRowSurface = Color(0xFF161619)
 
 internal val MenuEasing = CubicBezierEasing(0.57f, 0.53f, 0f, 1f)
 
@@ -100,6 +91,14 @@ private val PeekHeight = 32.dp
 
 /** Space kept between the status bar and the highest a sheet (or its peek strip) can reach. */
 private val StatusBarGap = 6.dp
+
+// set where a sheet floats as a card in the middle instead of rising from the bottom edge (the full video mode, turned sideways)
+val LocalMenuSheetFloating = staticCompositionLocalOf { false }
+
+// a floating sheet's gap to the edges, its widest, and its corners
+private val FloatingMargin = 18.dp
+private val FloatingMaxWidth = 360.dp
+private val FloatingCorner = 28.dp
 
 /**
  * The player's sheets opened from one another - the action menu, then "Change device output",
@@ -198,6 +197,12 @@ fun MenuSheetSurface(
     val density = LocalDensity.current
     val stack = LocalMenuSheetStack.current
     val peekPx = with(density) { PeekHeight.toPx() }
+    // a floating card is as tall as what's in it and scrolls inside itself; it never grows to a taller detent
+    val forcedFloating = LocalMenuSheetFloating.current
+    // on its side every sheet floats the way the video mode's do, a full-width sheet there is a wall of rows
+    val floating = forcedFloating || dev.meowlabs.blossomtune.ui.utils.isLandscapeLayout()
+    val wraps = wrapHeight || floating
+    val floatingMarginPx = if (floating) with(density) { FloatingMargin.toPx() } else 0f
 
     var closing by remember { mutableStateOf(false) }
 
@@ -251,7 +256,7 @@ fun MenuSheetSurface(
 
     val measuredHeightPx = remember { mutableFloatStateOf(0f) }
 
-    val statusBarBottomPx = WindowInsets.statusBars.getTop(density).toFloat() + with(density) { StatusBarGap.toPx() }
+    val statusBarBottomPx = WindowInsets.stableStatusBars.getTop(density).toFloat() + with(density) { StatusBarGap.toPx() }
     var parentTopInWindowPx by remember { mutableFloatStateOf(0f) }
 
     BoxWithConstraints(
@@ -262,17 +267,29 @@ fun MenuSheetSurface(
         val parentHeightPx = constraints.maxHeight.toFloat()
         // No sheet edge ever goes above the status bar. A sheet covering another stops a peek strip
         // lower still, so the one behind can rise to peek above it and stay below the status bar.
-        val safeTopPx = (statusBarBottomPx - parentTopInWindowPx).coerceAtLeast(0f)
-        val capPx = (parentHeightPx - safeTopPx - if (isCovering) peekPx else 0f).coerceAtLeast(0f)
-        val detentSheetPx = minOf(with(density) { (maxHeight * fullDetent).toPx() }, capPx)
+        // a floating card sits in a frame of its own with no status bar, just its margin all round
+        val belowStatusBarPx = (statusBarBottomPx - parentTopInWindowPx).coerceAtLeast(0f)
+        val safeTopPx = when {
+            forcedFloating -> floatingMarginPx
+            floating -> maxOf(floatingMarginPx, belowStatusBarPx)
+            else -> belowStatusBarPx
+        }
+        val capPx = (parentHeightPx - safeTopPx - floatingMarginPx - if (isCovering) peekPx else 0f).coerceAtLeast(0f)
+        val detentSheetPx = if (floating) capPx else minOf(with(density) { (maxHeight * fullDetent).toPx() }, capPx)
         val maxSheetPx = minOf(maxOf(detentSheetPx, coveredVisiblePx), capPx)
-        val fullHeightPx = if (wrapHeight) {
+        val fullHeightPx = if (wraps) {
             measuredHeightPx.floatValue.takeIf { it > 0f } ?: maxSheetPx
         } else {
             maxSheetPx
         }
+        // a floating card rests in the middle of the room below the status bar instead of just off the bottom
+        fun centerLiftPx(sheetPx: Float): Float =
+            if (floating) ((parentHeightPx - safeTopPx - floatingMarginPx - sheetPx) / 2f).coerceAtLeast(0f) else 0f
+        val liftPx = centerLiftPx(fullHeightPx)
+        // how far down the sheet goes to be fully out of sight, its bottom gap and its lift included
+        val closedOffsetPx = fullHeightPx + floatingMarginPx + liftPx
 
-        val restingOffsetPx = if (wrapHeight) {
+        val restingOffsetPx = if (wraps) {
             0f
         } else {
             val restVisiblePx = maxOf(with(density) { (maxHeight * halfDetent).toPx() }, coveredVisiblePx)
@@ -285,7 +302,7 @@ fun MenuSheetSurface(
         }
 
         fun revealFraction(): Float =
-            (1f - (offsetPx.floatValue - restingOffsetPx) / (fullHeightPx - restingOffsetPx).coerceAtLeast(1f))
+            (1f - (offsetPx.floatValue - restingOffsetPx) / (closedOffsetPx - restingOffsetPx).coerceAtLeast(1f))
                 .coerceIn(0f, 1f)
 
         fun setOffset(value: Float) {
@@ -313,8 +330,9 @@ fun MenuSheetSurface(
             snapshotFlow { measuredHeightPx.floatValue }.first { it > 0f }
             withFrameNanos { }
 
-            val start = if (wrapHeight) measuredHeightPx.floatValue else maxSheetPx
-            val target = if (wrapHeight) 0f else restingOffsetPx
+            val startHeightPx = if (wraps) measuredHeightPx.floatValue else maxSheetPx
+            val start = startHeightPx + floatingMarginPx + centerLiftPx(startHeightPx)
+            val target = if (wraps) 0f else restingOffsetPx
             setOffset(start)
             animate(
                 initialValue = start,
@@ -337,7 +355,7 @@ fun MenuSheetSurface(
         forceCloseRef.value = {
             if (!closing) {
                 closing = true
-                animateTo(fullHeightPx) { onDismiss() }
+                animateTo(closedOffsetPx) { onDismiss() }
             }
         }
 
@@ -359,7 +377,7 @@ fun MenuSheetSurface(
                     if (dismissEnabled) {
                         Modifier.clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
+                            indication = RemoteFocus,
                             onClick = { closeRef.value() },
                         )
                     } else Modifier
@@ -370,13 +388,13 @@ fun MenuSheetSurface(
             val current = offsetPx.floatValue
             val target = when {
                 !dismissEnabled -> restingOffsetPx
-                velocity > FlingThreshold -> if (current > restingOffsetPx * 0.6f) fullHeightPx else restingOffsetPx
+                velocity > FlingThreshold -> if (current > restingOffsetPx * 0.6f) closedOffsetPx else restingOffsetPx
                 velocity < -FlingThreshold -> 0f
-                else -> listOf(0f, restingOffsetPx, fullHeightPx).minBy { kotlin.math.abs(it - current) }
+                else -> listOf(0f, restingOffsetPx, closedOffsetPx).minBy { kotlin.math.abs(it - current) }
             }
-            if (target >= fullHeightPx && dismissEnabled) {
+            if (target >= closedOffsetPx && dismissEnabled) {
                 closing = true
-                animateTo(fullHeightPx) { onDismiss() }
+                animateTo(closedOffsetPx) { onDismiss() }
             } else {
                 animateTo(target) {}
             }
@@ -426,18 +444,22 @@ fun MenuSheetSurface(
             }
         }
 
-        val sheetShape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
-
-        // Diangkat ke luar drawBehind: draw lambda bukan scope @Composable.
-        val sheetFill = MenuSurface
-        val rowFill = MenuRowSurface
+        val sheetShape = if (floating) RoundedCornerShape(FloatingCorner) else RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
 
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .then(
+                    if (floating) {
+                        Modifier
+                            .padding(bottom = FloatingMargin)
+                            .offset { androidx.compose.ui.unit.IntOffset(0, -liftPx.toInt()) }
+                            .widthIn(max = FloatingMaxWidth)
+                    } else Modifier
+                )
                 .fillMaxWidth()
                 .then(
-                    if (wrapHeight) {
+                    if (wraps) {
                         Modifier.heightIn(
                             min = with(density) { coveredVisiblePx.toDp() },
                             max = with(density) { maxSheetPx.toDp() },
@@ -453,7 +475,8 @@ fun MenuSheetSurface(
                     measuredHeightPx.floatValue = it.height.toFloat()
                     entry.sheetHeightPx = it.height.toFloat()
                 }
-                .nestedScroll(sheetNestedScroll)
+                // a floating card's list scrolls inside it; the card itself stays put
+                .then(if (floating) Modifier else Modifier.nestedScroll(sheetNestedScroll))
                 .graphicsLayer {
                     var shift = 0f
                     var depth = 0f
@@ -485,13 +508,13 @@ fun MenuSheetSurface(
                         val index = entries.indexOf(entry)
                         if (index >= 0) recede = entries.depthAbove(index).coerceAtMost(1f)
                     }
-                    drawRect(lerp(sheetFill, rowFill, recede))
+                    drawRect(lerp(MenuSurface, MenuRowSurface, recede))
                 }
         ) {
             val dragHandle = Modifier.draggable(
                 state = rememberDraggableState { delta ->
                     if (dismissEnabled) {
-                        setOffset((offsetPx.floatValue + delta).coerceIn(0f, fullHeightPx))
+                        setOffset((offsetPx.floatValue + delta).coerceIn(0f, closedOffsetPx))
                     } else {
 
                         val resisted = (offsetPx.floatValue + delta * LockedDragResistance)
@@ -517,7 +540,7 @@ fun MenuSheetSurface(
                         .width(64.dp)
                         .height(4.dp)
                         .clip(CircleShape)
-                        .background(BlossomInk.Primary.copy(alpha = 0.2f))
+                        .background(Color.White.copy(alpha = 0.5f))
                 )
             }
 

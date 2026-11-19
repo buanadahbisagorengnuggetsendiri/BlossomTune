@@ -1,5 +1,3 @@
-// downloadnotificationmanager.kt
-
 package dev.meowlabs.blossomtune.core.updater.downloadmanager
 
 import android.app.Notification

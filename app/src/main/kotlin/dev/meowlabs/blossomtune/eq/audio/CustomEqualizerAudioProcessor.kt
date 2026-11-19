@@ -1,5 +1,3 @@
-// CustomEqualizerAudioProcessor.kt
-
 package dev.meowlabs.blossomtune.eq.audio
 
 import androidx.media3.common.C
@@ -10,14 +8,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.pow
 
-/**
- * The equalizer: a cascade of biquads over 16-bit PCM, any channel count up to 7.1.
- *
- * Settings change live while a band is dragged, so a new design never resets the music: the new
- * filters take over the old ones' state and the two are crossfaded over [FadeSeconds], which keeps
- * every change (a preset, switching off, adding a band) free of clicks. Nothing is reset or
- * re-seeked when a setting moves. Off, it is a plain copy.
- */
+/** the equalizer: biquads over 16-bit pcm up to 7.1, a new design crossfades in so nothing resets or re-seeks, the peak limiter always runs since toggling its delay would make the music skip */
 @UnstableApi
 @Suppress("DEPRECATION")
 class CustomEqualizerAudioProcessor : AudioProcessor {
@@ -39,10 +30,14 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
 
     private var work = DoubleArray(0)
     private var fadeWork = DoubleArray(0)
+    // the pcm on its way in and out, moved in one copy: a getShort or putShort per sample was a native call each
+    private var pcm = ShortArray(0)
+    private val limiter = PeakLimiter()
 
     private var buffer: ByteBuffer = EMPTY_BUFFER
     private var outputBuffer: ByteBuffer = EMPTY_BUFFER
     private var inputEnded = false
+    private var tailPending = false
     private val tapId = System.identityHashCode(this)
 
     fun applyProfile(parametricEQ: ParametricEQ) {
@@ -71,51 +66,66 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         val bytes = inputBuffer.remaining()
-        if (bytes == 0) return
+        if (bytes == 0) {
+            if (tailPending) drainTail()
+            return
+        }
         if (channels == 0) {
             inputBuffer.position(inputBuffer.limit())
             return
         }
-        val frames = bytes / (2 * channels)
-        val count = frames * channels
         syncDesign()
-
-        val out = replaceOutputBuffer(bytes)
-        val current = bank
-        val tap = AudioTap.wanted
-        if (current == null && !fading && !tap) {
-            out.put(inputBuffer)
-            out.flip()
+        // with no eq to apply the chain is only the limiter's delay, so the pcm is copied through it as it is
+        if (bank == null && !fading && limiter.isResting && !AudioTap.wanted) {
+            limiter.delayPcm(inputBuffer, replaceOutputBuffer(bytes))
+            outputBuffer.flip()
             return
         }
-
-        if (work.size < count) {
-            work = DoubleArray(count)
-            fadeWork = DoubleArray(count)
-        }
+        val frames = bytes / (2 * channels)
+        val count = frames * channels
+        ensureWork(count)
         val scale = 1.0 / 32768.0
-        for (i in 0 until count) work[i] = inputBuffer.getShort() * scale
+        inputBuffer.asShortBuffer().get(pcm, 0, count)
+        inputBuffer.position(inputBuffer.position() + count * 2)
+        for (i in 0 until count) work[i] = pcm[i] * scale
+        render(frames, replaceOutputBuffer(bytes))
+    }
 
+    /** filters, limits and writes out the frames waiting in work */
+    private fun render(frames: Int, out: ByteBuffer) {
+        syncDesign()
+        val count = frames * channels
         if (fading) {
             System.arraycopy(work, 0, fadeWork, 0, count)
             fadingFrom?.process(fadeWork, frames)
         }
-        current?.process(work, frames)
+        bank?.process(work, frames)
         if (fading) mixFade(frames)
+        limiter.process(work, frames)
 
-        if (tap) AudioTap.write(tapId, work, frames, channels, sampleRate)
+        if (AudioTap.wanted) AudioTap.write(tapId, work, frames, channels, sampleRate)
 
-        for (i in 0 until count) {
-            val s = work[i] * 32768.0
-            out.putShort(
-                when {
-                    s >= 32767.0 -> 32767
-                    s <= -32768.0 -> -32768
-                    else -> s.toInt()
-                }.toShort()
-            )
-        }
+        for (i in 0 until count) pcm[i] = toPcm(work[i])
+        out.asShortBuffer().put(pcm, 0, count)
+        out.position(out.position() + count * 2)
         out.flip()
+    }
+
+    /** the song's last few milliseconds are still inside the limiter when it ends: let them out */
+    private fun drainTail() {
+        tailPending = false
+        val frames = limiter.latencyFrames
+        val count = frames * channels
+        ensureWork(count)
+        work.fill(0.0, 0, count)
+        render(frames, replaceOutputBuffer(count * 2))
+    }
+
+    private fun ensureWork(count: Int) {
+        if (work.size >= count) return
+        work = DoubleArray(count)
+        fadeWork = DoubleArray(count)
+        pcm = ShortArray(count)
     }
 
     private fun mixFade(frames: Int) {
@@ -171,6 +181,8 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
 
     override fun queueEndOfStream() {
         inputEnded = true
+        // written on the next (empty) queueInput, once the chain has read what's already out
+        tailPending = channels > 0
     }
 
     override fun getOutput(): ByteBuffer {
@@ -179,12 +191,13 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
         return buffer
     }
 
-    override fun isEnded(): Boolean = inputEnded && outputBuffer === EMPTY_BUFFER
+    override fun isEnded(): Boolean = inputEnded && !tailPending && outputBuffer === EMPTY_BUFFER
 
     @Deprecated("Deprecated in Java")
     override fun flush() {
         outputBuffer = EMPTY_BUFFER
         inputEnded = false
+        tailPending = false
         val format = pendingFormat
         if (format != AudioProcessor.AudioFormat.NOT_SET &&
             (format.sampleRate != sampleRate || format.channelCount != channels)
@@ -193,9 +206,11 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
             channels = format.channelCount
             bank = null
             builtVersion = -1
+            limiter.configure(sampleRate, channels)
         }
         // after a seek the filters start clean, and the first design lands without a fade
         bank?.reset()
+        limiter.reset()
         fading = false
         fadingFrom = null
         if (bank == null) snapNextDesign = true
@@ -285,3 +300,7 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
         private val EMPTY_BUFFER: ByteBuffer = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
     }
 }
+
+/** rounded, not cut toward zero: cutting adds a faint grit to quiet passages */
+internal fun toPcm(sample: Double): Short =
+    Math.round(sample * 32768.0).coerceIn(-32768L, 32767L).toShort()

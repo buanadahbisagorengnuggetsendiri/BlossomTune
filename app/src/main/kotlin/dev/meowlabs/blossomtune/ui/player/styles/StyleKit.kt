@@ -5,6 +5,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -13,9 +15,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -30,7 +34,9 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,31 +48,59 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
 import androidx.media3.common.Player
 import dev.meowlabs.blossomtune.LocalArtworkColor
 import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.extensions.toggleRepeatMode
 import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.constants.PlayerStyle
-import dev.meowlabs.blossomtune.constants.playerStyleRotatedKey
-import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.ui.component.LocalPlayerBottomSheetState
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import dev.meowlabs.blossomtune.ui.player.flagship.AnimatedPlayGlyph
+import dev.meowlabs.blossomtune.ui.player.flagship.AnimatedSkipGlyph
+import dev.meowlabs.blossomtune.ui.player.flagship.SkipCycleState
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 /**
  * Whether a style takes touches: only on the open player. Collapsed into the mini pill the style
  * is still composed under it, and its gestures would swallow the swipe and tap that open the player.
+ *
+ * Asked when a touch lands ([whileStyleInteractive]), never in composition. As a plain value it
+ * changed on the first frame of every close and rebuilt the whole style just as the sheet began to move.
  */
-val LocalStyleInteractive = androidx.compose.runtime.compositionLocalOf { true }
+val LocalStyleInteractive = androidx.compose.runtime.compositionLocalOf<() -> Boolean> { { true } }
+
+/**
+ * Runs [detect] only while the style takes touches ([interactive]). The rest of the time nothing
+ * here listens, so a touch goes on to the player. A flow starts and stops it, so the player opening
+ * or closing recomposes nothing.
+ */
+internal suspend fun PointerInputScope.whileStyleInteractive(
+    interactive: () -> Boolean,
+    detect: suspend PointerInputScope.() -> Unit,
+): Unit = kotlinx.coroutines.coroutineScope {
+    var listening: kotlinx.coroutines.Job? = null
+    // started in place, not through collectLatest: its hop to the next dispatch let the touch that wakes this handler (every button's first tap) go by unheard
+    snapshotFlow { interactive() }.collect { on ->
+        listening?.cancelAndJoin()
+        listening = if (on) launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) { this@whileStyleInteractive.detect() } else null
+    }
+}
 
 /**
  * The two tones every alternate style is built from, taken from the cover: [played] is the part of
@@ -94,8 +128,8 @@ fun rememberStyleTones(): StyleTones {
         StyleTones(
             played = tone(0.45f),
             remaining = tone(0.30f),
-            ink = Color(0xFFECEEF1),
-            inkSoft = Color(0xFFECEEF1).copy(alpha = 0.62f),
+            ink = Color(0xFFF1ECEC),
+            inkSoft = Color(0xFFF1ECEC).copy(alpha = 0.62f),
             chip = Color.White.copy(alpha = 0.22f),
         )
     }
@@ -144,32 +178,71 @@ class LivePosition internal constructor(private val read: () -> Long, private va
         }
         return value
     }
+
+    /** The same clock moved by [shiftMs], so lyrics can run early or late without touching the rest. */
+    fun shifted(shiftMs: () -> Long) = LivePosition(read = { read() + shiftMs() }, tick = tick)
 }
 
-/** [animated] false (a selector card's preview): it follows the player's own updates, not every frame */
+/** The playback clock the lyrics follow: [this] plus the song's own lyrics offset. */
+@Composable
+fun LivePosition.withLyricsOffset(): LivePosition {
+    val connection = LocalPlayerConnection.current ?: return this
+    return remember(this, connection) { shifted { connection.lyricsOffsetMs.value.toLong() } }
+}
+
+/**
+ * [animated] false (a selector card's preview): it follows the player's own updates, not every frame.
+ *
+ * The player's updates are followed in an effect, not in composition: they come 15 times a second,
+ * and reading them here rebuilt the whole style that often, through every open and close too.
+ * Collapsed into the mini player the style can't be seen, so the clock waits for it to open again.
+ */
 @Composable
 fun rememberLivePosition(animated: Boolean = true): LivePosition {
     val connection = LocalPlayerConnection.current
     val tick = remember { mutableLongStateOf(0L) }
-    val transport = connection?.uiState?.transportState?.collectAsState()
-    val progress = connection?.uiState?.progressState?.collectAsState()
-    val playing = transport?.value?.isPlaying == true
-    LaunchedEffect(playing, progress?.value?.position, animated) {
-        // a seek or a pause still moves the boundary once; playing, it moves every frame
-        tick.longValue++
-        while (playing && animated) withFrameMillis { tick.longValue = it }
+    val showing = rememberStyleShowing()
+    LaunchedEffect(connection, animated, showing) {
+        val ui = connection?.uiState ?: return@LaunchedEffect
+        combine(
+            ui.transportState.map { it.isPlaying }.distinctUntilChanged(),
+            ui.progressState.map { it.position }.distinctUntilChanged(),
+            snapshotFlow { showing() },
+        ) { playing, _, shown -> playing to shown }
+            .collectLatest { (playing, shown) ->
+                if (!shown) return@collectLatest
+                // a seek or a pause still moves the boundary once; playing, it moves every frame
+                tick.longValue++
+                while (playing && animated) withFrameMillis { tick.longValue = it }
+            }
     }
     return remember(connection) {
-        LivePosition(read = { connection?.player?.currentPosition ?: 0L }, tick = { tick.longValue })
+        // the player's own position only moves every 10 ms or so, which judders at 120 hz; this one moves on the frame's time
+        val clock = dev.meowlabs.blossomtune.ui.player.PlaybackClock({ connection?.player })
+        LivePosition(read = clock, tick = { tick.longValue })
     }
+}
+
+// true while something fills the screen over the style (its whole lyrics page), so its clocks rest the way they do in the mini player
+val LocalStyleCovered = androidx.compose.runtime.compositionLocalOf<() -> Boolean> { { false } }
+
+/** whether the style can be seen: it stays composed in the mini player and under its lyrics page, with its clocks held still. read it in effects and gestures, not composition */
+@Composable
+internal fun rememberStyleShowing(): () -> Boolean {
+    val sheet = LocalPlayerBottomSheetState.current
+    val covered = LocalStyleCovered.current
+    return remember(sheet, covered) { { (sheet == null || sheet.progress > 0f) && !covered() } }
 }
 
 /** the song's length in ms, never 0 */
 @Composable
 fun rememberDurationMs(): Long {
     val connection = LocalPlayerConnection.current ?: return 1L
-    val progress by connection.uiState.progressState.collectAsState()
-    return progress.duration.takeIf { it > 0L } ?: 1L
+    // the length alone: the whole progress state changes 15 times a second, and recomposed the style with it
+    val duration by remember(connection) {
+        connection.uiState.progressState.map { it.duration }.distinctUntilChanged()
+    }.collectAsState(initial = connection.uiState.progressState.value.duration)
+    return duration.takeIf { it > 0L } ?: 1L
 }
 
 /** the whole seconds played, recomposing once a second, for the big timestamp */
@@ -193,16 +266,26 @@ fun Modifier.progressSplit(
 /** a small round button: the alternate styles' only controls */
 @Composable
 fun StyleCircle(
-    @DrawableRes icon: Int,
+    @DrawableRes icon: Int = 0,
     tones: StyleTones,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 30.dp,
     enabled: Boolean = true,
+    /** dressed as the Turntable's pills (a faint white fill, a white icon), for a style wearing them */
+    pill: Boolean = false,
+    /** a toggle that's on (shuffle, repeat): a brighter fill */
+    active: Boolean = false,
+    // drawn in place of the icon, in the icon's colour: the transport's animated glyphs
+    glyph: (@Composable (Color) -> Unit)? = null,
+    // a module's own picture in place of the icon, in its own colours
+    picture: Any? = null,
 ) {
     val press = remember { Animatable(1f) }
     val scope = rememberCoroutineScope()
     val interactive = LocalStyleInteractive.current
+    // the tap handler below lives as long as its pointerInput, so it calls the latest onClick
+    val currentOnClick by rememberUpdatedState(onClick)
     Box(
         modifier = modifier
             .graphicsLayer {
@@ -212,46 +295,112 @@ fun StyleCircle(
             }
             .size(size)
             .clip(CircleShape)
-            .background(tones.chip)
+            .background(
+                when {
+                    active -> ActiveFill
+                    pill -> PillFill
+                    else -> tones.chip
+                }
+            )
             .pointerInput(enabled, interactive) {
-                if (!enabled || !interactive) return@pointerInput
-                detectTapGestures(
-                    onPress = {
-                        scope.launch { press.animateTo(0.86f, spring(dampingRatio = 0.6f, stiffness = 900f)) }
-                        tryAwaitRelease()
-                        scope.launch { press.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 500f)) }
-                    },
-                    onTap = { onClick() },
-                )
+                if (!enabled) return@pointerInput
+                whileStyleInteractive(interactive) {
+                    detectTapGestures(
+                        onPress = {
+                            scope.launch { press.animateTo(0.86f, spring(dampingRatio = 0.6f, stiffness = 900f)) }
+                            tryAwaitRelease()
+                            scope.launch { press.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 500f)) }
+                        },
+                        onTap = { currentOnClick() },
+                    )
+                }
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = tones.ink,
-            modifier = Modifier.size(size * 0.5f),
-        )
+        val tint = when {
+            active -> Color.White
+            pill -> Color.White.copy(alpha = 0.9f)
+            else -> tones.ink
+        }
+        if (glyph != null) {
+            glyph(tint)
+        } else if (picture != null) {
+            coil3.compose.AsyncImage(
+                model = picture,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                modifier = Modifier.size(if (pill) 20.dp else size * 0.5f),
+            )
+        } else {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(if (pill) 20.dp else size * 0.5f),
+            )
+        }
     }
 }
+
+// how dark the screen goes behind a chevron menu, the flagship's and the styles' alike
+internal const val ChevronMenuDim = 0.72f
+
+/** the Turntable's pill fill */
+private val PillFill = Color.White.copy(alpha = 0.08f)
+/** a toggle that's on, as bright as the flagship's chevron menu shows one */
+private val ActiveFill = Color.White.copy(alpha = 0.32f)
+
+/** one button in a style's chevron menu, with its name beside it */
+private class MenuItem(
+    val label: String,
+    @DrawableRes val icon: Int,
+    val active: Boolean = false,
+    val picture: Any? = null,
+    val onClick: () -> Unit,
+)
+
+/** an item a style adds to its chevron menu (a look module's own), above other menu and edit player; [picture] wins over [icon] */
+@androidx.compose.runtime.Immutable
+class StyleMenuExtra(
+    val label: String,
+    @DrawableRes val icon: Int,
+    val picture: Any? = null,
+    val active: Boolean = false,
+    /** stays open after the tap, so a toggle's change shows */
+    val keepsOpen: Boolean = false,
+    val onClick: () -> Unit,
+)
+
+// the glyphs' size in a circle: the play triangle about as tall as the old icon, the skip pair a little wider than it
+private const val CirclePlayHeight = 0.48f
+private const val CircleSkipWidth = 0.46f
 
 /** previous, play/pause and next as three [StyleCircle]s, laid out by the caller's [Row] or [Column] */
 @Composable
 fun TransportCircles(tones: StyleTones, size: Dp = 30.dp, vertical: Boolean = false, spacing: Dp = 8.dp) {
+    // a tv's remote plays and skips, buttons on the screen are only more things for focus to land on
+    if (dev.meowlabs.blossomtune.ui.utils.isTvLayout()) return
     val connection = LocalPlayerConnection.current ?: return
     val transport by connection.uiState.transportState.collectAsState()
+    val scope = rememberCoroutineScope()
+    // the flagship's running triangles, each a step on with every press
+    val previous = remember { SkipCycleState() }
+    val next = remember { SkipCycleState() }
     val content: @Composable () -> Unit = {
         StyleCircle(
-            icon = R.drawable.skip_previous,
             tones = tones,
             size = size,
             enabled = transport.canSkipPrevious,
-            onClick = connection::seekToPrevious,
+            onClick = {
+                scope.launch { previous.step() }
+                connection.seekToPrevious()
+            },
+            glyph = { tint -> AnimatedSkipGlyph(cycle = previous, backwards = true, color = tint, width = size * CircleSkipWidth) },
         )
         StyleCircle(
-            icon = if (transport.isPlaying) R.drawable.pause else R.drawable.play,
             tones = tones,
             size = size,
+            glyph = { tint -> AnimatedPlayGlyph(playing = transport.isPlaying, color = tint, height = size * CirclePlayHeight) },
             onClick = {
                 if (transport.playbackState == Player.STATE_ENDED) {
                     connection.player.seekTo(0, 0)
@@ -262,11 +411,14 @@ fun TransportCircles(tones: StyleTones, size: Dp = 30.dp, vertical: Boolean = fa
             },
         )
         StyleCircle(
-            icon = R.drawable.skip_next,
             tones = tones,
             size = size,
             enabled = transport.canSkipNext,
-            onClick = connection::seekToNext,
+            onClick = {
+                scope.launch { next.step() }
+                connection.seekToNext()
+            },
+            glyph = { tint -> AnimatedSkipGlyph(cycle = next, backwards = false, color = tint, width = size * CircleSkipWidth) },
         )
     }
     if (vertical) {
@@ -281,58 +433,128 @@ fun TransportCircles(tones: StyleTones, size: Dp = 30.dp, vertical: Boolean = fa
 class StyleActions(
     val onOtherMenu: () -> Unit,
     val onEditPlayer: () -> Unit,
+    /** opens the song's whole lyrics over the style; no item without it (the selector's cards) */
+    val onLyrics: (() -> Unit)? = null,
+    // the full video mode's way back to the style it was opened from
+    val onExitVideoMode: () -> Unit = {},
+    // the song info sheet's artist and album rows: the page opens and the player closes on the way
+    val onOpenArtist: (String) -> Unit = {},
+    val onOpenAlbum: (String) -> Unit = {},
+    // a page of the app a module's button or chevron item opens (its own page, a search); the player closes on the way
+    val onOpenRoute: (String) -> Unit = {},
+    // folds the player down to the mini player, for a module's close button
+    val onClose: () -> Unit = {},
+    // opens the queue over the style, for the styles whose menu offers it (the poster)
+    val onQueue: (() -> Unit)? = null,
+    // the rotate item; none in the selector's cards or on a tv
+    val turn: StyleTurn? = null,
 )
 
-/** whether [style] is turned sideways, and the switch for it */
-@Composable
-fun rememberStyleRotation(style: PlayerStyle): Pair<Boolean, (Boolean) -> Unit> {
-    val (rotated, onRotated) = rememberPreference(playerStyleRotatedKey(style), defaultValue = false)
-    return rotated to onRotated
-}
+// whether the style on now is turned sideways and the switch for it, read as lambdas since the actions are built once
+@Stable
+class StyleTurn(val isTurned: () -> Boolean, val toggle: () -> Unit)
 
 /**
- * Double tap plays or pauses; a horizontal swipe skips (right) or goes back (left). The alternate
- * styles have no big transport buttons, so the whole screen is the transport.
+ * Double tap plays or pauses; a sideways swipe slides the player's row of songs under the finger
+ * (see SongCarousel), on to the next song or back to the last when it's let go. The alternate
+ * styles have no big transport buttons, so the whole screen is the transport. Only while
+ * [interactive] says the player is open.
  */
-fun Modifier.styleGestures(enabled: Boolean, onToggle: () -> Unit, onNext: () -> Unit, onPrevious: () -> Unit): Modifier =
+fun Modifier.styleGestures(
+    enabled: Boolean,
+    interactive: () -> Boolean,
+    onToggle: () -> Unit,
+    carousel: dev.meowlabs.blossomtune.ui.player.SongCarousel?,
+    player: () -> androidx.media3.common.Player?,
+): Modifier =
     if (!enabled) this else this
-        .pointerInput(enabled) { detectTapGestures(onDoubleTap = { onToggle() }) }
-        .pointerInput(enabled) {
-            var total = 0f
-            detectHorizontalDragGestures(
-                onDragStart = { total = 0f },
-                onDragEnd = {
-                    when {
-                        total < -SwipeSkipPx -> onNext()
-                        total > SwipeSkipPx -> onPrevious()
-                    }
-                },
-                onHorizontalDrag = { _, amount -> total += amount },
-            )
+        .pointerInput(enabled, interactive) {
+            whileStyleInteractive(interactive) { detectTapGestures(onDoubleTap = { onToggle() }) }
         }
+        .styleSongSwipe(interactive, carousel, player)
 
-private const val SwipeSkipPx = 120f
+// the sideways swipe alone, for a style that wants its own taps
+fun Modifier.styleSongSwipe(
+    interactive: () -> Boolean,
+    carousel: dev.meowlabs.blossomtune.ui.player.SongCarousel?,
+    player: () -> androidx.media3.common.Player?,
+): Modifier =
+    this.then(
+            if (carousel == null) Modifier else Modifier.pointerInput(interactive, carousel) {
+                val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                val flingPx = SwipeFling.toPx()
+                var travelled = 0f
+                var hasPrevious = false
+                var hasNext = false
+                // whether the row is this swipe's to put back if the swipe is cut off
+                var mine = false
+                whileStyleInteractive(interactive) {
+                    try {
+                        detectHorizontalDragGestures(
+                            onDragStart = {
+                                travelled = 0f
+                                tracker.resetTracking()
+                                val p = player()
+                                hasPrevious = p?.hasPreviousMediaItem() == true
+                                hasNext = p?.hasNextMediaItem() == true
+                                carousel.startDrag()
+                                mine = true
+                            },
+                            onDragEnd = {
+                                mine = false
+                                carousel.release(travelled, tracker.calculateVelocity().x, size.width.toFloat(), flingPx, player())
+                            },
+                            onDragCancel = {
+                                mine = false
+                                carousel.cancelDrag()
+                            },
+                            onHorizontalDrag = { change, amount ->
+                                tracker.addPointerInputChange(change)
+                                travelled += amount
+                                carousel.dragTo(travelled, size.width.toFloat(), hasPrevious, hasNext)
+                            },
+                        )
+                    } finally {
+                        if (mine) {
+                            mine = false
+                            carousel.cancelDrag()
+                        }
+                    }
+                }
+            }
+        )
 
-/**
- * The ••• button and the little menu it opens: other menu, rotate (in the middle) and edit player,
- * rising out of the button the way the flagship's chevron menu does. The button sits [edge] from
- * the top (or the bottom, [atBottom]) and [end] from the right; the menu opens away from that edge.
- * Call it last in the style's Box so the dimmed backdrop and the menu draw over the style.
- */
+/** A flick faster than this skips however short it was. */
+private val SwipeFling = 500.dp
+
+// the chevron and its little menu (lyrics, shuffle, repeat, other menu, edit player), opening away from the edge it sits on; call it last so it draws over the style
 @Composable
 fun BoxScope.StyleMenu(
     open: Boolean,
     onOpenChange: (Boolean) -> Unit,
     tones: StyleTones,
     actions: StyleActions,
-    rotated: Boolean,
-    onRotate: (Boolean) -> Unit,
     atBottom: Boolean,
     end: Dp,
     edge: Dp,
     buttonSize: Dp = 30.dp,
     showButton: Boolean = true,
+    /** the button and the menu's circles dressed as the Turntable's pills */
+    pill: Boolean = false,
+    extras: List<StyleMenuExtra> = emptyList(),
+    // a queue row under lyrics, opening the queue page over the style
+    queue: Boolean = false,
+    /** the button and its menu at the start edge instead of the end; [end] is then the room from the start */
+    atStart: Boolean = false,
+    /** the chevron's own fill and ink, when a module dresses it apart from the menu's circles */
+    buttonTones: StyleTones = tones,
 ) {
+    val corner = when {
+        atStart && atBottom -> Alignment.BottomStart
+        atStart -> Alignment.TopStart
+        atBottom -> Alignment.BottomEnd
+        else -> Alignment.TopEnd
+    }
     val reveal = remember { Animatable(0f) }
     LaunchedEffect(open) {
         reveal.animateTo(if (open) 1f else 0f, spring(dampingRatio = 0.72f, stiffness = 420f))
@@ -341,29 +563,67 @@ fun BoxScope.StyleMenu(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .drawBehind { drawRect(Color.Black.copy(alpha = 0.42f * reveal.value.coerceIn(0f, 1f))) }
+                .drawBehind { drawRect(Color.Black.copy(alpha = ChevronMenuDim * reveal.value.coerceIn(0f, 1f))) }
                 .pointerInput(Unit) { detectTapGestures { onOpenChange(false) } },
         )
-        val items = listOf(
-            Triple("Other menu", R.drawable.more_horiz) { onOpenChange(false); actions.onOtherMenu() },
-            Triple(if (rotated) "Turn upright" else "Rotate", R.drawable.screen_rotation) { onOpenChange(false); onRotate(!rotated) },
-            Triple("Edit player", R.drawable.tune) { onOpenChange(false); actions.onEditPlayer() },
+        val connection = LocalPlayerConnection.current
+        val transport = connection?.uiState?.transportState?.collectAsState()?.value
+        // the styles have no shuffle or repeat buttons of their own, so each is a row of the list here, staying open when tapped so the change shows
+        val shuffleAndRepeat = if (connection != null && transport != null) listOf(
+            MenuItem(androidx.compose.ui.res.stringResource(R.string.shuffle), R.drawable.shuffle, active = transport.shuffleModeEnabled) {
+                connection.player.shuffleModeEnabled = !connection.player.shuffleModeEnabled
+            },
+            MenuItem(
+                label = androidx.compose.ui.res.stringResource(if (transport.repeatMode == Player.REPEAT_MODE_ONE) R.string.ps_style_repeat_one else R.string.repeat),
+                icon = if (transport.repeatMode == Player.REPEAT_MODE_ONE) R.drawable.repeat_one else R.drawable.repeat,
+                active = transport.repeatMode != Player.REPEAT_MODE_OFF,
+            ) { connection.player.toggleRepeatMode() },
+        ) else emptyList()
+        val queueLabel = androidx.compose.ui.res.stringResource(R.string.queue)
+        val turnLabel = androidx.compose.ui.res.stringResource(
+            if (actions.turn?.isTurned?.invoke() == true) R.string.player_turn_upright else R.string.player_rotate,
         )
+        val lyricsLabel = androidx.compose.ui.res.stringResource(R.string.lyrics)
+        val otherMenuLabel = androidx.compose.ui.res.stringResource(R.string.ps_action_other_menu)
+        val editPlayerLabel = androidx.compose.ui.res.stringResource(R.string.menu_edit_player)
+        val menu = listOfNotNull(
+            actions.onLyrics?.let { open -> MenuItem(lyricsLabel, R.drawable.lyrics) { onOpenChange(false); open() } },
+            actions.onQueue?.takeIf { queue }?.let { open -> MenuItem(queueLabel, R.drawable.queue_music) { onOpenChange(false); open() } },
+        ) + shuffleAndRepeat + extras.map { extra ->
+            MenuItem(extra.label, extra.icon, extra.active, extra.picture) {
+                if (!extra.keepsOpen) onOpenChange(false)
+                extra.onClick()
+            }
+        } + listOf(
+            MenuItem(otherMenuLabel, R.drawable.more_horiz) { onOpenChange(false); actions.onOtherMenu() },
+        )
+        val turnItem = actions.turn?.let { turn -> MenuItem(turnLabel, R.drawable.screen_rotation) { onOpenChange(false); turn.toggle() } }
+        val editItem = MenuItem(editPlayerLabel, R.drawable.tune) { onOpenChange(false); actions.onEditPlayer() }
+        // turned sideways the screen is short, so the way back upright sits right by the button instead of at the far end of the list
+        val rows = when {
+            turnItem == null -> menu + editItem
+            actions.turn?.isTurned?.invoke() == true -> if (atBottom) menu + editItem + turnItem else listOf(turnItem) + menu + editItem
+            else -> menu + turnItem + editItem
+        }
         val itemGap = 10.dp
+        val roomForRows = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp - edge - buttonSize - itemGap
         Column(
             modifier = Modifier
-                .align(if (atBottom) Alignment.BottomEnd else Alignment.TopEnd)
+                .align(corner)
                 .padding(
-                    end = end - 3.dp,
+                    start = if (atStart) end - 3.dp else 0.dp,
+                    end = if (atStart) 0.dp else end - 3.dp,
                     top = if (atBottom) 0.dp else edge + buttonSize + itemGap,
                     bottom = if (atBottom) edge + buttonSize + itemGap else 0.dp,
-                ),
-            horizontalAlignment = Alignment.End,
+                )
+                // only a list too tall for the screen scrolls, from the button's end; a scroll would clip the rows sliding in
+                .then(if ((buttonSize + 6.dp + itemGap) * rows.size > roomForRows) Modifier.verticalScroll(rememberScrollState(), reverseScrolling = atBottom) else Modifier),
+            horizontalAlignment = if (atStart) Alignment.Start else Alignment.End,
             verticalArrangement = Arrangement.spacedBy(itemGap),
         ) {
-            items.forEachIndexed { index, (label, icon, onClick) ->
+            rows.forEachIndexed { index, item ->
                 // nearest the button first
-                val order = if (atBottom) items.size - 1 - index else index
+                val order = if (atBottom) rows.size - 1 - index else index
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -376,11 +636,16 @@ fun BoxScope.StyleMenu(
                         val s = 0.7f + 0.3f * p
                         scaleX = s
                         scaleY = s
-                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0.5f)
+                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(if (atStart) 0f else 1f, 0.5f)
                     },
                 ) {
-                    Text(text = label, color = tones.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.05).em, fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily)
-                    StyleCircle(icon = icon, tones = tones, size = buttonSize + 6.dp, onClick = onClick)
+                    // the circle stays nearest the edge the button sits on, the words face into the screen
+                    val label = @Composable {
+                        Text(text = item.label, style = dev.meowlabs.blossomtune.ui.player.chevronMenuLabelStyle(if (pill) Color.White else tones.ink, 13.sp))
+                    }
+                    if (!atStart) label()
+                    StyleCircle(icon = item.icon, tones = tones, size = buttonSize + 6.dp, onClick = item.onClick, pill = pill, active = item.active, picture = item.picture)
+                    if (atStart) label()
                 }
             }
         }
@@ -388,33 +653,39 @@ fun BoxScope.StyleMenu(
     if (showButton) {
         Box(
             modifier = Modifier
-                .align(if (atBottom) Alignment.BottomEnd else Alignment.TopEnd)
-                .padding(end = end, top = if (atBottom) 0.dp else edge, bottom = if (atBottom) edge else 0.dp),
+                .align(corner)
+                .padding(
+                    start = if (atStart) end else 0.dp,
+                    end = if (atStart) 0.dp else end,
+                    top = if (atBottom) 0.dp else edge,
+                    bottom = if (atBottom) edge else 0.dp,
+                ),
         ) {
-            MoreButton(open, tones, buttonSize, onOpenChange)
+            MenuChevron(open, buttonTones, buttonSize, pill, opensDown = !atBottom, onOpenChange)
         }
     }
 }
 
+/**
+ * The menu's button: a chevron, as on the Turntable, pointing the way the menu opens and flipping
+ * round once it's open.
+ */
 @Composable
-private fun MoreButton(open: Boolean, tones: StyleTones, size: Dp, onOpenChange: (Boolean) -> Unit) {
-    val turn = remember { Animatable(0f) }
-    LaunchedEffect(open) { turn.animateTo(if (open) 1f else 0f, spring(dampingRatio = 0.6f, stiffness = 380f)) }
+private fun MenuChevron(open: Boolean, tones: StyleTones, size: Dp, pill: Boolean, opensDown: Boolean, onOpenChange: (Boolean) -> Unit) {
+    val turn = remember { Animatable(if (open) 1f else 0f) }
+    LaunchedEffect(open) { turn.animateTo(if (open) 1f else 0f, spring(dampingRatio = 0.55f, stiffness = 380f)) }
     StyleCircle(
-        icon = if (open) R.drawable.close else R.drawable.more_horiz,
+        icon = R.drawable.expand_less,
         tones = tones,
         size = size,
+        pill = pill,
         onClick = { onOpenChange(!open) },
-        modifier = Modifier.graphicsLayer { rotationZ = turn.value * 90f },
+        // up-pointing art: turned to point down at rest when the menu drops below it
+        modifier = Modifier.graphicsLayer { rotationZ = (if (opensDown) 180f else 0f) + turn.value * 180f },
     )
 }
 
-/**
- * Where each orientation of a style puts its playhead split, as a share of the screen from the top.
- * Upright the split runs down the screen; sideways it runs along the turned layout, which on the
- * phone is down the screen too - so one split, drawn by the frame outside the turn, serves both,
- * and the background never turns with the layout.
- */
+// where each orientation of a style puts its playhead split, as a share of the screen: down it upright, across it in landscape
 @Stable
 class StyleSplits {
     var upright by mutableStateOf<(() -> Float)?>(null)
@@ -440,12 +711,21 @@ internal fun ReportSplit(landscape: Boolean, boundary: () -> Float) {
 }
 
 /** the played/remaining split as [progressSplit] draws it, into any draw scope */
-internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplit(tones: StyleTones, vertical: Boolean, boundary: Float) {
+internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplit(tones: StyleTones, vertical: Boolean, boundary: Float) =
+    drawSplit(tones.played, tones.remaining, vertical, boundary)
+
+/** the split in two given colours, for a frame whose tones are fading to the next song's */
+internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplit(
+    played: Color,
+    remaining: Color,
+    vertical: Boolean,
+    boundary: Float,
+) {
     val b = boundary.coerceIn(0f, 1f)
     if (vertical) {
         val y = size.height * b
-        drawRect(tones.played, size = size.copy(height = y))
-        drawRect(tones.remaining, topLeft = Offset(0f, y), size = size.copy(height = size.height - y))
+        drawRect(played, size = size.copy(height = y))
+        drawRect(remaining, topLeft = Offset(0f, y), size = size.copy(height = size.height - y))
         // light falls on the played part from the top, the line itself catches a highlight
         drawRect(
             Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.08f), Color.Transparent), endY = y.coerceAtLeast(1f)),
@@ -463,8 +743,8 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplit(tones: S
         drawRect(Color.White.copy(alpha = 0.10f), topLeft = Offset(0f, y - 1f), size = size.copy(height = 1.5f))
     } else {
         val x = size.width * b
-        drawRect(tones.played, size = size.copy(width = x))
-        drawRect(tones.remaining, topLeft = Offset(x, 0f), size = size.copy(width = size.width - x))
+        drawRect(played, size = size.copy(width = x))
+        drawRect(remaining, topLeft = Offset(x, 0f), size = size.copy(width = size.width - x))
         drawRect(
             Brush.horizontalGradient(listOf(Color.White.copy(alpha = 0.07f), Color.Transparent), endX = x.coerceAtLeast(1f)),
             size = size.copy(width = x),
@@ -482,105 +762,46 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplit(tones: S
     }
 }
 
-/**
- * Lays [content] out sideways when [rotated]: measured with width and height swapped and turned a
- * quarter clockwise, so the style reads upright with the phone held on its side.
- *
- * Changing it is a real turn: the layout leaving and the layout arriving are both drawn, turning
- * together through the whole quarter as one piece, shrunk just enough at each angle to stay on the
- * screen, tipped back a little in depth and motion-blurred at the fastest part of the swing, the
- * one handing over to the other through it. [background] sits under the turn and holds still: the
- * style's own tone, or its playhead split, which the layouts report through [ReportSplit] and which
- * glides from where the old layout had it to where the new one does.
- */
+// the style's background (its own tone, or the playhead split its layout reports) under its layout; landscape is the window's own shape, the phone turns the app now
 @Composable
-fun RotatingFrame(
-    rotated: Boolean,
+fun StyleStage(
     tones: StyleTones,
     modifier: Modifier = Modifier,
     background: (@Composable BoxScope.() -> Unit)? = null,
     content: @Composable BoxScope.(landscape: Boolean) -> Unit,
 ) {
-    var shown by remember { mutableStateOf(rotated) }
-    // the orientation turning away, only while a turn plays
-    var leaving by remember { mutableStateOf<Boolean?>(null) }
-    val turn = remember { Animatable(1f) }
     val splits = remember { StyleSplits() }
-    LaunchedEffect(rotated) {
-        if (rotated == shown) return@LaunchedEffect
-        leaving = shown
-        shown = rotated
-        turn.snapTo(0f)
-        // a little weight at the end: it settles a hair past square and comes back
-        turn.animateTo(1f, spring(dampingRatio = 0.74f, stiffness = 150f))
-        leaving = null
-    }
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .then(
-                if (background != null) Modifier else Modifier.drawBehind {
-                    val now = splits[shown]
-                    if (now == null) {
-                        drawRect(tones.played)
-                        return@drawBehind
+    // a new song's tones fade in rather than snap, read only while drawing so the fade repaints the background without recomposing the style
+    val played = androidx.compose.animation.animateColorAsState(tones.played, tween(ToneFadeMs), label = "playedTone")
+    val remaining = androidx.compose.animation.animateColorAsState(tones.remaining, tween(ToneFadeMs), label = "remainingTone")
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val landscape = maxWidth > maxHeight
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (background != null) Modifier else Modifier.drawBehind {
+                        val split = splits[landscape]
+                        if (split == null) drawRect(played.value)
+                        else drawSplit(played.value, remaining.value, vertical = !landscape, boundary = split())
                     }
-                    val from = leaving?.let { splits[it] }
-                    val t = turn.value.coerceIn(0f, 1f)
-                    val b = if (from != null) from() + (now() - from()) * t else now()
-                    drawSplit(tones, vertical = true, boundary = b)
-                }
-            ),
-    ) {
-        if (background != null) {
-            Box(modifier = Modifier.fillMaxSize(), content = background)
-        }
-        androidx.compose.runtime.CompositionLocalProvider(LocalStyleSplits provides splits) {
-            val layers = listOfNotNull(leaving, shown)
-            layers.forEach { orientation ->
-                androidx.compose.runtime.key(orientation) {
-                    val arriving = orientation == shown
-                    Box(
-                        modifier = Modifier
-                            .quarterTurn(orientation)
-                            .graphicsLayer {
-                                if (leaving == null) return@graphicsLayer
-                                val t = turn.value
-                                // toward landscape the turn is clockwise, back upright counter-clockwise
-                                val direction = if (shown) 1f else -1f
-                                // this layer's angle away from where it rests
-                                val angle = if (arriving) -direction * 90f * (1f - t) else direction * 90f * t
-                                rotationZ = angle
-                                val fit = turnFit(size.width, size.height, if (orientation) 90f else 0f, angle)
-                                val s = fit * (1f - 0.04f * sin01(t))
-                                scaleX = s
-                                scaleY = s
-                                // tipped back a touch mid-swing, so it turns in space rather than on glass
-                                cameraDistance = 14f * density
-                                rotationX = 9f * sin01(t)
-                                // the hand-over: the old fades through the first half, the new through the second
-                                alpha = if (arriving) smooth((t - 0.3f) / 0.45f) else 1f - smooth((t - 0.1f) / 0.45f)
-                                if (android.os.Build.VERSION.SDK_INT >= 31) {
-                                    val blur = 14.dp.toPx() * sin01(t)
-                                    renderEffect = if (blur > 0.5f) {
-                                        androidx.compose.ui.graphics.BlurEffect(blur, blur, androidx.compose.ui.graphics.TileMode.Clamp)
-                                    } else null
-                                }
-                            },
-                    ) {
-                        content(orientation)
-                    }
-                }
+                ),
+        ) {
+            if (background != null) {
+                Box(modifier = Modifier.fillMaxSize(), content = background)
+            }
+            androidx.compose.runtime.CompositionLocalProvider(LocalStyleSplits provides splits) {
+                Box(modifier = Modifier.fillMaxSize()) { content(landscape) }
             }
         }
     }
 }
 
-/**
- * How far a layer [w] x [h] (as laid out, before its own [restAngle]) must shrink, turned a further
- * [angle] degrees, to stay inside the screen it fills at rest.
- */
-private fun turnFit(w: Float, h: Float, restAngle: Float, angle: Float): Float {
+/** how long a style's background takes to fade to a new song's colours */
+private const val ToneFadeMs = 700
+
+// how far a layer w by h (before its own rest angle) must shrink, turned a further angle, to stay inside the screen it fills at rest
+internal fun turnFit(w: Float, h: Float, restAngle: Float, angle: Float): Float {
     if (w <= 0f || h <= 0f) return 1f
     // the screen: the layer's own size, turned by its rest angle
     val screenW = if (restAngle == 0f) w else h
@@ -593,9 +814,9 @@ private fun turnFit(w: Float, h: Float, restAngle: Float, angle: Float): Float {
     return minOf(screenW / extentW, screenH / extentH, 1f)
 }
 
-private fun sin01(t: Float): Float = kotlin.math.sin(Math.PI.toFloat() * t.coerceIn(0f, 1f))
+internal fun sin01(t: Float): Float = kotlin.math.sin(Math.PI.toFloat() * t.coerceIn(0f, 1f))
 
-private fun smooth(t: Float): Float {
+internal fun smooth(t: Float): Float {
     val x = t.coerceIn(0f, 1f)
     return x * x * (3f - 2f * x)
 }

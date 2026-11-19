@@ -6,8 +6,8 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Build
-import android.widget.Toast
 import androidx.datastore.preferences.core.edit
 import coil3.ImageLoader
 import coil3.PlatformContext
@@ -23,35 +23,36 @@ import com.music.innertube.YouTube
 import com.music.innertube.models.IpVersion
 import com.music.innertube.models.YouTubeLocale
 import com.music.kugou.KuGou
-import com.music.lastfm.LastFM
 import dev.meowlabs.blossomtune.constants.*
 import dev.meowlabs.blossomtune.di.ApplicationScope
+import dev.meowlabs.blossomtune.i18n.AppLanguage
 import dev.meowlabs.blossomtune.extensions.toEnum
-import dev.meowlabs.blossomtune.extensions.toInetSocketAddress
 import dev.meowlabs.blossomtune.utils.CrashHandler
 import dev.meowlabs.blossomtune.utils.PreferencesCache
 import dev.meowlabs.blossomtune.utils.cipher.CipherDeobfuscator
 import dev.meowlabs.blossomtune.utils.dataStore
+import dev.meowlabs.blossomtune.utils.AppProxy
+import dev.meowlabs.blossomtune.utils.BotDetectionMitigator
 import dev.meowlabs.blossomtune.utils.reportException
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectIndexed
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import okhttp3.Credentials
 import timber.log.Timber
-import java.net.Authenticator
-import java.net.PasswordAuthentication
-import java.net.Proxy
-import java.util.Locale
 import javax.inject.Inject
+import dev.meowlabs.blossomtune.link.isTelevision
 
 // how long after the launch intro the PoToken WebView may boot (Home's reveal runs ~1s)
 private const val PoTokenAfterIntroMillis = 2_500L
+
+// one character from each system fallback font titles commonly reach for: japanese, chinese, korean, emoji
+private const val FallbackFontWarmup = "あ漢한😀"
 
 @HiltAndroidApp
 class App : Application(), SingletonImageLoader.Factory {
@@ -63,22 +64,48 @@ class App : Application(), SingletonImageLoader.Factory {
     @Inject
     lateinit var musicDatabase: dev.meowlabs.blossomtune.db.MusicDatabase
 
+    // only built once a tv is paired, it pulls in the downloads
+    @Inject
+    lateinit var phoneLink: dagger.Lazy<dev.meowlabs.blossomtune.link.phone.PhoneLinkHost>
+
     override fun onCreate() {
+        // before super, because that's where hilt builds the database and the player caches
+        dev.meowlabs.blossomtune.importer.transfer.TransferRestore.applyPending(this)
+        // the folders a move to another drive left behind, cleared once nothing has them open
+        dev.meowlabs.blossomtune.playback.StoragePlaces.cleanUpLeftovers(this)
         super.onCreate()
 
+        AppLanguage.initialize(this)
         CrashHandler.install(this)
 
         CipherDeobfuscator.initialize(this)
 
-        if (BuildConfig.DEBUG) {
+        if (BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "fast") {
             Timber.plant(Timber.DebugTree())
         }
 
         PreferencesCache.start(this, applicationScope)
+        // tokens saved before the vault existed are sealed on the first start after the update
+        applicationScope.launch(kotlinx.coroutines.Dispatchers.IO) { (dataStore as? dev.meowlabs.blossomtune.utils.SecretPreferences)?.sealLeftovers() }
+        dev.meowlabs.blossomtune.utils.NotRecommended.init(this)
 
         applicationScope.launch(Dispatchers.IO) {
             try {
                 musicDatabase.query { purgeTimestampArtists() }
+            } catch (e: Exception) {
+                reportException(e)
+            }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            // the plain 5 s crossfade used to be the default and onboarding's pick, and it never mixed a thing: anyone left on it moves to crossmix once
+            try {
+                if (dataStore.data.first()[CrossmixDefaultMovedKey] != true) {
+                    dataStore.edit { prefs ->
+                        if (prefs[CrossmixModeKey] == CrossmixMode.AUTO_CROSSFADE.name) prefs[CrossmixModeKey] = CrossmixMode.CROSSMIX.name
+                        prefs[CrossmixDefaultMovedKey] = true
+                    }
+                }
             } catch (e: Exception) {
                 reportException(e)
             }
@@ -124,14 +151,44 @@ class App : Application(), SingletonImageLoader.Factory {
                 dev.meowlabs.blossomtune.ui.launch.LaunchGate.awaitIntro()
                 kotlinx.coroutines.delay(PoTokenAfterIntroMillis)
                 dev.meowlabs.blossomtune.utils.YTPlayerUtils.preWarmPoToken()
+                // the player script compiles now, so the first song doesn't wait for it
+                dev.meowlabs.blossomtune.utils.YTPlayerUtils.preWarmInnerTubeX()
             }
         }
+
+        applicationScope.launch(Dispatchers.IO) {
+            // a paired device can reach this phone again as soon as blossomtune is up, after the intro has had the main thread
+            if (isTelevision() || !dev.meowlabs.blossomtune.link.phone.PhoneLinkHost.hasPairedDevices(this@App)) return@launch
+            dev.meowlabs.blossomtune.ui.launch.LaunchGate.awaitIntro()
+            phoneLink.get().refresh()
+            dev.meowlabs.blossomtune.link.phone.PhoneLinkService.start(this@App)
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            // Local songs whose cover file was cleared away get it back from the song's own file.
+            // After the intro, so it doesn't share the disk with the first frames.
+            dev.meowlabs.blossomtune.ui.launch.LaunchGate.awaitIntro()
+            runCatching { dev.meowlabs.blossomtune.importer.LocalArtwork.repair(this@App, musicDatabase) }
+                .onFailure { Timber.w(it, "Repairing local covers failed") }
+        }
+
+        applicationScope.launch(Dispatchers.Default) {
+            // the first japanese, korean or emoji title loaded its system font inside a scroll frame (6 ms on the avd); here it loads once, off the main thread
+            dev.meowlabs.blossomtune.ui.launch.LaunchGate.awaitIntro()
+            runCatching { android.graphics.Paint().measureText(FallbackFontWarmup) }
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        AppLanguage.refreshApplicationResources(this)
     }
 
     private suspend fun initializeSettings() {
         val settings = dataStore.data.first()
         dev.meowlabs.blossomtune.utils.OfflineMode.set(settings[OfflineModeKey] ?: false)
-        val locale = Locale.getDefault()
+        dev.meowlabs.blossomtune.utils.DataSaver.attach(this)
+        val locale = AppLanguage.systemLocale(this)
         val languageTag = locale.language
 
         YouTube.locale = YouTubeLocale(
@@ -148,50 +205,25 @@ class App : Application(), SingletonImageLoader.Factory {
             KuGou.useTraditionalChinese = true
         }
 
-        LastFM.initialize(
-            apiKey = BuildConfig.LASTFM_API_KEY.takeIf { it.isNotEmpty() } ?: "",
-            secret = BuildConfig.LASTFM_SECRET.takeIf { it.isNotEmpty() } ?: ""
-        )
-
-        if (settings[ProxyEnabledKey] == true) {
-            val username = settings[ProxyUsernameKey].orEmpty()
-            val password = settings[ProxyPasswordKey].orEmpty()
-            val type = settings[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP)
-
-            if (username.isNotEmpty() || password.isNotEmpty()) {
-                if (type == Proxy.Type.HTTP) {
-                    YouTube.proxyAuth = Credentials.basic(username, password)
-                } else {
-                    Authenticator.setDefault(object : Authenticator() {
-                        override fun getPasswordAuthentication(): PasswordAuthentication =
-                            PasswordAuthentication(username, password.toCharArray())
-                    })
-                }
-            }
-            try {
-                settings[ProxyUrlKey]?.let {
-                    YouTube.proxy = Proxy(type, it.toInetSocketAddress())
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@App, getString(R.string.failed_to_parse_proxy), Toast.LENGTH_SHORT).show()
-                }
-                reportException(e)
-            }
-        }
+        // before anything asks youtube, so the first requests already go through the proxy
+        AppProxy.apply(AppProxy.configFrom(settings))
 
         YouTube.useLoginForBrowse = settings[UseLoginForBrowse] ?: true
         YouTube.ipVersion = settings[IpVersionKey]?.toEnum(defaultValue = IpVersion.AUTO) ?: IpVersion.AUTO
+        dev.meowlabs.blossomtune.utils.YTPlayerUtils.backend =
+            settings[StreamBackendKey]?.toEnum(defaultValue = StreamBackend.INNERTUBEX) ?: StreamBackend.INNERTUBEX
 
-        val channel = NotificationChannel(
-            "updates",
-            getString(R.string.update_channel_name),
-            NotificationManager.IMPORTANCE_DEFAULT
-        ).apply {
-            description = getString(R.string.update_channel_desc)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "updates",
+                getString(R.string.update_channel_name),
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = getString(R.string.update_channel_desc)
+            }
+            val nm = getSystemService(NotificationManager::class.java)
+            nm.createNotificationChannel(channel)
         }
-        val nm = getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(channel)
     }
 
     private fun observeSettingsChanges() {
@@ -245,38 +277,30 @@ class App : Application(), SingletonImageLoader.Factory {
 
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
-                .map { it[LastFMSessionKey] }
+                .map { it[ContentCountryKey] to it[ContentLanguageKey] }
                 .distinctUntilChanged()
-                .collect { session ->
-                    try {
-                        LastFM.sessionKey = session
-                    } catch (e: Exception) {
-                        Timber.e("Error while loading last.fm session key. %s", e.message)
-                    }
+                .collect { (contentCountry, contentLanguage) ->
+                    // UI language must not silently change content preferences.
+                    val systemLocale = AppLanguage.systemLocale(this@App)
+                    YouTube.locale = YouTubeLocale(
+                        gl = contentCountry?.takeIf { it != SYSTEM_DEFAULT }
+                            ?: systemLocale.country.takeIf { it in CountryCodeToName }
+                            ?: "US",
+                        hl = contentLanguage?.takeIf { it != SYSTEM_DEFAULT }
+                            ?: systemLocale.toLanguageTag().takeIf { it in LanguageCodeToName }
+                            ?: systemLocale.language.takeIf { it in LanguageCodeToName }
+                            ?: "en"
+                    )
                 }
         }
 
         applicationScope.launch(Dispatchers.IO) {
             dataStore.data
-                .map { Triple(it[ContentCountryKey], it[ContentLanguageKey], it[AppLanguageKey]) }
+                .map { AppProxy.configFrom(it) }
                 .distinctUntilChanged()
-                .collect { (contentCountry, contentLanguage, appLanguage) ->
-                    val systemLocale = Locale.getDefault()
-                    val effectiveAppLocale = appLanguage
-                        ?.takeUnless { it == SYSTEM_DEFAULT }
-                        ?.let { Locale.forLanguageTag(it) }
-                        ?: systemLocale
-
-                    YouTube.locale = YouTubeLocale(
-                        gl = contentCountry?.takeIf { it != SYSTEM_DEFAULT }
-                            ?: effectiveAppLocale.country.takeIf { it in CountryCodeToName }
-                            ?: systemLocale.country.takeIf { it in CountryCodeToName }
-                            ?: "US",
-                        hl = contentLanguage?.takeIf { it != SYSTEM_DEFAULT }
-                            ?: effectiveAppLocale.toLanguageTag().takeIf { it in LanguageCodeToName }
-                            ?: effectiveAppLocale.language.takeIf { it in LanguageCodeToName }
-                            ?: "en"
-                    )
+                .collect { config ->
+                    // a new way out gets a fresh guest session too, the old one may be what youtube flagged
+                    if (AppProxy.apply(config) && YouTube.cookie == null) BotDetectionMitigator.rotateGuestSession()
                 }
         }
 
@@ -288,6 +312,29 @@ class App : Application(), SingletonImageLoader.Factory {
                     YouTube.ipVersion = ipVersion?.toEnum(defaultValue = IpVersion.AUTO) ?: IpVersion.AUTO
                 }
         }
+
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
+                .map { it[StreamBackendKey]?.toEnum(defaultValue = StreamBackend.INNERTUBEX) ?: StreamBackend.INNERTUBEX }
+                .distinctUntilChanged()
+                .collectIndexed { index, backend ->
+                    dev.meowlabs.blossomtune.utils.YTPlayerUtils.backend = backend
+                    // a switch mid-session warms it straight away; at launch that waits for the intro, further up
+                    if (index > 0) dev.meowlabs.blossomtune.utils.YTPlayerUtils.preWarmInnerTubeX()
+                }
+        }
+    }
+
+    // covers are the most the app holds: half go when the phone runs short, most when the screen goes to the background, all once the system starts reclaiming background apps
+    @Suppress("DEPRECATION")
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        val cache = SingletonImageLoader.get(this).memoryCache ?: return
+        when {
+            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> cache.clear()
+            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> cache.trimToSize(cache.size / 4)
+            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> cache.trimToSize(cache.size / 2)
+        }
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
@@ -297,8 +344,10 @@ class App : Application(), SingletonImageLoader.Factory {
         return ImageLoader.Builder(this).apply {
             components {
                 add(SvgDecoder.Factory())
+                add(dev.meowlabs.blossomtune.utils.ImageRetry)
             }
-            crossfade(200)
+            // covers ease in as they arrive; coil skips the fade for ones already in memory, so scrolling back never flickers
+            crossfade(300)
             allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
 
             memoryCache {

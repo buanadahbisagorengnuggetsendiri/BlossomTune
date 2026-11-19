@@ -1,7 +1,9 @@
 package dev.meowlabs.blossomtune.ui.component
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.meowlabs.blossomtune.R
 import kotlin.math.sin
 
 /**
@@ -30,11 +33,12 @@ import kotlin.math.sin
  * The wavy variants are drawn as a [Path] rather than an AGSL shader, so unlike the lyrics glow
  * they animate identically on every supported Android version.
  */
-enum class SeekBarStyle(val displayName: String) {
-    DEFAULT("Default"),
-    M3_EXPRESSIVE("Material 3 Expressive 1"),
-    M3_EXPRESSIVE_LINE("Material 3 Expressive slider 2"),
-    PLAIN("plain"),
+/** [displayName] is the plain English name; the UI shows [labelRes], which follows the app language. */
+enum class SeekBarStyle(val displayName: String, @StringRes val labelRes: Int) {
+    DEFAULT("Default", R.string.pc_style_default),
+    M3_EXPRESSIVE("Material 3 Expressive 1", R.string.pc_seek_m3_expressive_1),
+    M3_EXPRESSIVE_LINE("Material 3 Expressive slider 2", R.string.pc_seek_m3_expressive_2),
+    PLAIN("plain", R.string.pc_seek_plain),
 }
 
 private const val WaveSpeedMillis = 1400
@@ -71,7 +75,44 @@ fun SeekBarTrack(
     /** The track is still loading: a light sweeps along the bar instead of the wave moving. */
     loading: Boolean = false,
 ) {
+    SeekBarTrack(
+        style = style,
+        fractionProvider = { fraction },
+        activeColor = activeColor,
+        inactiveColor = inactiveColor,
+        modifier = modifier,
+        animateWave = animateWave,
+        active = active,
+        loading = loading,
+    )
+}
+
+/**
+ * Same bar, but [fractionProvider] is read while drawing, so a moving position redraws the bar
+ * without recomposing whatever holds it. [clockRunning] false holds the wave and sweep still
+ * (the player is collapsed and the bar can't be seen).
+ */
+@Composable
+fun SeekBarTrack(
+    style: SeekBarStyle,
+    fractionProvider: () -> Float,
+    activeColor: Color,
+    inactiveColor: Color,
+    modifier: Modifier = Modifier,
+    animateWave: Boolean = true,
+    active: Boolean = false,
+    loading: Boolean = false,
+    clockRunning: Boolean = true,
+    // how far the bar has opened under the finger, 0 to 1; without it the bar springs open on its own while active
+    expandProvider: (() -> Float)? = null,
+) {
     val wavy = style == SeekBarStyle.M3_EXPRESSIVE || style == SeekBarStyle.M3_EXPRESSIVE_LINE
+    val ownExpand = animateFloatAsState(
+        targetValue = if (active) 1f else 0f,
+        animationSpec = SeekBarExpandSpring,
+        label = "seekExpand",
+    )
+    val expand = expandProvider ?: { ownExpand.value }
 
     // The wave flattens out when playback is paused, the user grabs the bar, or the track is still
     // loading, so the shape always reflects whether audio is actually moving.
@@ -92,15 +133,19 @@ fun SeekBarTrack(
     val needsClock = (wavy && waveScale > 0f) || (wavy && animateWave && !active && !loading) ||
         loading || loadingAlpha > 0f
     val clockMs = remember { mutableLongStateOf(0L) }
-    LaunchedEffect(needsClock) {
-        if (!needsClock) return@LaunchedEffect
+    val wavePath = remember { Path() }
+    LaunchedEffect(needsClock, clockRunning) {
+        if (!needsClock || !clockRunning) return@LaunchedEffect
+        // the clock is absolute time, so catch up now instead of showing the old phase for a frame
+        clockMs.longValue = System.nanoTime() / 1_000_000L
         while (true) {
             withFrameMillis { clockMs.longValue = it }
         }
     }
 
+    // fixed room for the fully open bar (and its spring's overshoot), so opening it only redraws and never moves anything
     val height: Dp = when (style) {
-        SeekBarStyle.DEFAULT -> if (active) 14.dp else 7.dp
+        SeekBarStyle.DEFAULT -> 16.dp
         SeekBarStyle.M3_EXPRESSIVE, SeekBarStyle.M3_EXPRESSIVE_LINE -> 20.dp
         SeekBarStyle.PLAIN -> 16.dp
     }
@@ -110,17 +155,20 @@ fun SeekBarTrack(
             .fillMaxWidth()
             .height(height)
     ) {
-        val f = fraction.coerceIn(0f, 1f)
+        val f = fractionProvider().coerceIn(0f, 1f)
+        val open = expand()
         val phase = if (wavy && waveScale > 0f) {
             (clockMs.longValue % WaveSpeedMillis) / WaveSpeedMillis.toFloat()
         } else {
             0f
         }
         when (style) {
-            SeekBarStyle.DEFAULT -> drawDefaultTrack(f, activeColor, inactiveColor)
-            SeekBarStyle.PLAIN -> drawPlainTrack(f, activeColor, inactiveColor)
+            SeekBarStyle.DEFAULT -> drawDefaultTrack(f, open, activeColor, inactiveColor)
+            SeekBarStyle.PLAIN -> drawPlainTrack(f, open, activeColor, inactiveColor)
             SeekBarStyle.M3_EXPRESSIVE -> drawWavyTrack(
+                path = wavePath,
                 fraction = f,
+                open = open,
                 phase = phase,
                 waveScale = waveScale,
                 activeColor = activeColor,
@@ -128,7 +176,9 @@ fun SeekBarTrack(
                 thumb = ThumbShape.ROUND,
             )
             SeekBarStyle.M3_EXPRESSIVE_LINE -> drawWavyTrack(
+                path = wavePath,
                 fraction = f,
+                open = open,
                 phase = phase,
                 waveScale = waveScale,
                 activeColor = activeColor,
@@ -142,7 +192,7 @@ fun SeekBarTrack(
                 progress = LoadingSweepEasing.transform(t),
                 color = activeColor,
                 alpha = loadingAlpha,
-                thick = style == SeekBarStyle.DEFAULT,
+                thickness = if (style == SeekBarStyle.DEFAULT) defaultBarThickness(open) else null,
             )
         }
     }
@@ -152,10 +202,10 @@ fun SeekBarTrack(
  * A soft light running along the bar while the track loads. It fades in at its leading edge and
  * out at its tail, so it reads as light passing through the bar rather than a block moving on it.
  */
-private fun DrawScope.drawLoadingSweep(progress: Float, color: Color, alpha: Float, thick: Boolean) {
+private fun DrawScope.drawLoadingSweep(progress: Float, color: Color, alpha: Float, thickness: Dp?) {
     val y = size.height / 2f
-    val stroke = if (thick) size.height else 4.dp.toPx()
-    val inset = if (thick) size.height / 2f else 0f
+    val stroke = thickness?.toPx() ?: 4.dp.toPx()
+    val inset = if (thickness != null) stroke / 2f else 0f
     val length = size.width * LoadingSweepLength
     val centre = -length / 2f + (size.width + length) * progress
     val from = centre - length / 2f
@@ -180,8 +230,17 @@ private fun DrawScope.drawLoadingSweep(progress: Float, color: Color, alpha: Flo
 
 private enum class ThumbShape { ROUND, LINE }
 
-private fun DrawScope.drawDefaultTrack(fraction: Float, activeColor: Color, inactiveColor: Color) {
-    val h = size.height
+// one spring for the bar opening under the finger and everything that moves with it
+val SeekBarExpandSpring = spring<Float>(dampingRatio = 0.72f, stiffness = 520f)
+
+// the default bar is 7dp at rest and 14dp held
+private fun defaultBarThickness(open: Float): Dp = (7f + 7f * open).dp
+
+// thin bars get a touch thicker and their thumb a touch bigger while held
+private fun heldStroke(open: Float): Dp = (4f + 2f * open).dp
+
+private fun DrawScope.drawDefaultTrack(fraction: Float, open: Float, activeColor: Color, inactiveColor: Color) {
+    val h = defaultBarThickness(open).toPx()
     val y = size.height / 2f
     drawLine(
         color = inactiveColor,
@@ -200,10 +259,10 @@ private fun DrawScope.drawDefaultTrack(fraction: Float, activeColor: Color, inac
     )
 }
 
-private fun DrawScope.drawPlainTrack(fraction: Float, activeColor: Color, inactiveColor: Color) {
+private fun DrawScope.drawPlainTrack(fraction: Float, open: Float, activeColor: Color, inactiveColor: Color) {
     val y = size.height / 2f
-    val stroke = 4.dp.toPx()
-    val thumbRadius = 7.dp.toPx()
+    val stroke = heldStroke(open).toPx()
+    val thumbRadius = (7f + 1f * open).dp.toPx()
     drawLine(
         color = inactiveColor,
         start = Offset(0f, y),
@@ -227,7 +286,9 @@ private fun DrawScope.drawPlainTrack(fraction: Float, activeColor: Color, inacti
  * sits on the boundary between them.
  */
 private fun DrawScope.drawWavyTrack(
+    path: Path,
     fraction: Float,
+    open: Float,
     phase: Float,
     waveScale: Float,
     activeColor: Color,
@@ -235,7 +296,7 @@ private fun DrawScope.drawWavyTrack(
     thumb: ThumbShape,
 ) {
     val y = size.height / 2f
-    val stroke = 4.dp.toPx()
+    val stroke = heldStroke(open).toPx()
     val wavelength = WaveLength.toPx()
     val amplitude = WaveAmplitude.toPx() * waveScale
 
@@ -247,7 +308,9 @@ private fun DrawScope.drawWavyTrack(
     val x = usable * fraction
 
     if (x > 0.5f) {
-        val path = Path().apply {
+        // one path for every frame; reset keeps its memory instead of allocating a new one
+        path.reset()
+        path.apply {
             moveTo(0f, y)
             var px = 0f
             // 2dp steps: fine enough that the curve reads as smooth, coarse enough to stay cheap
@@ -274,12 +337,12 @@ private fun DrawScope.drawWavyTrack(
     }
 
     when (thumb) {
-        ThumbShape.ROUND -> drawCircle(color = activeColor, radius = 7.dp.toPx(), center = Offset(x, y))
+        ThumbShape.ROUND -> drawCircle(color = activeColor, radius = (7f + 2f * open).dp.toPx(), center = Offset(x, y))
         ThumbShape.LINE -> drawLine(
             color = activeColor,
             start = Offset(x, y - size.height / 2.4f),
             end = Offset(x, y + size.height / 2.4f),
-            strokeWidth = 4.dp.toPx(),
+            strokeWidth = (4f + 1f * open).dp.toPx(),
             cap = StrokeCap.Round,
         )
     }

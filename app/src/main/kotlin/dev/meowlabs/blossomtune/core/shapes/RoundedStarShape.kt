@@ -1,5 +1,3 @@
-// RoundedStarShape.kt
-
 package dev.meowlabs.blossomtune.core.shapes
 
 import androidx.compose.ui.geometry.Size

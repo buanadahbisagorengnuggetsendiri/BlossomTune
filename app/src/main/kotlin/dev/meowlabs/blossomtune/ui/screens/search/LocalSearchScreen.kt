@@ -190,7 +190,7 @@ fun LocalSearchScreen(
                         song = item,
                         showInLibraryIcon = true,
                         isActive = item.id == mediaMetadata?.id,
-                        isPlaying = isPlaying,
+                        isPlaying = isPlaying && item.id == mediaMetadata?.id,
                         shape = listItemShape(index, items.size),
                         trailingContent = {
                             IconButton(
@@ -253,7 +253,7 @@ fun LocalSearchScreen(
                     is Album -> AlbumListItem(
                         album = item,
                         isActive = item.id == mediaMetadata?.album?.id,
-                        isPlaying = isPlaying,
+                        isPlaying = isPlaying && item.id == mediaMetadata?.album?.id,
                         modifier = Modifier
                             .clickable {
                                 onDismiss()
@@ -288,7 +288,7 @@ fun LocalSearchScreen(
         if (result.query.isNotEmpty() && result.map.isEmpty()) {
             item(key = "no_result") {
                 EmptyPlaceholder(
-                    icon = R.drawable.search,
+                    icon = R.drawable.music_note,
                     text = stringResource(R.string.no_results_found),
                 )
             }

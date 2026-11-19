@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import com.android.build.api.dsl.ApplicationExtension
 import java.util.Properties
+import java.security.MessageDigest
 import java.net.URL
 
 val localProperties = Properties()
@@ -19,28 +20,49 @@ plugins {
 
 extensions.configure<ApplicationExtension> {
     namespace = "dev.meowlabs.blossomtune"
-    compileSdk = 36
+    compileSdk = 37
+    // sandbox SDK hanya punya platform android-37.0 (api-level 37.0); tanpa ini AGP mencari
+    // hash 'android-37' yang tidak pernah terbit. Hapus bila platform 37 mayor sudah rilis.
+    compileSdkMinor = 0
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "dev.meowlabs.blossomtune"
-        minSdk = 26
-        targetSdk = 36
-        versionCode = 16
-        versionName = "0.5.11"
+        minSdk = 24
+        targetSdk = 37
+        versionCode = 100
+        versionName = "0.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
-        // LastFM API keys from GitHub Secrets
-//        val lastFmKey = localProperties.getProperty("LASTFM_API_KEY") ?: System.getenv("LASTFM_API_KEY") ?: ""
-//        val lastFmSecret = localProperties.getProperty("LASTFM_SECRET") ?: System.getenv("LASTFM_SECRET") ?: ""
-        
-        val lastFmKey = "694cbaa17c78202a133eac4656dff651"
-        val lastFmSecret = "a0fdaf6060f19128c4a84f297c71e627"
+        // LastFM API keys from local.properties locally, GitHub Secrets on CI. never commit them
+        val lastFmKey = localProperties.getProperty("LASTFM_API_KEY") ?: System.getenv("LASTFM_API_KEY") ?: ""
+        val lastFmSecret = localProperties.getProperty("LASTFM_SECRET") ?: System.getenv("LASTFM_SECRET") ?: ""
 
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastFmKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastFmSecret\"")
+
+        // Libre.fm the same way. It takes any 32-character key and never checks the secret, so a
+        // build without its own (a fork, a CI run with no secrets) gets one made from the app id
+        // instead of losing Libre.fm
+        fun libreFmStandIn(name: String) = MessageDigest.getInstance("MD5")
+            .digest("$applicationId.librefm.$name".toByteArray()).joinToString("") { "%02x".format(it) }
+        val libreFmKey = localProperties.getProperty("LIBREFM_API_KEY")
+            ?: System.getenv("LIBREFM_API_KEY")?.takeIf { it.isNotEmpty() } ?: libreFmStandIn("key")
+        val libreFmSecret = localProperties.getProperty("LIBREFM_SECRET")
+            ?: System.getenv("LIBREFM_SECRET")?.takeIf { it.isNotEmpty() } ?: libreFmStandIn("secret")
+        buildConfigField("String", "LIBREFM_API_KEY", "\"$libreFmKey\"")
+        buildConfigField("String", "LIBREFM_SECRET", "\"$libreFmSecret\"")
+
+        // The Discord app BlossomTune signs in through (Developer Portal → your app → Application ID).
+        // Discord sends the login back to discord-<id>:/authorize/callback, so the manifest needs it too.
+        // Without one, the Discord page says so instead of opening a login that can't come back.
+        val discordClientId = localProperties.getProperty("DISCORD_CLIENT_ID")
+            ?: System.getenv("DISCORD_CLIENT_ID") ?: ""
+        buildConfigField("String", "DISCORD_CLIENT_ID", "\"$discordClientId\"")
+        manifestPlaceholders["discordRedirectScheme"] =
+            if (discordClientId.isNotBlank()) "discord-$discordClientId" else "blossomtune-discord-unset"
 
 //add nightly build label support
         val isNightly = project.hasProperty("nightly") && project.property("nightly") == "true"
@@ -82,22 +104,27 @@ extensions.configure<ApplicationExtension> {
         create("universal") {
             dimension = "abi"
             buildConfigField("String", "ARCHITECTURE", "\"universal\"")
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64") }
         }
         create("arm64") {
             dimension = "abi"
             buildConfigField("String", "ARCHITECTURE", "\"arm64\"")
+            ndk { abiFilters += "arm64-v8a" }
         }
         create("armeabi") {
             dimension = "abi"
             buildConfigField("String", "ARCHITECTURE", "\"armeabi\"")
+            ndk { abiFilters += "armeabi-v7a" }
         }
         create("x86") {
             dimension = "abi"
             buildConfigField("String", "ARCHITECTURE", "\"x86\"")
+            ndk { abiFilters += "x86" }
         }
         create("x86_64") {
             dimension = "abi"
             buildConfigField("String", "ARCHITECTURE", "\"x86_64\"")
+            ndk { abiFilters += "x86_64" }
         }
     }
 
@@ -181,6 +208,27 @@ extensions.configure<ApplicationExtension> {
             // The provider modules only publish debug/release variants; without this, resolving
             // a "profileable" variant of :providers:* fails.
             matchingFallbacks += listOf("release")
+            proguardFiles("proguard-profileable.pro")
+        }
+
+        // not debuggable so ART uses the baseline profile, but no r8, so it builds about as fast as debug
+        create("fast") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".fast"
+            isDebuggable = false
+            isProfileable = true
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+            // the provider modules only publish debug and release variants
+            matchingFallbacks += listOf("debug")
+        }
+    }
+
+    // audio pass's direct usb driver and aaudio exclusive output (app/src/main/cpp)
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
         }
     }
 
@@ -277,7 +325,9 @@ composeCompiler {
     // Both release and profileable must strip source info — profileable exists precisely to
     // measure release performance, so it has to be compiled identically.
     val buildingReleaseLike = gradle.startParameter.taskNames.any { name ->
-        name.contains("Release", ignoreCase = true) || name.contains("Profileable", ignoreCase = true)
+        name.contains("Release", ignoreCase = true) ||
+            name.contains("Profileable", ignoreCase = true) ||
+            name.contains("Fast", ignoreCase = true)
     }
     includeSourceInformation.set(!buildingReleaseLike)
 
@@ -318,6 +368,9 @@ dependencies {
     implementation(libs.datastore)
 
     implementation(libs.compose.runtime)
+    // the profiling build names every composable in system traces, so a slow frame says what it was
+    "profileableImplementation"("androidx.compose.runtime:runtime-tracing:1.10.2")
+    "profileableImplementation"("androidx.tracing:tracing-perfetto-binary:1.0.1")
     implementation(libs.compose.foundation)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.util)
@@ -351,9 +404,18 @@ dependencies {
 
     implementation(libs.media3)
     implementation(libs.media3.session)
+    implementation(libs.car.app)
+    implementation(libs.car.app.projected)
+    implementation(libs.androidx.media)
     implementation(libs.media3.hls)
+    implementation(libs.media3.dash)
     implementation(libs.media3.ui)
     implementation(libs.media3.okhttp)
+    // ffmpeg decodes alac (and flac, opus...) on phones that have no decoder of their own for it
+    implementation(libs.media3.ffmpeg)
+    // song share videos: decode the background, mix in the song, encode the mp4
+    implementation(libs.media3.transformer)
+    implementation(libs.media3.effect)
 
     // Google Cast - only included in GMS flavor (not available in F-Droid/FOSS builds)
     "gmsImplementation"(libs.media3.cast)
@@ -375,7 +437,6 @@ dependencies {
     implementation(project(":providers:innertube"))
     implementation(project(":providers:kugou"))
     implementation(project(":providers:lrclib"))
-    implementation(project(":providers:kizzy"))
     implementation(project(":providers:lastfm"))
     implementation(project(":providers:betterlyrics"))
     implementation(project(":providers:simpmusic"))
@@ -385,15 +446,23 @@ dependencies {
     implementation(project(":providers:artistvideo"))
     implementation(project(":providers:applecanvas"))
     implementation(project(":providers:paxsenixlyrics"))
+    implementation(project(":providers:directlyrics"))
+    implementation(project(":providers:musixmatch"))
+    implementation(project(":providers:genius"))
+    implementation(project(":providers:wikipedia"))
     implementation(project(":modules:api"))
     implementation(project(":modules:applemusic"))
     implementation(project(":modules:monochrome"))
+    implementation(project(":modules:jiosaavn"))
+    implementation(project(":modules:bridge"))
 
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.json)
+    // finds song streams first, with blossomtune's own client walk as the backup (YTPlayerUtils)
+    implementation(libs.innertubex)
 
     // Protobuf for message serialization (lite version for Android)
     implementation(libs.protobuf.javalite)
@@ -409,4 +478,7 @@ dependencies {
     implementation(libs.androidx.webkit)
 
     testImplementation(libs.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }

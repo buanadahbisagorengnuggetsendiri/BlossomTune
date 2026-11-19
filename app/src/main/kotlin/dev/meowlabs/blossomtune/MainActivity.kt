@@ -6,12 +6,14 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -34,6 +36,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.areNavigationBarsVisible
+import androidx.compose.foundation.layout.areStatusBarsVisible
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
@@ -68,12 +71,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import dev.meowlabs.blossomtune.ui.utils.isWideLayout
+import dev.meowlabs.blossomtune.link.isTelevision
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,6 +94,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import com.airbnb.lottie.compose.LottieAnimation
@@ -96,6 +107,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.createLifecycleAwareWindowRecomposer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -136,8 +148,9 @@ import com.music.innertube.models.SongItem
 import com.music.innertube.models.WatchEndpoint
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.AppBarHeight
-import dev.meowlabs.blossomtune.constants.AppLanguageKey
 import dev.meowlabs.blossomtune.constants.DarkModeKey
+import dev.meowlabs.blossomtune.ui.utils.defaultMotionEnter
+import dev.meowlabs.blossomtune.ui.utils.defaultMotionExit
 import dev.meowlabs.blossomtune.ui.theme.ForceDarkTheme
 import dev.meowlabs.blossomtune.constants.DefaultOpenTabKey
 import dev.meowlabs.blossomtune.constants.CropAlbumArtKey
@@ -166,7 +179,6 @@ import dev.meowlabs.blossomtune.ui.component.glassRoot
 import dev.meowlabs.blossomtune.constants.PauseListenHistoryKey
 import dev.meowlabs.blossomtune.constants.PauseSearchHistoryKey
 import dev.meowlabs.blossomtune.constants.PureBlackKey
-import dev.meowlabs.blossomtune.constants.SYSTEM_DEFAULT
 import dev.meowlabs.blossomtune.constants.SelectedThemeColorKey
 import dev.meowlabs.blossomtune.db.MusicDatabase
 import dev.meowlabs.blossomtune.db.entities.SearchHistory
@@ -179,14 +191,16 @@ import dev.meowlabs.blossomtune.playback.PlayerConnection
 import dev.meowlabs.blossomtune.playback.queues.YouTubeQueue
 import dev.meowlabs.blossomtune.ui.component.AppNavigationBar
 import dev.meowlabs.blossomtune.ui.component.onTabTapped
-import dev.meowlabs.blossomtune.ui.component.AppNavigationRail
 import dev.meowlabs.blossomtune.ui.component.LocalBottomSheetPageState
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
+import dev.meowlabs.blossomtune.ui.component.BottomSheetState
 import dev.meowlabs.blossomtune.ui.component.rememberBottomSheetState
 import dev.meowlabs.blossomtune.ui.component.shimmer.ShimmerTheme
 import dev.meowlabs.blossomtune.ui.menu.YouTubeSongMenu
 import dev.meowlabs.blossomtune.ui.player.BottomSheetPlayer
 import dev.meowlabs.blossomtune.ui.screens.Screens
+import dev.meowlabs.blossomtune.ui.screens.search.requestSearchFocus
+import dev.meowlabs.blossomtune.ui.screens.search.searchRoute
 import dev.meowlabs.blossomtune.ui.screens.navigationBuilder
 import dev.meowlabs.blossomtune.ui.screens.DarkMode
 import dev.meowlabs.blossomtune.ui.screens.NavigationTab
@@ -210,11 +224,11 @@ import dev.meowlabs.blossomtune.utils.get
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.utils.reportException
-import dev.meowlabs.blossomtune.utils.setAppLocale
 import com.valentinilk.shimmer.LocalShimmerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dev.meowlabs.blossomtune.ui.screens.setup.SetupWizardContainer
 import kotlinx.coroutines.Dispatchers
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -222,9 +236,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.net.URLDecoder
-import java.net.URLEncoder
-import java.util.Locale
 import javax.inject.Inject
 
 private const val BackgroundZoomOnExpand = true
@@ -252,12 +263,16 @@ private fun isUpgradedInstall(context: android.content.Context): Boolean =
         info.lastUpdateTime > info.firstInstallTime
     }.getOrDefault(false)
 
-private fun markOnboardedOnThisInstall(context: android.content.Context) {
+// also called by the import once it has swapped the old library in, so onboarding doesn't show again
+internal fun markOnboardedOnThisInstall(context: android.content.Context) {
     runCatching { java.io.File(context.noBackupFilesDir, SETUP_MARKER_FILE).createNewFile() }
 }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(dev.meowlabs.blossomtune.i18n.AppLanguage.wrapActivityContext(newBase))
+    }
     companion object {
         private const val ACTION_SEARCH = "dev.meowlabs.blossomtune.action.SEARCH"
         private const val ACTION_LIBRARY = "dev.meowlabs.blossomtune.action.LIBRARY"
@@ -272,6 +287,10 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var syncUtils: SyncUtils
 
+    // made only when first used, so a phone with nothing paired never builds it on the way in
+    @Inject
+    lateinit var phoneLink: dagger.Lazy<dev.meowlabs.blossomtune.link.phone.PhoneLinkHost>
+
     private lateinit var navController: NavHostController
     private var pendingIntent: Intent? = null
 
@@ -280,15 +299,21 @@ class MainActivity : ComponentActivity() {
     /** Bumped when launched from an update notification; the composition opens the version sheet. */
     private var openUpdateRequests by mutableStateOf(0)
 
+    // the device link's notification asks for its sheet through this
+    private var openDevicesRequests by mutableStateOf(0)
+
     /** A fresh launch from the launcher plays the launch intro (ui/launch/LaunchIntro.kt). */
     private var introRequested = false
+
+    // keeps the app's animation speed following android's own animation scale while we're open
+    private var systemScaleObserver: android.database.ContentObserver? = null
     private var introPlays = false
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             if (service is MusicBinder) {
                 try {
-                    playerConnection = PlayerConnection(this@MainActivity, service, database, lifecycleScope)
+                    connectTo(service)
                     Timber.tag("MainActivity").d("PlayerConnection created successfully")
                 } catch (e: Exception) {
                     Timber.tag("MainActivity").e(e, "Failed to create PlayerConnection")
@@ -296,7 +321,7 @@ class MainActivity : ComponentActivity() {
                     lifecycleScope.launch {
                         delay(500)
                         try {
-                            playerConnection = PlayerConnection(this@MainActivity, service, database, lifecycleScope)
+                            connectTo(service)
                         } catch (e2: Exception) {
                             Timber.tag("MainActivity").e(e2, "Failed to create PlayerConnection on retry")
                         }
@@ -306,13 +331,30 @@ class MainActivity : ComponentActivity() {
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            dev.meowlabs.blossomtune.link.LinkPlayer.release(playerConnection)
             playerConnection?.dispose()
             playerConnection = null
         }
     }
 
+    // each return to the app binds again, release the connection it replaces or its listener and poller keep running
+    private fun connectTo(binder: MusicBinder) {
+        val previous = playerConnection
+        playerConnection = PlayerConnection(this, binder, database, lifecycleScope).also {
+            // the retry above can land after onStop, so it starts resting if the app is already hidden
+            it.isUiVisible.value = lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+            // another phone steering this one plays through it
+            dev.meowlabs.blossomtune.link.LinkPlayer.connection = it
+        }
+        dev.meowlabs.blossomtune.link.LinkPlayer.release(previous)
+        previous?.dispose()
+    }
+
     override fun onStart() {
         super.onStart()
+        playerConnection?.isUiVisible?.value = true
+        // paired phones are checked on, and a steered device asked what it plays, only while blossomtune is on screen
+        if (!isTelevision()) phoneLink.get().appShown()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -328,20 +370,37 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        playerConnection?.isUiVisible?.value = false
+        if (!isTelevision()) phoneLink.get().appHidden()
         unbindService(serviceConnection)
         super.onStop()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        systemScaleObserver?.let { contentResolver.unregisterContentObserver(it) }
+        systemScaleObserver = null
         if (dataStore.get(StopMusicOnTaskClearKey, false) &&
             playerConnection?.isPlaying?.value == true &&
             isFinishing
         ) {
             stopService(Intent(this, MusicService::class.java))
             unbindService(serviceConnection)
-            playerConnection = null
         }
+        // the service outlives us, so take our listener off its player or a recreate leaves the old one firing
+        dev.meowlabs.blossomtune.link.LinkPlayer.release(playerConnection)
+        playerConnection?.dispose()
+        playerConnection = null
+        // closed for good while the music plays on: the covers decoded for this screen have nothing left to show on
+        if (isFinishing) coil3.SingletonImageLoader.get(this).memoryCache?.clear()
+    }
+
+    // home can show the same playlist in two rows, so the card under the finger claims the page's grow animation before the tap lands
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            dev.meowlabs.blossomtune.ui.component.claimContainerTransformAt(androidx.compose.ui.geometry.Offset(ev.x, ev.y))
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -362,22 +421,36 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().handOffToLaunchIntro { introPlays }
         super.onCreate(savedInstanceState)
+        // a tv that opens the phone app from an old shortcut gets the big-screen one instead
+        if (savedInstanceState == null && intent?.action == Intent.ACTION_MAIN && isTelevision()) {
+            startActivity(Intent(this, dev.meowlabs.blossomtune.ui.tv.TvActivity::class.java))
+            finish()
+            return
+        }
         introRequested = savedInstanceState == null && intent?.action == Intent.ACTION_MAIN
         if (introRequested) LaunchGate.begin() else LaunchGate.skip()
+        // kept in step with the icon in use, in case it was switched some way other than customisation
+        dev.meowlabs.blossomtune.utils.AppIcons.syncSplash(this)
+        // the first start after an import says so once the intro is out of the way
+        dev.meowlabs.blossomtune.importer.transfer.TransferRestore.takeRestoredNote(this)?.let { note ->
+            lifecycleScope.launch {
+                LaunchGate.awaitIntro()
+                dev.meowlabs.blossomtune.ui.component.TopToaster.show(note, iconRes = R.drawable.backup, durationMs = 5000L)
+            }
+        }
         if (savedInstanceState == null && intent?.action == dev.meowlabs.blossomtune.ui.screens.update.ActionOpenUpdate) {
             openUpdateRequests++
         }
 
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_LTR
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            val locale = dataStore[AppLanguageKey]
-                ?.takeUnless { it == SYSTEM_DEFAULT }
-                ?.let { Locale.forLanguageTag(it) }
-                ?: Locale.getDefault()
-            setAppLocale(this, locale)
+        // upright unless landscape is unlocked in Experimental; set before the first frame, so it never opens sideways and then turns
+        if (!isTelevision()) {
+            dev.meowlabs.blossomtune.ui.utils.WindowTurning.setUnlocked(this, dataStore[dev.meowlabs.blossomtune.constants.LandscapeUnlockedKey] == true)
         }
+        systemScaleObserver = dev.meowlabs.blossomtune.ui.utils.AppMotion.followSystemScale(this)
+        moveOffOldLyricsShaderSwitch()
+        followLookSettings()
 
         lifecycleScope.launch {
             dataStore.data
@@ -395,7 +468,12 @@ class MainActivity : ComponentActivity() {
                 }
         }
 
-        setContent {
+        // our own animation scale goes into the window's recomposer, so the customize speed and the off switch reach every animation
+        val motionRecomposer = window.decorView.createLifecycleAwareWindowRecomposer(
+            dev.meowlabs.blossomtune.ui.utils.AppMotion.durationScale,
+            lifecycle,
+        )
+        setContent(parent = motionRecomposer) {
             blossomtuneApp(
                 playerConnection = playerConnection,
                 database = database,
@@ -425,7 +503,8 @@ class MainActivity : ComponentActivity() {
                 // Same cached lookup the version sheet and home prompt use (this app's own
                 // releases - the old checker here queried another project's repo). Launch-time
                 // only: nothing about updates runs in the background.
-                val release = dev.meowlabs.blossomtune.core.updater.getLatestRelease().getOrNull()
+                val channel = dev.meowlabs.blossomtune.core.updater.updateChannel(context)
+                val release = dev.meowlabs.blossomtune.core.updater.getLatestRelease(channel).getOrNull()
                 val isAvailable = release != null &&
                     dev.meowlabs.blossomtune.core.updater.isNewerThanInstalled(release.version)
                 saveUpdateAvailableState(context, isAvailable)
@@ -437,12 +516,21 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // "Keep screen on" (the player's menu, or a chevron button): the phone doesn't sleep while
+        // BlossomTune is on screen. A window flag only holds while the app is in front, which is the point.
+        val keepScreenOn by rememberPreference(dev.meowlabs.blossomtune.constants.KeepScreenOn, defaultValue = false)
+        val rootView = androidx.compose.ui.platform.LocalView.current
+        DisposableEffect(keepScreenOn) {
+            rootView.keepScreenOn = keepScreenOn
+            onDispose { rootView.keepScreenOn = false }
+        }
+
         LaunchedEffect(enableHighRefreshRate) {
             val window = this@MainActivity.window
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val layoutParams = window.attributes
                 if (enableHighRefreshRate) {
-                    layoutParams.preferredDisplayModeId = 0
+                    layoutParams.preferredDisplayModeId = highRefreshModeId()
                 } else {
                     val modes = window.windowManager.defaultDisplay.supportedModes
                     val mode60 = modes.firstOrNull { kotlin.math.abs(it.refreshRate - 60f) < 1f }
@@ -457,8 +545,10 @@ class MainActivity : ComponentActivity() {
                 val params = window.attributes
                 if (enableHighRefreshRate) {
                     params.preferredRefreshRate = 0f
+                    params.preferredDisplayModeId = highRefreshModeId()
                 } else {
                     params.preferredRefreshRate = 60f
+                    params.preferredDisplayModeId = 0
                 }
                 window.attributes = params
             }
@@ -531,7 +621,6 @@ class MainActivity : ComponentActivity() {
         BlossomTuneTheme(
             darkTheme = useDarkTheme,
             pureBlack = pureBlack,
-            themeColor = themeColor,
         ) {
             BoxWithConstraints(
                 modifier = Modifier
@@ -543,7 +632,6 @@ class MainActivity : ComponentActivity() {
                 val detailAccentColor = remember { mutableStateOf<Color?>(null) }
                 val focusManager = LocalFocusManager.current
                 val density = LocalDensity.current
-                val configuration = LocalWindowInfo.current
                 val cutoutInsets = WindowInsets.displayCutout
 
                 @OptIn(ExperimentalLayoutApi::class)
@@ -558,6 +646,11 @@ class MainActivity : ComponentActivity() {
                         Screens.MainScreens
                 }
                 val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
+                // flipped in Experimental while the app is open: it starts (or stops) turning right away
+                val (landscapeUnlocked) = rememberPreference(dev.meowlabs.blossomtune.constants.LandscapeUnlockedKey, defaultValue = false)
+                LaunchedEffect(landscapeUnlocked) {
+                    if (!isTelevision()) dev.meowlabs.blossomtune.ui.utils.WindowTurning.setUnlocked(this@MainActivity, landscapeUnlocked)
+                }
 
                 val defaultOpenTab = remember {
                     dataStore[DefaultOpenTabKey].toEnum<NavigationTab>(defaultValue = NavigationTab.HOME)
@@ -575,7 +668,9 @@ class MainActivity : ComponentActivity() {
                     val plays = introRequested && (tabOpenedFromShortcut ?: defaultOpenTab) == NavigationTab.HOME
                     introPlays = plays
                     if (introRequested && !plays) LaunchGate.skip()
-                    LaunchIntroState(plays)
+                    // an anime icon's splash shows the icon itself, so the intro bounces out of it; every other launch starts from the bare mark
+                    val icon = dev.meowlabs.blossomtune.utils.AppIcons.launchedFrom(intent)?.takeIf(dev.meowlabs.blossomtune.utils.AppIcons::splashShows)
+                    LaunchIntroState(plays, icon)
                 }
 
                 val topLevelScreens = remember {
@@ -585,14 +680,16 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                val (query, onQueryChange) = rememberSaveable(stateSaver = TextFieldValue.Saver) {
+                // the state itself, never read here: the sideways search pane writes it on every keystroke, and a read at this level recomposed the whole app per key
+                val queryState = rememberSaveable(stateSaver = TextFieldValue.Saver) {
                     mutableStateOf(TextFieldValue())
                 }
+                val onQueryChange: (TextFieldValue) -> Unit = remember(queryState) { { queryState.value = it } }
 
                 val onSearch: (String) -> Unit = remember {
                     { searchQuery ->
                         if (searchQuery.isNotEmpty()) {
-                            navController.navigate("search/${URLEncoder.encode(searchQuery, "UTF-8")}")
+                            navController.navigate(searchRoute(searchQuery))
 
                             if (dataStore[PauseSearchHistoryKey] != true) {
                                 lifecycleScope.launch(Dispatchers.IO) {
@@ -648,81 +745,61 @@ class MainActivity : ComponentActivity() {
                         currentRoute in SubSettingsRoutes
                 }
 
-                val isLandscape = configuration.containerDpSize.width > configuration.containerDpSize.height
+                // a phone on its side or a tablet: the mini player and the tabs share one pill along the bottom
+                val wideBar = if (isWideLayout()) {
+                    dev.meowlabs.blossomtune.ui.component.rememberWideBar(maxWidth, maxHeight, navigationItems.size)
+                } else null
+                val miniPill = when {
+                    wideBar == null -> dev.meowlabs.blossomtune.ui.component.PhoneMiniPill
+                    shouldShowNavigationBar -> wideBar.miniFrame
+                    else -> wideBar.miniAloneFrame
+                }
 
-                val showRail = isLandscape && !inSearchScreen
-
-                val navPadding = if (shouldShowNavigationBar && !showRail) {
-                    if (slimNav) SlimNavBarHeight else NavigationBarHeight
+                // the row the tabs take along the bottom: the wide bar's shrinks with a short screen
+                val navRowHeight = wideBar?.rowHeight ?: NavigationBarHeight
+                val navPadding = if (shouldShowNavigationBar) {
+                    if (slimNav && wideBar == null) SlimNavBarHeight else navRowHeight
                 } else {
                     0.dp
                 }
 
                 val navigationBarHeight by animateDpAsState(
-                    targetValue = if (shouldShowNavigationBar && !showRail) NavigationBarHeight else 0.dp,
+                    targetValue = if (shouldShowNavigationBar) navRowHeight else 0.dp,
                     animationSpec = NavigationBarAnimationSpec,
                     label = "navBarHeight",
                 )
 
                 val playerBottomSheetState = rememberBottomSheetState(
                     dismissedBound = 0.dp,
-                    collapsedBound = bottomInset +
-                        (if (!showRail && shouldShowNavigationBar) navPadding else 0.dp) +
-                        MiniPlayerHeight,
+                    collapsedBound = when {
+                        // level with the tabs, in the same pill
+                        wideBar != null && shouldShowNavigationBar -> bottomInset + navPadding - wideBar.pillGap
+                        shouldShowNavigationBar -> bottomInset + navPadding + MiniPlayerHeight
+                        else -> bottomInset + MiniPlayerHeight
+                    },
                     expandedBound = maxHeight,
                 )
 
-                // The open player hides the navigation bar: gone once the sheet sits at the top,
-                // back as soon as it heads down - not whenever it stops sitting exactly at the top
-                // (a resize it is catching up with), which brought the bar back over the open player.
-                val playerOpen = playerBottomSheetState.isExpanded
-                val playerHeadingDown = !playerBottomSheetState.isExpandedOrExpanding
-                // Back in the app (from Home, the recents, a dialog) it's hidden again: with
-                // gesture navigation a swipe from the bottom brings it back for good (see
-                // playerNavBarBehavior).
-                val windowFocused = configuration.isWindowFocused
-                LaunchedEffect(playerOpen, playerHeadingDown, windowFocused) {
-                    val controller = WindowCompat.getInsetsController(window, window.decorView.rootView)
-                    if (playerOpen) {
-                        controller.systemBarsBehavior = window.playerNavBarBehavior()
-                        controller.hide(WindowInsetsCompat.Type.navigationBars())
-                    } else if (playerHeadingDown) {
-                        controller.show(WindowInsetsCompat.Type.navigationBars())
-                    }
-                }
-                // A bar a swipe brought back while the player stays open (Samsung's swipe-from-
-                // bottom gestures) goes away again after a moment, as the transient one does.
-                @OptIn(ExperimentalLayoutApi::class)
-                val navBarsShown = WindowInsets.areNavigationBarsVisible
-                LaunchedEffect(playerOpen, navBarsShown) {
-                    if (!playerOpen || !navBarsShown) return@LaunchedEffect
-                    delay(2_500)
-                    WindowCompat.getInsetsController(window, window.decorView.rootView)
-                        .hide(WindowInsetsCompat.Type.navigationBars())
-                }
+                PlayerSystemBarsSync(playerBottomSheetState)
 
+                val sharedBarRow = wideBar != null && shouldShowNavigationBar
                 val playerAwareWindowInsets = remember(
                     bottomInset,
+                    navRowHeight,
                     shouldShowNavigationBar,
                     playerBottomSheetState.isDismissed,
-                    showRail,
+                    sharedBarRow,
                 ) {
                     var bottom = bottomInset
-                    if (shouldShowNavigationBar && !showRail) {
-                        bottom += NavigationBarHeight
+                    if (shouldShowNavigationBar) {
+                        bottom += navRowHeight
                     }
-                    if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                    // in the wide bar the mini player shares the tabs' row, so it takes no room of its own
+                    if (!playerBottomSheetState.isDismissed && !sharedBarRow) bottom += MiniPlayerHeight
                     windowsInsets
                         .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                         .add(WindowInsets(top = AppBarHeight, bottom = bottom))
                 }
-                appBarScrollBehavior(
-                    canScroll = {
-                        !inSearchScreen &&
-                            (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
-                    }
-                )
-
                 val topAppBarScrollBehavior = appBarScrollBehavior(
                     canScroll = {
                         !inSearchScreen &&
@@ -732,18 +809,8 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(navBackStackEntry) {
                     if (inSearchScreen) {
-                        val searchQuery = withContext(Dispatchers.IO) {
-                            val rawQuery = navBackStackEntry?.arguments?.getString("query")
-                            if (!rawQuery.isNullOrEmpty()) {
-                                try {
-                                    URLDecoder.decode(rawQuery, "UTF-8")
-                                } catch (e: IllegalArgumentException) {
-                                    rawQuery
-                                }
-                            } else {
-                                ""
-                            }
-                        }
+                        // navigation already decoded it, see searchRoute
+                        val searchQuery = navBackStackEntry?.arguments?.getString("query").orEmpty()
                         onQueryChange(
                             TextFieldValue(
                                 searchQuery,
@@ -845,15 +912,20 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val pauseListenHistory by rememberPreference(PauseListenHistoryKey, defaultValue = false)
-                val eventCount by database.eventCount().collectAsState(initial = 0)
-                val showHistoryButton = remember(pauseListenHistory, eventCount) {
-                    !(pauseListenHistory && eventCount == 0)
+                // only whether there's any history at all: the count itself grows with every song played, and collecting it here recomposed the whole app on each song change
+                val hasEvents by remember(database) { database.eventCount().map { it > 0 }.distinctUntilChanged() }.collectAsState(initial = true)
+                val showHistoryButton = remember(pauseListenHistory, hasEvents) {
+                    !(pauseListenHistory && !hasEvents)
                 }
 
                 val baseBg = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
 
                 val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
                 val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
+                val blurQuality by rememberEnumPreference(
+                    dev.meowlabs.blossomtune.constants.BlurQualityKey,
+                    dev.meowlabs.blossomtune.ui.component.DefaultBlurQuality,
+                )
                 val swipeToSong by rememberPreference(SwipeToSongKey, false)
 
                 val setupCompleted by rememberPreference(dev.meowlabs.blossomtune.constants.SetupCompletedKey, false)
@@ -882,6 +954,7 @@ class MainActivity : ComponentActivity() {
                     LocalGridItemSize provides gridItemSize,
                     LocalSwipeToSong provides swipeToSong,
                     LocalLaunchIntro provides launchIntro,
+                    dev.meowlabs.blossomtune.ui.component.LocalBlurQuality provides blurQuality,
                 ) {
                     dev.meowlabs.blossomtune.ui.component.PopupSheetHost(
                         states = listOf(
@@ -890,8 +963,15 @@ class MainActivity : ComponentActivity() {
                             dev.meowlabs.blossomtune.ui.component.LocalZoomOutOverlayState.current,
                         ),
                     ) {
+                    dev.meowlabs.blossomtune.ui.screens.devices.DeviceIntegrationOpener(requests = openDevicesRequests)
+                    // a phone paired before android 17 can't reach its devices until it's allowed on the wi-fi again
+                    val linkPaired = remember { !isTelevision() && dev.meowlabs.blossomtune.link.phone.PhoneLinkHost.hasPairedDevices(this@MainActivity) }
+                    dev.meowlabs.blossomtune.link.AskForLocalNetwork(wanted = linkPaired, onGranted = { phoneLink.get().advertiseAgain() })
                     dev.meowlabs.blossomtune.ui.screens.update.UpdateNotificationOpener(
                         requests = openUpdateRequests,
+                        onOpenDevSpace = { personIndex ->
+                            navController.navigate("developer_space?person=$personIndex")
+                        },
                     )
                     dev.meowlabs.blossomtune.ui.screens.donate.DonatePromptScheduler(
                         enabled = setupCompleted && onboardedHere && !forceShowSetup,
@@ -902,25 +982,7 @@ class MainActivity : ComponentActivity() {
                                 markOnboardedOnThisInstall(context)
                                 onboardedHere = true
                                 coroutineScope.launch(Dispatchers.IO) {
-
-                                    var savedUriStr = ""
-                                    if (uri != null) {
-                                        try {
-                                            val file = java.io.File(context.filesDir, "profile_pic_${System.currentTimeMillis()}.jpg")
-                                            if (uri.scheme == "file") {
-                                                java.io.File(uri.path!!).copyTo(file, overwrite = true)
-                                            } else {
-                                                val inputStream = context.contentResolver.openInputStream(uri)
-                                                val outputStream = java.io.FileOutputStream(file)
-                                                inputStream?.copyTo(outputStream)
-                                                inputStream?.close()
-                                                outputStream.close()
-                                            }
-                                            savedUriStr = file.absolutePath
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                        }
-                                    }
+                                    val savedUriStr = uri?.let { dev.meowlabs.blossomtune.ui.screens.profile.ProfileStore.copyPhoto(context, it) }.orEmpty()
 
                                     dataStore.updateData { prefs ->
                                         prefs.toMutablePreferences().apply {
@@ -986,12 +1048,7 @@ class MainActivity : ComponentActivity() {
                                                 navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                             ),
                                             modifier = Modifier.windowInsetsPadding(
-                                                if (showRail) {
-                                                    WindowInsets(left = NavigationBarHeight)
-                                                        .add(cutoutInsets.only(WindowInsetsSides.Start))
-                                                } else {
-                                                    cutoutInsets.only(WindowInsetsSides.Start + WindowInsetsSides.End)
-                                                }
+                                                cutoutInsets.only(WindowInsetsSides.Start + WindowInsetsSides.End)
                                             )
                                         )
                                     }
@@ -1011,23 +1068,19 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
-                                val onSearchLongClick: () -> Unit = remember(navController) {
-                                    {
-                                        navController.navigate("recognition") {
-                                            launchSingleTop = true
-                                        }
-                                    }
+                                // Two quick taps on Search open its field, ready to type. (A hold used
+                                // to open song recognition, whose page is gone: it crashed the app.)
+                                val onSearchDoubleTap: () -> Unit = remember(navController) {
+                                    { navController.requestSearchFocus() }
                                 }
 
-                                val navBarTotalHeight = bottomInset + NavigationBarHeight
+                                val navBarTotalHeight = bottomInset + navRowHeight
 
-                                if (!showRail && currentRoute != "wrapped" && currentRoute != "update") {
+                                if (currentRoute != "wrapped" && currentRoute != "update") {
 
                                     val detailAccent = LocalDetailAccentColor.current.value
-                                    // Di Home tidak ada aksen halaman: scrim harus ikut latar,
-                                    // bukan hitam. Hitam di halaman es = balok gelap di tema terang.
                                     val navScrimTint by androidx.compose.animation.animateColorAsState(
-                                        targetValue = detailAccent ?: MaterialTheme.colorScheme.background,
+                                        targetValue = detailAccent ?: Color.Black,
                                         animationSpec = tween(500),
                                         label = "navScrimTint"
                                     )
@@ -1041,16 +1094,20 @@ class MainActivity : ComponentActivity() {
                                                 .launchRise(order = 3)
                                                 .fillMaxWidth()
                                                 .height(bottomInset + navPadding + 40.dp)
-                                                .background(
-                                                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                                                        colors = listOf(
-                                                            Color.Transparent,
-                                                            navScrimTint.copy(alpha = 0.5f),
-                                                            navScrimTint.copy(alpha = 0.9f),
-                                                            navScrimTint
+                                                // the tint fades over 500 ms, read it while drawing so the bar doesn't recompose
+                                                .drawBehind {
+                                                    val tint = navScrimTint
+                                                    drawRect(
+                                                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                                                            colors = listOf(
+                                                                Color.Transparent,
+                                                                tint.copy(alpha = 0.5f),
+                                                                tint.copy(alpha = 0.9f),
+                                                                tint
+                                                            )
                                                         )
                                                     )
-                                                )
+                                                }
                                                 .graphicsLayer {
                                                     val navBarHeightPx = navigationBarHeight.toPx()
                                                     val totalHeightPx = navBarTotalHeight.toPx()
@@ -1060,7 +1117,7 @@ class MainActivity : ComponentActivity() {
                                                     } else {
                                                         val progress = playerBottomSheetState.progress.coerceIn(0f, 1f)
                                                         val slideOffset = totalHeightPx * progress
-                                                        val hideOffset = totalHeightPx * (1 - navBarHeightPx / NavigationBarHeight.toPx())
+                                                        val hideOffset = totalHeightPx * (1 - navBarHeightPx / navRowHeight.toPx())
                                                         slideOffset + hideOffset
                                                     }
                                                 }
@@ -1069,54 +1126,83 @@ class MainActivity : ComponentActivity() {
                                         }
 
                                         if (!hideAppChrome.value) {
-                                        BottomSheetPlayer(
-                                            state = playerBottomSheetState,
-                                            navController = navController,
-                                            pureBlack = pureBlack,
-                                            modifier = Modifier.launchRise(order = 3),
-                                        )
+                                        // the bar slides away as the player opens or a page without tabs comes up, every piece of it together
+                                        val barMotion = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .launchRise(order = 3)
+                                            .height(bottomInset + navPadding)
+                                            .graphicsLayer {
+                                                val navBarHeightPx = navigationBarHeight.toPx()
+                                                val totalHeightPx = navBarTotalHeight.toPx()
 
-                                        AppNavigationBar(
-                                            navigationItems = navigationItems,
-                                            currentRoute = currentRoute,
-                                            selectedTabRoute = selectedTabRoute,
-                                            onItemClick = onNavItemClick,
-                                            pureBlack = pureBlack,
-                                            slimNav = slimNav,
-                                            onSearchLongClick = onSearchLongClick,
-                                            modifier = Modifier
-                                                .align(Alignment.BottomCenter)
-                                                .launchRise(order = 3)
-                                                .height(bottomInset + navPadding)
+                                                val progress = playerBottomSheetState.progress.coerceIn(0f, 1f)
 
-                                                .graphicsLayer {
-                                                    val navBarHeightPx = navigationBarHeight.toPx()
-                                                    val totalHeightPx = navBarTotalHeight.toPx()
-
-                                                    val progress = playerBottomSheetState.progress.coerceIn(0f, 1f)
-
-                                                    translationY = if (navBarHeightPx == 0f) {
-                                                        totalHeightPx
-                                                    } else {
-                                                        val slideOffset = totalHeightPx * progress
-                                                        val hideOffset = totalHeightPx * (1 - navBarHeightPx / NavigationBarHeight.toPx())
-                                                        slideOffset + hideOffset
-                                                    }
-
-                                                    alpha = (1f - progress / 0.6f).coerceIn(0f, 1f)
+                                                translationY = if (navBarHeightPx == 0f) {
+                                                    totalHeightPx
+                                                } else {
+                                                    val slideOffset = totalHeightPx * progress
+                                                    val hideOffset = totalHeightPx * (1 - navBarHeightPx / navRowHeight.toPx())
+                                                    slideOffset + hideOffset
                                                 }
+
+                                                alpha = (1f - progress / 0.6f).coerceIn(0f, 1f)
+                                            }
+                                        // the wide pill shrinks onto the tabs while nothing is playing, read while laying out
+                                        val withPlayer = animateFloatAsState(
+                                            targetValue = if (playerBottomSheetState.isDismissed) 0f else 1f,
+                                            animationSpec = spring(dampingRatio = 0.86f, stiffness = 380f),
+                                            label = "wideBarWithPlayer",
                                         )
+                                        val withPlayerNow = remember(withPlayer) { { withPlayer.value } }
+
+                                        if (wideBar != null) {
+                                            dev.meowlabs.blossomtune.ui.component.WideBarBackground(
+                                                bar = wideBar,
+                                                withPlayer = withPlayerNow,
+                                                pureBlack = pureBlack,
+                                                modifier = barMotion.fillMaxWidth(),
+                                            )
+                                        }
+
+                                        CompositionLocalProvider(dev.meowlabs.blossomtune.ui.component.LocalMiniPillFrame provides miniPill) {
+                                            BottomSheetPlayer(
+                                                state = playerBottomSheetState,
+                                                navController = navController,
+                                                pureBlack = pureBlack,
+                                                modifier = Modifier.launchRise(order = 3),
+                                            )
+                                        }
+
+                                        if (wideBar != null) {
+                                            dev.meowlabs.blossomtune.ui.component.WideBarTabs(
+                                                bar = wideBar,
+                                                withPlayer = withPlayerNow,
+                                                navigationItems = navigationItems,
+                                                selectedTabRoute = selectedTabRoute,
+                                                onItemClick = onNavItemClick,
+                                                onSearchDoubleTap = onSearchDoubleTap,
+                                                modifier = barMotion.fillMaxWidth(),
+                                            )
+                                            dev.meowlabs.blossomtune.ui.component.WideBarExtras(
+                                                bar = wideBar,
+                                                withPlayer = withPlayerNow,
+                                                shown = !playerBottomSheetState.isDismissed,
+                                                modifier = barMotion.fillMaxWidth(),
+                                            )
+                                        } else {
+                                            AppNavigationBar(
+                                                navigationItems = navigationItems,
+                                                currentRoute = currentRoute,
+                                                selectedTabRoute = selectedTabRoute,
+                                                onItemClick = onNavItemClick,
+                                                pureBlack = pureBlack,
+                                                slimNav = slimNav,
+                                                onSearchDoubleTap = onSearchDoubleTap,
+                                                modifier = barMotion,
+                                            )
+                                        }
                                         }
                                     }
-                                } else {
-                                    if (currentRoute != "wrapped" && currentRoute != "update") {
-                                        BottomSheetPlayer(
-                                            state = playerBottomSheetState,
-                                            navController = navController,
-                                            pureBlack = pureBlack
-                                        )
-                                    }
-
                                 }
                             },
                             modifier = Modifier
@@ -1124,37 +1210,6 @@ class MainActivity : ComponentActivity() {
                                 .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
                         ) {
                             Row(Modifier.fillMaxSize()) {
-                                val onRailItemClick: (Screens, Boolean) -> Unit = remember(navController, coroutineScope, topAppBarScrollBehavior, playerBottomSheetState) {
-                                    { screen: Screens, isSelected: Boolean ->
-                                        if (playerBottomSheetState.isExpanded) {
-                                            playerBottomSheetState.collapseSoft()
-                                        }
-                                        navController.onTabTapped(screen, isSelected) {
-                                            coroutineScope.launch {
-                                                topAppBarScrollBehavior.state.resetHeightOffset()
-                                            }
-                                        }
-                                    }
-                                }
-
-                                val onRailSearchLongClick: () -> Unit = remember(navController) {
-                                    {
-                                        navController.navigate("recognition") {
-                                            launchSingleTop = true
-                                        }
-                                    }
-                                }
-
-                                if (showRail && currentRoute != "wrapped" && currentRoute != "update") {
-                                    AppNavigationRail(
-                                        navigationItems = navigationItems,
-                                        currentRoute = currentRoute,
-                                        selectedTabRoute = selectedTabRoute,
-                                        onItemClick = onRailItemClick,
-                                        pureBlack = pureBlack,
-                                        onSearchLongClick = onRailSearchLongClick
-                                    )
-                                }
                                 Box(
                                     Modifier
                                         .weight(1f)
@@ -1198,6 +1253,34 @@ class MainActivity : ComponentActivity() {
                                         LocalSharedTransitionScope provides this,
                                         LocalAppContentObscured provides appContentObscured,
                                     ) {
+                                    // the settings list stays at the left of a wide screen while its pages open beside it
+                                    val settingsPane = isWideLayout() &&
+                                        dev.meowlabs.blossomtune.ui.screens.settings.showsSettingsPane(backStack, currentRoute)
+                                    // one glass capture for both panes so the bar frosts what's under it, clear of a sideways phone's side nav bar (its shown size, so hiding it moves nothing)
+                                    Row(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .windowInsetsPadding(WindowInsets.stableSystemBars.only(WindowInsetsSides.Horizontal))
+                                            .glassRoot(glassState, isActive = { true })
+                                    ) {
+                                    if (settingsPane) {
+                                        dev.meowlabs.blossomtune.ui.screens.settings.SettingsListPane(
+                                            navController = navController,
+                                            selectedRoute = dev.meowlabs.blossomtune.ui.screens.settings.settingsPaneSelection(backStack),
+                                        )
+                                    }
+                                    // on its side the search field and its history stay at the left while the categories or results change beside it
+                                    if (dev.meowlabs.blossomtune.ui.utils.isLandscapeLayout() &&
+                                        dev.meowlabs.blossomtune.ui.screens.search.showsSearchPane(currentRoute)
+                                    ) {
+                                        dev.meowlabs.blossomtune.ui.screens.search.SearchSidePane(
+                                            navController = navController,
+                                            currentRoute = currentRoute,
+                                            query = queryState,
+                                            onQueryChange = onQueryChange,
+                                            pureBlack = pureBlack,
+                                        )
+                                    }
                                     NavHost(
                                         navController = navController,
                                         startDestination = when (tabOpenedFromShortcut ?: defaultOpenTab) {
@@ -1209,51 +1292,57 @@ class MainActivity : ComponentActivity() {
                                         // each page slides by the tab it belongs to, not by its own route: an
                                         // album open in the Library moves like the Library when you switch tabs
                                         enterTransition = {
-                                            val stack = navController.currentBackStack.value
-                                            val currentRouteIndex = tabOwnership.indexOf(targetState, stack)
-                                            val previousRouteIndex = tabOwnership.indexOf(initialState, stack)
+                                            defaultMotionEnter {
+                                                val stack = navController.currentBackStack.value
+                                                val currentRouteIndex = tabOwnership.indexOf(targetState, stack)
+                                                val previousRouteIndex = tabOwnership.indexOf(initialState, stack)
 
-                                            if (currentRouteIndex == -1 || currentRouteIndex >= previousRouteIndex)
-                                                slideInHorizontally { it / 8 } + fadeIn(tween(200))
-                                            else
-                                                slideInHorizontally { -it / 8 } + fadeIn(tween(200))
+                                                if (currentRouteIndex == -1 || currentRouteIndex >= previousRouteIndex)
+                                                    slideInHorizontally { it / 8 } + fadeIn(tween(200))
+                                                else
+                                                    slideInHorizontally { -it / 8 } + fadeIn(tween(200))
+                                            }
                                         },
 
                                         exitTransition = {
-                                            val stack = navController.currentBackStack.value
-                                            val currentRouteIndex = tabOwnership.indexOf(initialState, stack)
-                                            val targetRouteIndex = tabOwnership.indexOf(targetState, stack)
+                                            defaultMotionExit {
+                                                val stack = navController.currentBackStack.value
+                                                val currentRouteIndex = tabOwnership.indexOf(initialState, stack)
+                                                val targetRouteIndex = tabOwnership.indexOf(targetState, stack)
 
-                                            if (targetRouteIndex == -1 || targetRouteIndex >= currentRouteIndex)
-                                                slideOutHorizontally { -it / 8 } + fadeOut(tween(200))
-                                            else
-                                                slideOutHorizontally { it / 8 } + fadeOut(tween(200))
+                                                if (targetRouteIndex == -1 || targetRouteIndex >= currentRouteIndex)
+                                                    slideOutHorizontally { -it / 8 } + fadeOut(tween(200))
+                                                else
+                                                    slideOutHorizontally { it / 8 } + fadeOut(tween(200))
+                                            }
                                         },
 
                                         popEnterTransition = {
-                                            val stack = navController.currentBackStack.value
-                                            val currentRouteIndex = tabOwnership.indexOf(targetState, stack)
-                                            val previousRouteIndex = tabOwnership.indexOf(initialState, stack)
+                                            defaultMotionEnter {
+                                                val stack = navController.currentBackStack.value
+                                                val currentRouteIndex = tabOwnership.indexOf(targetState, stack)
+                                                val previousRouteIndex = tabOwnership.indexOf(initialState, stack)
 
-                                            if (previousRouteIndex != -1 && previousRouteIndex < currentRouteIndex)
-                                                slideInHorizontally { it / 8 } + fadeIn(tween(200))
-                                            else
-                                                slideInHorizontally { -it / 8 } + fadeIn(tween(200))
+                                                if (previousRouteIndex != -1 && previousRouteIndex < currentRouteIndex)
+                                                    slideInHorizontally { it / 8 } + fadeIn(tween(200))
+                                                else
+                                                    slideInHorizontally { -it / 8 } + fadeIn(tween(200))
+                                            }
                                         },
 
                                         popExitTransition = {
-                                            val stack = navController.currentBackStack.value
-                                            val currentRouteIndex = tabOwnership.indexOf(initialState, stack)
-                                            val targetRouteIndex = tabOwnership.indexOf(targetState, stack)
+                                            defaultMotionExit {
+                                                val stack = navController.currentBackStack.value
+                                                val currentRouteIndex = tabOwnership.indexOf(initialState, stack)
+                                                val targetRouteIndex = tabOwnership.indexOf(targetState, stack)
 
-                                            if (currentRouteIndex != -1 && currentRouteIndex < targetRouteIndex)
-                                                slideOutHorizontally { -it / 8 } + fadeOut(tween(200))
-                                            else
-                                                slideOutHorizontally { it / 8 } + fadeOut(tween(200))
+                                                if (currentRouteIndex != -1 && currentRouteIndex < targetRouteIndex)
+                                                    slideOutHorizontally { -it / 8 } + fadeOut(tween(200))
+                                                else
+                                                    slideOutHorizontally { it / 8 } + fadeOut(tween(200))
+                                            }
                                         },
-                                        modifier = Modifier
-                                            .glassRoot(glassState, isActive = { true })
-                                            .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                                        modifier = Modifier.weight(1f)
                                     ) {
                                         navigationBuilder(
                                             navController = navController,
@@ -1264,14 +1353,31 @@ class MainActivity : ComponentActivity() {
                                     }
                                     }
                                     }
+                                    }
                                 }
                             }
                         }
                     }
                     }
 
+                    // "controlling living room tv" sits over the app at the top left, and steps aside while the player is open
+                    val playerOpen by remember { derivedStateOf { playerBottomSheetState.progress > 0.2f } }
+                    if (!playerOpen) {
+                        Box(Modifier.fillMaxSize()) {
+                            dev.meowlabs.blossomtune.ui.screens.devices.ControllingPill(
+                                Modifier
+                                    .align(Alignment.TopStart)
+                                    .windowInsetsPadding(WindowInsets.stableStatusBars)
+                                    .padding(start = 12.dp, top = 4.dp),
+                            )
+                        }
+                    }
+
                     // action feedback ("Added to Queue", "Undo"...) drops in over the sheets too
                     dev.meowlabs.blossomtune.ui.component.TopToastHost()
+
+                    // "share song" from any menu opens here, over the app and the player
+                    dev.meowlabs.blossomtune.ui.player.share.song.SongShareHost()
 
                     HomeUpdatePrompt(currentRoute = currentRoute)
 
@@ -1311,6 +1417,136 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // fastest mode at the current screen size; android 15+ needs it too, left alone it kept lyrics and the turntable at 60hz on 120hz phones
+    @Suppress("DEPRECATION")
+    private fun highRefreshModeId(): Int {
+        return try {
+            val display = window.windowManager.defaultDisplay
+            val current = display.mode
+            display.supportedModes
+                .filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
+                .maxByOrNull { it.refreshRate }
+                ?.modeId ?: 0
+        } catch (e: Exception) {
+            0
+        }
+    }
+
+    // reads the sheet state here, so its flips don't recompose the whole app root
+    @OptIn(ExperimentalLayoutApi::class)
+    @Composable
+    private fun PlayerSystemBarsSync(state: BottomSheetState) {
+        // The open player hides the navigation bar: gone once the sheet sits at the top,
+        // back as soon as it heads down - not whenever it stops sitting exactly at the top
+        // (a resize it is catching up with), which brought the bar back over the open player.
+        val playerOpen = state.isExpanded
+        val playerHeadingDown = !state.isExpandedOrExpanding
+        // the status bar goes too when customize's top bar is off, on every player style
+        val (statusBarShown) = rememberPreference(dev.meowlabs.blossomtune.constants.PlayerStatusBarKey, defaultValue = dev.meowlabs.blossomtune.constants.PlayerStatusBarDefault)
+        // the full video mode fills the screen sideways, a status bar down one side of it would cut into the picture
+        val (playerStyle) = dev.meowlabs.blossomtune.utils.rememberEnumPreference(
+            dev.meowlabs.blossomtune.constants.PlayerStyleKey,
+            dev.meowlabs.blossomtune.constants.PlayerStyle.FLAGSHIP,
+        )
+        // and the bedside is a clock on the nightstand, a row of notifications over it would only glow in the dark
+        val portrait = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+        // on its side the phone has little height to spare, so every style gets the whole of it
+        val hideStatusBar = !statusBarShown || !portrait || playerStyle == dev.meowlabs.blossomtune.constants.PlayerStyle.VIDEO || playerStyle.isBedside
+        // customize's bottom bar brings the navigation bar back, except where it would cut into the video or glow by the bed
+        val (navBarShown) = rememberPreference(dev.meowlabs.blossomtune.constants.PlayerNavBarKey, defaultValue = dev.meowlabs.blossomtune.constants.PlayerNavBarDefault)
+        val hideNavBar = !navBarShown || playerStyle == dev.meowlabs.blossomtune.constants.PlayerStyle.VIDEO || playerStyle.isBedside
+        // Back in the app (from Home, the recents, a dialog) it's hidden again: with
+        // gesture navigation a swipe from the bottom brings it back for good (see
+        // playerNavBarBehavior).
+        val windowFocused = LocalWindowInfo.current.isWindowFocused
+        LaunchedEffect(playerOpen, playerHeadingDown, windowFocused, hideNavBar) {
+            val controller = WindowCompat.getInsetsController(window, window.decorView.rootView)
+            // one behaviour for both bars, set only here: the ipod used to set its own and broke the back swipe on gesture navigation
+            if (playerOpen && hideNavBar) {
+                controller.systemBarsBehavior = window.playerNavBarBehavior()
+                controller.hide(WindowInsetsCompat.Type.navigationBars())
+            } else if (playerHeadingDown || !hideNavBar) {
+                controller.show(WindowInsetsCompat.Type.navigationBars())
+            }
+        }
+        // the status bar leaves during the last stretch of the open, so its slide runs with the player's instead of after it lands
+        val statusBarAway by remember(state) {
+            derivedStateOf { state.isExpanded || (state.isExpandedOrExpanding && state.progress > StatusBarLeavesAt) }
+        }
+        LaunchedEffect(statusBarAway, hideStatusBar, windowFocused) {
+            val controller = WindowCompat.getInsetsController(window, window.decorView.rootView)
+            if (statusBarAway && hideStatusBar) {
+                controller.systemBarsBehavior = window.playerNavBarBehavior()
+                controller.hide(WindowInsetsCompat.Type.statusBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.statusBars())
+            }
+        }
+        // set before the bar ever hides and left alone after, so hiding it never moves the window off the camera strip; on its side the app always fills the strip, android left it a black bar
+        LaunchedEffect(hideStatusBar, portrait) {
+            window.drawUnderCutout(!portrait || hideStatusBar)
+        }
+        // A bar a swipe brought back while the player stays open (Samsung's swipe-from-
+        // bottom gestures) goes away again after a moment, as the transient one does.
+        val navBarsShown = WindowInsets.areNavigationBarsVisible
+        LaunchedEffect(playerOpen, navBarsShown, hideNavBar) {
+            if (!playerOpen || !navBarsShown || !hideNavBar) return@LaunchedEffect
+            delay(2_500)
+            WindowCompat.getInsetsController(window, window.decorView.rootView)
+                .hide(WindowInsetsCompat.Type.navigationBars())
+        }
+        // same for a status bar pulled down over a player that hides it
+        val statusBarsShown = WindowInsets.areStatusBarsVisible
+        LaunchedEffect(playerOpen, statusBarsShown, hideStatusBar) {
+            if (!playerOpen || !statusBarsShown || !hideStatusBar) return@LaunchedEffect
+            delay(2_500)
+            WindowCompat.getInsetsController(window, window.decorView.rootView)
+                .hide(WindowInsetsCompat.Type.statusBars())
+        }
+    }
+
+    // copies the animation, element blur and cover rounding settings where draw code and the animation scale read them, the moment they're saved
+    private fun followLookSettings() {
+        lifecycleScope.launch {
+            dataStore.data
+                .map { prefs ->
+                    LookSettings(
+                        animations = prefs[dev.meowlabs.blossomtune.constants.EnableElementBlurAnimatorKey] ?: true,
+                        speed = prefs[dev.meowlabs.blossomtune.constants.AnimationSpeedKey] ?: 1f,
+                        elementBlur = prefs[dev.meowlabs.blossomtune.constants.ElementBlurKey] ?: true,
+                        coverRadius = prefs[dev.meowlabs.blossomtune.constants.ThumbnailCornerRadiusKey] ?: 25f,
+                    )
+                }
+                .distinctUntilChanged()
+                .collect { look ->
+                    dev.meowlabs.blossomtune.ui.utils.AppMotion.enabled = look.animations
+                    dev.meowlabs.blossomtune.ui.utils.AppMotion.speed = look.speed
+                    dev.meowlabs.blossomtune.ui.utils.AppMotion.elementBlur = look.elementBlur
+                    val r = look.coverRadius.coerceIn(0f, 45f)
+                    dev.meowlabs.blossomtune.ui.component.HomeCardCornerRadius = r.dp
+                    dev.meowlabs.blossomtune.constants.GridThumbnailCornerRadius = (r * 0.6f).coerceIn(0f, 28f).dp
+                    dev.meowlabs.blossomtune.constants.ThumbnailCornerRadius = (r * 0.35f).coerceIn(0f, 16f).dp
+                }
+        }
+    }
+
+    private data class LookSettings(val animations: Boolean, val speed: Float, val elementBlur: Boolean, val coverRadius: Float)
+
+    // people who had the old lyrics shader switch off land on the matching shaderless lyric style, once
+    private fun moveOffOldLyricsShaderSwitch() {
+        if (dataStore[dev.meowlabs.blossomtune.constants.LyricsWaveAnimationKey] != false) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            dataStore.edit { prefs ->
+                if (prefs[dev.meowlabs.blossomtune.constants.LyricsWaveAnimationKey] != false) return@edit
+                val stored = prefs[dev.meowlabs.blossomtune.constants.LyricsMotionStyleKey]
+                val style = dev.meowlabs.blossomtune.constants.LyricsMotionStyle.entries.firstOrNull { it.name == stored }
+                    ?: dev.meowlabs.blossomtune.constants.LyricsMotionStyle.MOTION
+                prefs[dev.meowlabs.blossomtune.constants.LyricsMotionStyleKey] = style.withoutShader.name
+                prefs.remove(dev.meowlabs.blossomtune.constants.LyricsWaveAnimationKey)
+            }
+        }
+    }
+
     /** Audio files shared to BlossomTune from another app or a file manager are imported as local songs. */
     private fun importSharedAudio(intent: Intent): Boolean {
         if (intent.action != Intent.ACTION_SEND && intent.action != Intent.ACTION_SEND_MULTIPLE) return false
@@ -1327,7 +1563,7 @@ class MainActivity : ComponentActivity() {
             var done = 0
             for (uri in uris) {
                 try {
-                    dev.meowlabs.blossomtune.ui.screens.library.importSharedAudio(applicationContext, database, uri)
+                    dev.meowlabs.blossomtune.importer.importSharedAudio(applicationContext, database, uri)
                     done++
                 } catch (e: Exception) {
                     reportException(e)
@@ -1341,6 +1577,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleDeepLinkIntent(intent: Intent, navController: NavHostController) {
+        // the device link's notification opens its sheet
+        if (intent.action == dev.meowlabs.blossomtune.link.phone.PhoneLinkService.ActionOpenTvLink) {
+            intent.action = null
+            openDevicesRequests++
+            return
+        }
         if (importSharedAudio(intent)) return
         val uri = intent.data ?: intent.extras?.getString(Intent.EXTRA_TEXT)?.toUri() ?: return
         intent.data = null
@@ -1374,7 +1616,7 @@ class MainActivity : ComponentActivity() {
 
             "search" -> {
                 uri.getQueryParameter("q")?.let {
-                    navController.navigate("search/${URLEncoder.encode(it, "UTF-8")}")
+                    navController.navigate(searchRoute(it))
                 }
             }
 
@@ -1439,8 +1681,6 @@ class MainActivity : ComponentActivity() {
 }
 
 val SubSettingsRoutes = setOf(
-    "appearance_settings",
-    "playback_settings",
     "experimental_settings",
     "cipher_settings",
     "playback_diagnostics",
@@ -1452,6 +1692,10 @@ val SubSettingsRoutes = setOf(
     "youtube_sync",
     "stats",
     "developer_space",
+    "developer_playground",
+    "storage_settings",
+    "gesture_settings",
+    "customisation_settings",
     // Audio Lab keeps the bar, as in its designs
     "audio_lab",
     "equalizer",
@@ -1485,6 +1729,8 @@ private const val UpdateSnoozeWindowMillis = 24L * 60L * 60L * 1000L
 @Composable
 private fun HomeUpdatePrompt(currentRoute: String?) {
     if (currentRoute != Screens.Home.route) return
+    val (noticeHidden) = rememberPreference(dev.meowlabs.blossomtune.constants.HideUpdateNoticeKey, defaultValue = false)
+    if (noticeHidden) return
 
     val updateState by dev.meowlabs.blossomtune.ui.screens.update.rememberUpdateState()
     val (snoozedAt, setSnoozedAt) = rememberPreference(
@@ -1540,6 +1786,21 @@ val LocalDetailAccentColor = staticCompositionLocalOf<androidx.compose.runtime.M
  * nothing tappable in it - known for certain from Android 11, where the hidden bar's insets can
  * be read.
  */
+// how far open the player is when its status bar starts sliding away
+private const val StatusBarLeavesAt = 0.82f
+
+// with the status bar hidden android 9 to 14 paints a notched phone's camera strip black unless the window may draw there
+private fun android.view.Window.drawUnderCutout(on: Boolean) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+    val mode = if (on) {
+        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+    } else {
+        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+    }
+    if (attributes.layoutInDisplayCutoutMode == mode) return
+    attributes = attributes.apply { layoutInDisplayCutoutMode = mode }
+}
+
 private fun android.view.Window.playerNavBarBehavior(): Int {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         val tappable = androidx.core.view.ViewCompat.getRootWindowInsets(decorView)

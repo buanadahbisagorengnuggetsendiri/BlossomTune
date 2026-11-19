@@ -1,6 +1,7 @@
 package dev.meowlabs.blossomtune.ui.player.styles
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -15,9 +16,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,10 +32,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import dev.meowlabs.blossomtune.R
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -58,6 +66,8 @@ import dev.meowlabs.blossomtune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FO
 import dev.meowlabs.blossomtune.lyrics.LyricsEntry
 import dev.meowlabs.blossomtune.lyrics.LyricsUtils
 import dev.meowlabs.blossomtune.utils.makeTimeString
+import dev.meowlabs.blossomtune.ui.player.carouselText
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 
 /** the player's alternate styles, drawn as they look on the player or, [preview], on a selector card */
 @Composable
@@ -71,36 +81,84 @@ fun AlternatePlayerStyle(
         PlayerStyle.POSTER -> PosterPlayerStyle(actions, modifier, preview)
         PlayerStyle.TIMELINE -> TimelinePlayerStyle(actions, modifier, preview)
         PlayerStyle.LYRICS -> LyricsPlayerStyle(actions, modifier, preview)
-        PlayerStyle.DEFAULT, PlayerStyle.TURNTABLE -> Unit
+        PlayerStyle.IPOD -> dev.meowlabs.blossomtune.ui.player.ipod.IpodPlayerStyle(modifier, preview)
+        PlayerStyle.VIDEO -> dev.meowlabs.blossomtune.ui.player.video.VideoPlayerStyle(actions, modifier, preview)
+        PlayerStyle.BEDSIDE -> dev.meowlabs.blossomtune.ui.player.bedside.BedsidePlayerStyle(actions, modifier, preview)
+        PlayerStyle.BEDSIDE_TILES -> dev.meowlabs.blossomtune.ui.player.bedside.BedsideTilesStyle(actions, modifier, preview)
+        PlayerStyle.MODULE -> ModulePlayerStyle(actions, modifier, preview)
+        PlayerStyle.FLAGSHIP, PlayerStyle.CLASSIC, PlayerStyle.TURNTABLE -> Unit
     }
 }
 
 /** what every alternate style reads from the player */
-private class StyleTrack(val title: String, val artist: String, val album: String, val artwork: String?)
+internal class StyleTrack(val title: String, val artist: String, val album: String, val artwork: String?)
 
 @Composable
-private fun rememberStyleTrack(): StyleTrack {
+internal fun rememberStyleTrack(): StyleTrack {
     val connection = LocalPlayerConnection.current ?: return StyleTrack("", "", "", null)
     val track by connection.uiState.trackInfo.collectAsState()
     return remember(track) { StyleTrack(track.title, track.artist, track.album, track.thumbnailUrl) }
 }
 
-/** the frame every style is drawn in: tones, gestures, rotation, the ••• menu's state */
+/**
+ * The player's row of songs on the live player; a selector card shows the playing song, still.
+ */
 @Composable
-private fun StyleFrame(
-    style: PlayerStyle,
+internal fun rememberStyleCarousel(preview: Boolean): dev.meowlabs.blossomtune.ui.player.SongCarousel? =
+    if (preview) null else dev.meowlabs.blossomtune.ui.player.LocalSongCarousel.current
+
+/** a song's synced lines, and which song they're for */
+internal class StyleLyrics(val mediaId: String?, val lines: List<LyricsEntry>)
+
+/** what a style shows for one song in the row: its details, and its lyrics once it has played */
+internal class StyleSong(val track: StyleTrack, val lines: List<LyricsEntry>)
+
+/**
+ * [content] once per song on screen, riding the row: the playing song, and the one coming in or
+ * going out while a swipe or a skip slides them. Each song keeps the lyrics it had while it played,
+ * so the one leaving goes with its own words, and a song only takes lyrics that are its own.
+ * Without a row (a selector card) it's the playing song alone.
+ */
+@Composable
+internal fun StyleSongs(
+    carousel: dev.meowlabs.blossomtune.ui.player.SongCarousel?,
+    track: StyleTrack,
+    lyrics: StyleLyrics,
+    content: @Composable (song: StyleSong, slotModifier: Modifier) -> Unit,
+) {
+    if (carousel == null) {
+        content(StyleSong(track, lyrics.lines), Modifier)
+        return
+    }
+    for (slot in dev.meowlabs.blossomtune.ui.player.rememberTextSlots(carousel)) {
+        androidx.compose.runtime.key(slot.uid) {
+            val playing = slot.step == carousel.step
+            val held = remember { arrayOf(emptyList<LyricsEntry>()) }
+            if (playing && lyrics.mediaId == slot.mediaId) held[0] = lyrics.lines
+            val details = StyleTrack(
+                title = slot.title.ifEmpty { if (playing) track.title else "" },
+                artist = slot.artist.ifEmpty { if (playing) track.artist else "" },
+                album = slot.album,
+                artwork = slot.artworkUrl,
+            )
+            content(StyleSong(details, held[0]), Modifier.carouselText(carousel, slot))
+        }
+    }
+}
+
+// the frame every style is drawn in: tones, gestures, the window's shape, the ••• menu's state
+@Composable
+internal fun StyleFrame(
     preview: Boolean,
     modifier: Modifier,
     tones: StyleTones,
     /** what lies under the style and holds still when it turns; the playhead split when null */
     background: (@Composable BoxScope.() -> Unit)? = null,
-    content: @Composable BoxScope.(landscape: Boolean, menuOpen: Boolean, setMenuOpen: (Boolean) -> Unit, rotated: Boolean, setRotated: (Boolean) -> Unit) -> Unit,
+    content: @Composable BoxScope.(landscape: Boolean, menuOpen: Boolean, setMenuOpen: (Boolean) -> Unit) -> Unit,
 ) {
     val connection = LocalPlayerConnection.current
-    val (rotated, setRotated) = rememberStyleRotation(style)
     var menuOpen by remember { mutableStateOf(false) }
-    RotatingFrame(
-        rotated = rotated,
+    StyleStage(
         tones = tones,
         background = background,
         modifier = modifier
@@ -119,37 +177,74 @@ private fun StyleFrame(
             modifier = Modifier
                 .fillMaxSize()
                 .styleGestures(
-                    enabled = !preview && connection != null && LocalStyleInteractive.current,
+                    enabled = !preview && connection != null,
+                    interactive = LocalStyleInteractive.current,
                     onToggle = { connection?.togglePlayPause() },
-                    onNext = { connection?.seekToNext() },
-                    onPrevious = { connection?.seekToPrevious() },
+                    carousel = rememberStyleCarousel(preview),
+                    player = { connection?.player },
                 ),
         ) {
             // Inter and nothing else, in every style
             androidx.compose.material3.ProvideTextStyle(
                 androidx.compose.ui.text.TextStyle(fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily)
             ) {
-                content(landscape, menuOpen, { menuOpen = it }, rotated, setRotated)
+                content(landscape, menuOpen) { menuOpen = it }
             }
         }
     }
 }
 
-/**
- * Insets the way they fall on a style: upright, the status bar is at its top and the navigation
- * bar at its bottom; turned sideways, those same bars run down its left and right edges.
- */
-private class StyleInsets(val start: Dp, val top: Dp, val end: Dp, val bottom: Dp)
+/** The backdrop's warp clock, shared by the copies crossfading along the row. */
+@Composable
+private fun rememberBackdropClock(running: Boolean): () -> Float {
+    val time = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    val showing = rememberStyleShowing()
+    androidx.compose.runtime.LaunchedEffect(running, showing) {
+        if (!running) return@LaunchedEffect
+        // the time is absolute, so it can sleep while the player is collapsed and wake up in step
+        androidx.compose.runtime.snapshotFlow { showing() }.collectLatest { shown ->
+            if (!shown) return@collectLatest
+            time.floatValue = backdropTime(System.nanoTime())
+            while (true) {
+                androidx.compose.animation.core.withInfiniteAnimationFrameNanos { frameTimeNanos ->
+                    time.floatValue = backdropTime(frameTimeNanos)
+                }
+            }
+        }
+    }
+    return remember { { time.floatValue } }
+}
+
+private fun backdropTime(frameTimeNanos: Long): Float =
+    ((frameTimeNanos / 1_000_000f) * (100f / 100_000f)).mod(100f)
+
+// where the system bars fall on a style; in landscape the player hides the status bar, so only the side bars and the cutout are left
+internal class StyleInsets(val start: Dp, val top: Dp, val end: Dp, val bottom: Dp)
 
 @Composable
-private fun styleInsets(landscape: Boolean): StyleInsets {
-    val status = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val nav = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    return if (landscape) StyleInsets(start = status, top = 0.dp, end = nav, bottom = 0.dp)
-    else StyleInsets(start = 0.dp, top = status, end = 0.dp, bottom = nav)
+internal fun styleInsets(landscape: Boolean): StyleInsets {
+    val direction = androidx.compose.ui.platform.LocalLayoutDirection.current
+    val sides = WindowInsets.navigationBars.union(WindowInsets.displayCutout).asPaddingValues()
+    val status = if (landscape) 0.dp else WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
+    return StyleInsets(
+        start = sides.calculateStartPadding(direction),
+        top = status,
+        end = sides.calculateEndPadding(direction),
+        bottom = sides.calculateBottomPadding(),
+    )
 }
 
 // ---- Poster ------------------------------------------------------------------------------
+
+/** what the words give the visualizer's bars under the cover (beside it, sideways) */
+private val VisualizerRoom = 60.dp
+private val VisualizerRoomSideways = 40.dp
+/** how far the words move down while the cover's seek bar is out */
+private val RingPush = 34.dp
+/** the Turntable's pills, side by side: as tall as one */
+private val PillsHeight = 42.dp
+/** the menu's chevron, the Turntable's size */
+private val PosterChevron = 43.dp
 
 /**
  * The cover cut into a great circle swung in from the top-left corner, over the flagship's own
@@ -162,100 +257,174 @@ private fun PosterPlayerStyle(actions: StyleActions, modifier: Modifier, preview
     val tones = rememberStyleTones()
     val track = rememberStyleTrack()
     val r = rememberResponsive()
-    val circle = r.dp(0.078f, 28.dp, 40.dp)
     val position = rememberLivePosition(animated = !preview)
-    val lines = rememberStyleLyrics(readings = !preview)
+    val lyrics = rememberStyleLyrics(readings = !preview)
+    val carousel = rememberStyleCarousel(preview)
+    val backgroundClock = rememberBackdropClock(running = !preview)
     val backgroundStyle by dev.meowlabs.blossomtune.utils.rememberEnumPreference(
         dev.meowlabs.blossomtune.constants.PlayerBackgroundStyleKey,
         dev.meowlabs.blossomtune.constants.PlayerBackgroundStyle.COVER_GRADIENT,
     )
+    val (visualizer) = dev.meowlabs.blossomtune.utils.rememberPreference(dev.meowlabs.blossomtune.constants.PosterVisualizerKey, defaultValue = false)
+    // a tv has no finger to tap them with; the remote's own control strip plays, skips and likes instead
+    val onTv = dev.meowlabs.blossomtune.ui.utils.isTvLayout()
+    val ring = rememberCoverRingState()
+    // The live player, not a selector card, whether open or not. Tied to the player being open, the
+    // ring jumped to a fixed spot and lost its bars the moment a close began.
+    val live = !preview
+    val density = LocalDensity.current
+    // the pills' column, and the room the words keep from it
+    val pillsWidth = dev.meowlabs.blossomtune.ui.player.TurntablePillWidth
     StyleFrame(
-        PlayerStyle.POSTER, preview, modifier, tones,
+        preview, modifier, tones,
         background = {
-            // the flagship's background, moving as it does there; it stays put when the poster turns
+            // the flagship's background, moving as it does there; the cover's colours crossfade along the row of songs as it slides
             BoxWithConstraints(Modifier.fillMaxSize()) {
-                dev.meowlabs.blossomtune.ui.player.customize.PlayerBackgroundPreview(
-                    style = backgroundStyle,
-                    thumbnailUrl = track.artwork,
-                    width = maxWidth,
-                    height = maxHeight,
-                    animate = !preview,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                val w = maxWidth
+                val h = maxHeight
+                if (backgroundStyle == dev.meowlabs.blossomtune.constants.PlayerBackgroundStyle.COVER_GRADIENT) {
+                    dev.meowlabs.blossomtune.ui.player.CarouselCrossfade(
+                        carousel = carousel,
+                        fallbackUrl = track.artwork,
+                        modifier = Modifier.fillMaxSize(),
+                    ) { url ->
+                        dev.meowlabs.blossomtune.ui.player.customize.PlayerBackgroundPreview(
+                            style = backgroundStyle,
+                            thumbnailUrl = url,
+                            width = w,
+                            height = h,
+                            animate = false,
+                            timeProvider = backgroundClock,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                } else {
+                    dev.meowlabs.blossomtune.ui.player.customize.PlayerBackgroundPreview(
+                        style = backgroundStyle,
+                        thumbnailUrl = track.artwork,
+                        width = w,
+                        height = h,
+                        animate = !preview,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
         },
-    ) { landscape, menuOpen, setMenuOpen, rotated, setRotated ->
+    ) { landscape, menuOpen, setMenuOpen ->
         val insets = styleInsets(landscape)
+        // tablets and open foldables are close to square, there the circle shrinks to leave the words room; phones keep it as it is
+        val tablet = androidx.compose.ui.platform.LocalConfiguration.current.smallestScreenWidthDp >= 600
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val w = maxWidth
             val h = maxHeight
             if (!landscape) {
                 // circle from the top-left: through the right edge at 0.8 W, the left edge at 1.19 W
+                val posterW = if (tablet) minOf(w, h * 0.48f) else w
                 CircleCover(
+                    carousel = carousel,
                     url = track.artwork,
                     center = Offset(0.13f, 0.06f),
                     radius = 1.14f,
-                    unit = w,
-                    modifier = Modifier.fillMaxWidth().height(w * 1.22f),
+                    unit = posterW,
+                    modifier = Modifier.fillMaxWidth().height(posterW * 1.22f),
                 )
                 val bottom = insets.bottom + 36.dp
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(
-                            top = (w * 1.24f).coerceAtMost(h * 0.6f),
+                            // the visualizer's bars stand where the words would start
+                            top = (posterW * 1.24f).coerceAtMost(h * 0.6f) + (if (visualizer) VisualizerRoom else 0.dp),
                             start = 28.dp,
-                            end = 22.dp + circle + 18.dp,
+                            end = 22.dp + pillsWidth + 16.dp,
                             bottom = bottom,
                         ),
                 ) {
-                    PosterText(lines, position, track, tones, r, baseSize = r.sp(0.12f, 34f, 56f), gap = 12.dp)
+                    StyleSongs(carousel, track, lyrics) { song, slotModifier ->
+                        Column(Modifier.fillMaxSize().then(slotModifier)) {
+                            PosterText(
+                                song.lines, position, song.track, tones, r, baseSize = r.sp(0.12f, 34f, 56f), gap = 12.dp,
+                                // the seek bar coming out past the rim moves the words down with it
+                                push = { Offset(0f, ring.expand.value * with(density) { RingPush.toPx() }) },
+                            )
+                        }
+                    }
                 }
-                Box(
+                // the seek bar on the cover's rim and the visualizer round it
+                val wPx = with(density) { posterW.toPx() }
+                CoverRing(
+                    state = ring,
+                    circle = RingCircle(Offset(0.13f * wPx, 0.06f * wPx), 1.14f * wPx),
+                    visualizer = visualizer,
+                    live = live,
+                    position = position,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (!onTv) Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(end = 22.dp, bottom = bottom),
                 ) {
-                    TransportCircles(tones = tones, vertical = true, size = circle)
+                    dev.meowlabs.blossomtune.ui.player.TurntablePills()
                 }
                 // the menu at the top, opening down, clear of the transport
                 StyleMenu(
                     open = menuOpen, onOpenChange = setMenuOpen, tones = tones, actions = actions,
-                    rotated = rotated, onRotate = setRotated, atBottom = false, end = 22.dp, edge = insets.top + 16.dp,
-                    buttonSize = circle,
+                    atBottom = false, end = 22.dp, edge = insets.top + 16.dp,
+                    buttonSize = PosterChevron, pill = true, queue = true,
                 )
             } else {
                 // circle from the left edge, the words to its right
+                val posterH = if (tablet) minOf(h, w * 0.45f) else h
                 CircleCover(
+                    carousel = carousel,
                     url = track.artwork,
                     center = Offset(0.04f, 0.30f),
                     radius = 0.953f,
-                    unit = h,
-                    modifier = Modifier.fillMaxHeight().width(h * 1.0f),
+                    unit = posterH,
+                    modifier = Modifier.fillMaxHeight().width(posterH * 1.0f),
                 )
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .padding(
-                            start = maxOf(h * 1.08f, w * 0.5f),
+                            start = maxOf(posterH * 1.08f, w * (if (tablet) 0.48f else 0.5f)) + (if (visualizer) VisualizerRoomSideways else 0.dp),
                             end = 24.dp + insets.end,
-                            top = 18.dp + circle + 18.dp,
+                            top = 18.dp + maxOf(PosterChevron, PillsHeight) + 18.dp,
                             bottom = 20.dp,
                         ),
                 ) {
-                    PosterText(lines, position, track, tones, r, baseSize = r.sp(0.095f, 28f, 46f), gap = 8.dp)
+                    StyleSongs(carousel, track, lyrics) { song, slotModifier ->
+                        Column(Modifier.fillMaxHeight().then(slotModifier)) {
+                            PosterText(
+                                song.lines, position, song.track, tones, r, baseSize = r.sp(0.095f, 28f, 46f), gap = 8.dp,
+                                // sideways the bar comes out to the right, and moves the words that way
+                                push = { Offset(ring.expand.value * with(density) { RingPush.toPx() }, 0f) },
+                            )
+                        }
+                    }
                 }
-                Box(
+                val hPx = with(density) { posterH.toPx() }
+                CoverRing(
+                    state = ring,
+                    circle = RingCircle(Offset(0.04f * hPx, 0.30f * hPx), 0.953f * hPx),
+                    visualizer = visualizer,
+                    live = live,
+                    position = position,
+                    side = RingSide.Right,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (!onTv) Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 18.dp, end = 20.dp + insets.end + circle + 8.dp),
+                        .padding(top = 18.dp, end = 20.dp + insets.end + PosterChevron + 8.dp),
                 ) {
-                    TransportCircles(tones = tones, size = circle)
+                    dev.meowlabs.blossomtune.ui.player.TurntablePills(horizontal = true)
                 }
                 StyleMenu(
                     open = menuOpen, onOpenChange = setMenuOpen, tones = tones, actions = actions,
-                    rotated = rotated, onRotate = setRotated, atBottom = false, end = 20.dp + insets.end, edge = 18.dp,
-                    buttonSize = circle,
+                    atBottom = false, end = 20.dp + insets.end, edge = 18.dp,
+                    buttonSize = PosterChevron, pill = true, queue = true,
                 )
             }
         }
@@ -277,6 +446,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.PosterText(
     r: Responsive,
     baseSize: TextUnit,
     gap: Dp,
+    /** how far the words are pushed aside (px), read as they're drawn */
+    push: () -> Offset = { Offset.Zero },
 ) {
     val hasLyrics = lines.isNotEmpty()
     val found = remember { androidx.compose.animation.core.Animatable(if (hasLyrics) 1f else 0f) }
@@ -296,6 +467,11 @@ private fun androidx.compose.foundation.layout.ColumnScope.PosterText(
         modifier = Modifier
             .fillMaxWidth()
             .weight(1f)
+            .graphicsLayer {
+                val o = push()
+                translationX = o.x
+                translationY = o.y
+            }
             .onPlaced { places[0] = it },
     ) {
         if (hasLyrics) {
@@ -309,7 +485,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.PosterText(
             ) {
                 ExpressiveLyrics(
                     lines = lines,
-                    position = position,
+                    position = position.withLyricsOffset(),
                     color = tones.ink,
                     baseSize = baseSize,
                     modifier = Modifier.fillMaxSize(),
@@ -347,19 +523,70 @@ private fun androidx.compose.foundation.layout.ColumnScope.PosterText(
     }
     Spacer(Modifier.height(gap))
     if (track.artist.isNotBlank()) {
-        Text(track.artist, color = tones.inkSoft, style = posterType(r.sp(0.034f, 12f, 15f), FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        CreditLine(track.artist, color = tones.inkSoft, style = posterType(r.sp(0.034f, 12f, 15f), FontWeight.SemiBold))
     }
     Spacer(Modifier.height(3.dp))
-    Text(
+    CreditLine(
         track.title,
         color = tones.inkSoft,
         style = posterType(smallTitle, FontWeight.Bold),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
         modifier = Modifier
             .onPlaced { places[2] = it }
             .graphicsLayer { alpha = ((found.value - 0.6f) / 0.4f).coerceIn(0f, 1f) },
     )
+}
+
+/**
+ * One line of the poster's credits. Too long for the line, it scrolls by every few seconds and
+ * fades where it's cut, so the whole name gets read. A right-to-left name starts at its right
+ * edge and scrolls the other way.
+ */
+@Composable
+private fun CreditLine(text: String, color: Color, style: androidx.compose.ui.text.TextStyle, modifier: Modifier = Modifier) {
+    val rtl = remember(text) { isRtlText(text) }
+    // the marquee lays the text out at its full width, so this says whether it's cut
+    var fullWidth by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalLayoutDirection provides
+            if (rtl) androidx.compose.ui.unit.LayoutDirection.Rtl else androidx.compose.ui.unit.LayoutDirection.Ltr,
+    ) {
+        Text(
+            text = text,
+            color = color,
+            style = style,
+            maxLines = 1,
+            softWrap = false,
+            onTextLayout = { fullWidth = it.size.width },
+            modifier = modifier
+                .graphicsLayer {
+                    // only a cut line needs its own layer for the fade
+                    compositingStrategy = if (fullWidth > size.width + 0.5f) {
+                        androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                    } else {
+                        androidx.compose.ui.graphics.CompositingStrategy.Auto
+                    }
+                }
+                .drawWithCache {
+                    val fade = if (rtl) {
+                        Brush.horizontalGradient(0f to Color.Transparent, 0.18f to Color.Black)
+                    } else {
+                        Brush.horizontalGradient(0.82f to Color.Black, 1f to Color.Transparent)
+                    }
+                    onDrawWithContent {
+                        drawContent()
+                        if (fullWidth > size.width + 0.5f) {
+                            drawRect(brush = fade, blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+                        }
+                    }
+                }
+                .basicMarquee(
+                    iterations = Int.MAX_VALUE,
+                    initialDelayMillis = 2500,
+                    repeatDelayMillis = 2500,
+                    velocity = 26.dp,
+                ),
+        )
+    }
 }
 
 /**
@@ -368,21 +595,30 @@ private fun androidx.compose.foundation.layout.ColumnScope.PosterText(
  * a selector card). Lyrics without timings show nothing here: a style performs lines in time.
  */
 @Composable
-private fun rememberStyleLyrics(readings: Boolean): List<LyricsEntry> {
+internal fun rememberStyleLyrics(readings: Boolean): StyleLyrics {
     val connection = LocalPlayerConnection.current
     val lyricsEntity = connection?.currentLyrics?.collectAsState(initial = null)?.value
     val all = remember(lyricsEntity?.lyrics) {
         val raw = lyricsEntity?.lyrics
         if (raw.isNullOrBlank() || raw == LYRICS_NOT_FOUND) emptyList()
-        else runCatching { LyricsUtils.parseLyrics(raw) }.getOrDefault(emptyList())
+        else runCatching { LyricsUtils.parseLyricsCached(raw) }.getOrDefault(emptyList())
             .takeIf { it.isNotEmpty() && !LyricsUtils.isUnsynced(it) }.orEmpty()
     }
-    if (readings && connection != null && all.isNotEmpty()) {
+    if (readings && connection != null) {
         val metadata by connection.mediaMetadata.collectAsState()
-        // the whole song, background lines too, so a stored translation lines up with the lyrics page's
-        dev.meowlabs.blossomtune.ui.player.LyricsReadings(all, metadata?.id, dev.meowlabs.blossomtune.LocalDatabase.current, lyricsEntity)
+        // The flagship's bottom card is what asks for a song's lyrics; a style has no card, so it
+        // asks itself. Without this the words only came once the flagship had been shown.
+        val loader: dev.meowlabs.blossomtune.viewmodels.LyricsScreenViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
+        androidx.compose.runtime.LaunchedEffect(metadata?.id) {
+            metadata?.let(loader::ensureLyricsLoaded)
+        }
+        if (all.isNotEmpty()) {
+            // the whole song, background lines too, so a stored translation lines up with the lyrics page's
+            dev.meowlabs.blossomtune.ui.player.LyricsReadings(all, metadata?.id, dev.meowlabs.blossomtune.LocalDatabase.current, lyricsEntity)
+        }
     }
-    return remember(all) { all.filter { !it.isBackground && it.text.isNotBlank() } }
+    val lines = remember(all) { all.filter { !it.isBackground && it.text.isNotBlank() } }
+    return remember(lyricsEntity?.id, lines) { StyleLyrics(lyricsEntity?.id, lines) }
 }
 
 /**
@@ -390,7 +626,14 @@ private fun rememberStyleLyrics(readings: Boolean): List<LyricsEntry> {
  * soft shadow on the tone beneath and the rim shaded so the disc reads as lifted off the page.
  */
 @Composable
-private fun CircleCover(url: String?, center: Offset, radius: Float, unit: Dp, modifier: Modifier) {
+private fun CircleCover(
+    carousel: dev.meowlabs.blossomtune.ui.player.SongCarousel?,
+    url: String?,
+    center: Offset,
+    radius: Float,
+    unit: Dp,
+    modifier: Modifier,
+) {
     val density = LocalDensity.current
     val unitPx = with(density) { unit.toPx() }
     val c = Offset(center.x * unitPx, center.y * unitPx)
@@ -431,13 +674,20 @@ private fun CircleCover(url: String?, center: Offset, radius: Float, unit: Dp, m
                     )
                 },
         ) {
-            if (url != null) {
-                AsyncImage(
-                    model = url,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+            // the songs' covers slide past under the circle, the next one coming in as this one goes
+            dev.meowlabs.blossomtune.ui.player.CarouselPictures(
+                carousel = carousel,
+                fallbackUrl = url,
+                modifier = Modifier.fillMaxSize(),
+            ) { pictureUrl, pictureModifier ->
+                if (pictureUrl != null) {
+                    AsyncImage(
+                        model = pictureUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = pictureModifier,
+                    )
+                }
             }
         }
     }
@@ -457,7 +707,8 @@ private fun TimelinePlayerStyle(actions: StyleActions, modifier: Modifier, previ
     val r = rememberResponsive()
     val icon = r.dp(0.15f, 50.dp, 72.dp)
     val duration = rememberDurationMs()
-    StyleFrame(PlayerStyle.TIMELINE, preview, modifier, tones) { landscape, menuOpen, setMenuOpen, rotated, setRotated ->
+    val carousel = rememberStyleCarousel(preview)
+    StyleFrame(preview, modifier, tones) { landscape, menuOpen, setMenuOpen ->
         val insets = styleInsets(landscape)
         RidingTimes(
             tones = tones,
@@ -474,22 +725,33 @@ private fun TimelinePlayerStyle(actions: StyleActions, modifier: Modifier, previ
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AsyncImage(
-                    model = track.artwork,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                // the icon's covers and the words beside them ride the row of songs
+                dev.meowlabs.blossomtune.ui.player.CarouselPictures(
+                    carousel = carousel,
+                    fallbackUrl = track.artwork,
                     modifier = Modifier
                         .size(if (landscape) icon * 0.86f else icon)
                         .clip(RoundedCornerShape(icon * 0.26f))
                         .background(Color.White.copy(alpha = 0.08f)),
-                )
+                ) { url, pictureModifier ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = pictureModifier,
+                    )
+                }
                 Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(track.title, color = tones.ink, fontSize = r.sp(0.04f, 14f, 18f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(track.artist, color = tones.inkSoft, fontSize = r.sp(0.034f, 12f, 16f), fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Box {
+                    StyleSongs(carousel, track, StyleLyrics(null, emptyList())) { song, slotModifier ->
+                        Column(slotModifier) {
+                            Text(song.track.title, color = tones.ink, fontSize = r.sp(0.04f, 14f, 18f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(song.track.artist, color = tones.inkSoft, fontSize = r.sp(0.034f, 12f, 16f), fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
                 }
             }
-            StyleControls(tones, landscape, insets, menuOpen, setMenuOpen, actions, rotated, setRotated, menuTop = insets.top + 20.dp + (icon - r.dp(0.078f, 28.dp, 40.dp)) / 2)
+            StyleControls(tones, landscape, insets, menuOpen, setMenuOpen, actions, menuTop = insets.top + 20.dp + (icon - r.dp(0.078f, 28.dp, 40.dp)) / 2)
         }
     }
 }
@@ -507,8 +769,9 @@ private fun LyricsPlayerStyle(actions: StyleActions, modifier: Modifier, preview
     val position = rememberLivePosition(animated = !preview)
     val r = rememberResponsive()
     val duration = rememberDurationMs()
-    val lines = rememberStyleLyrics(readings = !preview)
-    StyleFrame(PlayerStyle.LYRICS, preview, modifier, tones) { landscape, menuOpen, setMenuOpen, rotated, setRotated ->
+    val lyrics = rememberStyleLyrics(readings = !preview)
+    val carousel = rememberStyleCarousel(preview)
+    StyleFrame(preview, modifier, tones) { landscape, menuOpen, setMenuOpen ->
         val insets = styleInsets(landscape)
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val lyricHeight = if (landscape) maxHeight * 0.52f else maxHeight * 0.3f
@@ -526,23 +789,28 @@ private fun LyricsPlayerStyle(actions: StyleActions, modifier: Modifier, preview
                         .fillMaxWidth()
                         .height(lyricHeight),
                 ) {
-                    if (lines.isEmpty()) {
-                        Column {
-                            ExpressiveTitle(text = track.title, baseSize = r.sp(0.112f, 32f, 56f), color = tones.ink.copy(alpha = 0.55f))
-                            Spacer(Modifier.height(10.dp))
-                            Text("No synced lyrics for this song", color = tones.inkSoft, fontSize = r.sp(0.034f, 12f, 15f), fontWeight = FontWeight.Medium)
+                    // each song's words ride the row: the leaving song's go with it, the next one's come in
+                    StyleSongs(carousel, track, lyrics) { song, slotModifier ->
+                        Box(Modifier.fillMaxSize().then(slotModifier)) {
+                            if (song.lines.isEmpty()) {
+                                Column {
+                                    ExpressiveTitle(text = song.track.title, baseSize = r.sp(0.112f, 32f, 56f), color = tones.ink.copy(alpha = 0.55f))
+                                    Spacer(Modifier.height(10.dp))
+                                    Text(androidx.compose.ui.res.stringResource(R.string.ps_style_no_synced_lyrics), color = tones.inkSoft, fontSize = r.sp(0.034f, 12f, 15f), fontWeight = FontWeight.Medium)
+                                }
+                            } else {
+                                ExpressiveLyrics(
+                                    lines = song.lines,
+                                    position = position.withLyricsOffset(),
+                                    color = tones.ink,
+                                    baseSize = if (landscape) r.sp(0.092f, 28f, 46f) else r.sp(0.118f, 34f, 58f),
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         }
-                    } else {
-                        ExpressiveLyrics(
-                            lines = lines,
-                            position = position,
-                            color = tones.ink,
-                            baseSize = if (landscape) r.sp(0.092f, 28f, 46f) else r.sp(0.118f, 34f, 58f),
-                            modifier = Modifier.fillMaxSize(),
-                        )
                     }
                 }
-                StyleControls(tones, landscape, insets, menuOpen, setMenuOpen, actions, rotated, setRotated, menuTop = insets.top + 20.dp)
+                StyleControls(tones, landscape, insets, menuOpen, setMenuOpen, actions, menuTop = insets.top + 20.dp)
             }
         }
     }
@@ -559,8 +827,6 @@ private fun BoxScope.StyleControls(
     menuOpen: Boolean,
     setMenuOpen: (Boolean) -> Unit,
     actions: StyleActions,
-    rotated: Boolean,
-    setRotated: (Boolean) -> Unit,
     menuTop: Dp,
 ) {
     val circle = rememberResponsive().dp(0.078f, 28.dp, 40.dp)
@@ -583,7 +849,7 @@ private fun BoxScope.StyleControls(
     }
     StyleMenu(
         open = menuOpen, onOpenChange = setMenuOpen, tones = tones, actions = actions,
-        rotated = rotated, onRotate = setRotated, atBottom = false,
+        atBottom = false,
         end = 22.dp + insets.end, edge = if (landscape) 18.dp else menuTop,
         buttonSize = circle,
     )
@@ -608,8 +874,6 @@ private fun RidingTimes(
 ) {
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
-    val seconds = rememberPlayedSeconds(position)
-    val elapsed = makeTimeString(seconds * 1_000L)
     val total = makeTimeString(duration)
     val circle = rememberResponsive().dp(0.078f, 28.dp, 40.dp)
     val timeStyle = posterType(rememberResponsive().sp(0.185f, 56f, 96f), FontWeight.Bold)
@@ -639,12 +903,10 @@ private fun RidingTimes(
             val startPx = with(density) { (insets.start + 24.dp).toPx() }
             val bottomPx = with(density) { 16.dp.toPx() }
             // the elapsed time: above the line, or left of it
-            Text(
-                text = elapsed,
+            PlayedTime(
+                position = position,
                 color = tones.ink,
                 style = timeStyle,
-                maxLines = 1,
-                softWrap = false,
                 modifier = Modifier.layout { measurable, constraints ->
                     val p = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                     layout(constraints.maxWidth, constraints.maxHeight) {
@@ -677,4 +939,18 @@ private fun RidingTimes(
             content()
         }
     }
+}
+
+/** the played time on its own, so the second ticking over recomposes this text and nothing around it */
+@Composable
+internal fun PlayedTime(position: LivePosition, color: Color, style: androidx.compose.ui.text.TextStyle, modifier: Modifier) {
+    val seconds = rememberPlayedSeconds(position)
+    Text(
+        text = makeTimeString(seconds * 1_000L),
+        color = color,
+        style = style,
+        maxLines = 1,
+        softWrap = false,
+        modifier = modifier,
+    )
 }

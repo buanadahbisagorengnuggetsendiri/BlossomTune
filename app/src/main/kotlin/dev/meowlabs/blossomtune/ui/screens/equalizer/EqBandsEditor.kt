@@ -1,7 +1,4 @@
-// EqBandsEditor.kt
-//
-// The equalizer's Bands tab: the same bands as the graph, as the classic row of sliders. A finger
-// swept across them draws the curve in one go; a smooth line threads the thumbs so the shape reads.
+// the equalizer's bands tab: the graph's bands as sliders, one sweep of a finger draws the curve
 
 package dev.meowlabs.blossomtune.ui.screens.equalizer
 
@@ -35,12 +32,14 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.eq.data.FilterType
 import dev.meowlabs.blossomtune.eq.data.ParametricEQBand
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabCard
@@ -56,12 +55,12 @@ fun EqBandsSection(
     nodes: List<ParametricEQBand>,
     onGain: (index: Int, gain: Double) -> Unit,
 ) {
-    LabSectionLabel("Bands")
+    LabSectionLabel(stringResource(R.string.eqx_tab_bands))
     LabCard(padding = 12.dp) {
         BandSliders(nodes, onGain)
         Spacer(Modifier.height(10.dp))
         Text(
-            "Sweep across the sliders to draw a curve",
+            stringResource(R.string.eqx_bands_hint),
             fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Faint,
             modifier = Modifier.padding(horizontal = 6.dp),
         )
@@ -150,7 +149,7 @@ private fun BandSliders(nodes: List<ParametricEQBand>, onGain: (Int, Double) -> 
         val zero = y(0.0)
 
         drawLine(
-            LabColors.Primary.copy(alpha = 0.14f), Offset(10.dp.toPx(), zero), Offset(size.width - 10.dp.toPx(), zero),
+            Color.White.copy(alpha = 0.14f), Offset(10.dp.toPx(), zero), Offset(size.width - 10.dp.toPx(), zero),
             1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 6.dp.toPx())),
         )
 
@@ -171,7 +170,7 @@ private fun BandSliders(nodes: List<ParametricEQBand>, onGain: (Int, Double) -> 
                     )
                 }
             }
-            drawPath(path, LabColors.Primary.copy(alpha = 0.28f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+            drawPath(path, Color.White.copy(alpha = 0.28f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
         }
 
         val trackWidth = 4.dp.toPx()
@@ -181,7 +180,7 @@ private fun BandSliders(nodes: List<ParametricEQBand>, onGain: (Int, Double) -> 
             val isActive = c == active
             val color = if (node.enabled) LabColors.node(i) else LabColors.Faint
             drawRoundRect(
-                LabColors.Primary.copy(alpha = 0.08f),
+                Color.White.copy(alpha = 0.08f),
                 Offset(cx - trackWidth / 2, top), Size(trackWidth, bottom - top), CornerRadius(trackWidth / 2),
             )
             val gy = y(node.gain)
@@ -192,13 +191,13 @@ private fun BandSliders(nodes: List<ParametricEQBand>, onGain: (Int, Double) -> 
             val thumbW = (if (isActive) 28.dp else 24.dp).toPx()
             val thumbH = (if (isActive) 14.dp else 12.dp).toPx()
             drawRoundRect(
-                LabColors.Primary,
+                Color.White,
                 Offset(cx - thumbW / 2, gy - thumbH / 2), Size(thumbW, thumbH), CornerRadius(thumbH / 2),
             )
             val value = measurer.measure(
                 (if (node.gain > 0) "+" else "") + (if (node.gain == node.gain.roundToInt().toDouble()) node.gain.roundToInt().toString()
                 else String.format("%.1f", node.gain)),
-                if (isActive) valueStyle.copy(color = LabColors.Primary) else valueStyle,
+                if (isActive) valueStyle.copy(color = Color.White) else valueStyle,
             )
             drawText(value, topLeft = Offset(cx - value.size.width / 2f, top - value.size.height - 8.dp.toPx()))
             val freq = measurer.measure(frequencyLabel(node.frequency).removeSuffix("Hz"), freqStyle)

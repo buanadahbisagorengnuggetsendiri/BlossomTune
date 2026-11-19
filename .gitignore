@@ -30,8 +30,12 @@ captures/
 .vscode/
 .DS_Store
 
-# Tool & AI Caches
+# Tool & AI Caches - yes im using ai please contribute so were not like alone at doing these things :3
+# got any problem with this? wel wel well sorry son i cant help you :3
 .claude/
+CLAUDE.md
+.agents/
+AGENTS.md
 .kotlin/
 assetscon/
 apk-generated/
@@ -41,6 +45,12 @@ apk-generated/
 plan.md
 implementation_plan.md
 transcript_*.txt
+docs/*
+!docs/index.html
+!docs/.nojekyll
+!docs/assets/
+!docs/wiki/
+!docs/modules/
 
 # Logs, crash dumps & API response dumps
 *.log
@@ -52,13 +62,14 @@ app/*.json
 
 # Keystores
 app/persistent-debug.keystore
-app/keystore/
 
 # Native & C++ build outputs
 .externalNativeBuild
 .cxx/
 *.so
 *.bin
+# the ear measurements 3d sims places sounds with, built by tools/stage/make_hrtf.py
+!app/src/main/assets/stage_hrtf.bin
 
 # Scratch files in the repo root (not part of the build)
 /test_*
@@ -75,7 +86,11 @@ app/keystore/
 # Misc
 *.py
 !scripts/*.py
+!tools/stage/*.py
 .env
 output-metadata.json
 vcs.xml
 lint/
+
+# kunci tanda tangan rilis (jangan pernah masuk git)
+app/keystore/

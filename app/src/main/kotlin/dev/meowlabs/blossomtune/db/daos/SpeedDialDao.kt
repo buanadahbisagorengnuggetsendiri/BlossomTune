@@ -1,5 +1,3 @@
-// SpeedDialDao.kt
-
 package dev.meowlabs.blossomtune.db.daos
 
 import androidx.room.Dao

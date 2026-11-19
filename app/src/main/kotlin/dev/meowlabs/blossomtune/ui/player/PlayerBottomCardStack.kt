@@ -33,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
@@ -51,28 +52,34 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import dev.meowlabs.blossomtune.lyrics.LyricsUtils
 import dev.meowlabs.blossomtune.ui.component.GlassState
 import dev.meowlabs.blossomtune.viewmodels.LyricsScreenViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** The card's visible height. Its body carries on below the screen edge - see [BottomBleed]. */
 internal val PlayerCardHeight = 54.dp
 internal val PlayerCardCorner = 28.dp
 
 /** How far the card in front sits from the screen's bottom edge, back card included. */
-private val PeekOffset = 9.dp
+internal val PeekOffset = 9.dp
 
 /** The whole deck's height on screen: the card plus the back card peeking over it. */
 internal val PlayerDeckHeight = PlayerCardHeight + PeekOffset
@@ -88,17 +95,28 @@ private val BottomBleed = 100.dp
 private val ArtworkSize = 28.dp
 private val ArtworkShape = RoundedCornerShape(ArtworkSize * 0.3f)
 
-private val PeekInset = 10.dp
+internal val PeekInset = 10.dp
 
 private const val BackCardScale = 0.94f
 
 private val FlipDistance = 70.dp
 
-/** Card in front: fill and border. The expanding surface starts from exactly these. */
-internal const val FrontCardFillAlpha = 0.11f
-internal const val FrontCardBorderAlpha = 0.20f
-private const val BackCardFillAlpha = 0.06f
-private const val BackCardBorderAlpha = 0.10f
+// how the deck is drawn; the page growing out of the card starts from exactly the front card's look
+@Immutable
+internal class PlayerCardLook(
+    val corner: Dp,
+    val frontFill: Float,
+    val frontBorder: Float,
+    val backFill: Float,
+    val backBorder: Float,
+    val borderWidth: Dp,
+)
+
+// the classic's glassy card, the one behind peeking over it
+internal val ClassicCardLook = PlayerCardLook(PlayerCardCorner, 0.11f, 0.20f, 0.06f, 0.10f, 1.dp)
+
+// the new flagship's faint 4% fill and 12% outline, layered and sized like the classic's, the card behind as much fainter as the classic's is
+internal val FlagshipCardLook = PlayerCardLook(PlayerCardCorner, 0.04f, 0.12f, 0.02f, 0.06f, 1.35.dp)
 
 /** Where each card's content starts, so a page can grow it from the right spot. */
 private val LyricContentStart = 18.dp
@@ -106,6 +124,13 @@ private val QueueContentStart = 14.dp
 
 /** The card content fades as it flies, handing over to the page's copy of it. */
 private const val FlightFadeEnd = 0.38f
+
+/** [height], and [extra] px more (read while measuring, so it can change every frame without recomposing). */
+private fun Modifier.heightPlus(height: Dp, extra: () -> Float): Modifier = layout { measurable, constraints ->
+    val h = (height.toPx() + extra()).roundToInt().coerceAtLeast(0)
+    val placeable = measurable.measure(constraints.copy(minHeight = h, maxHeight = h))
+    layout(placeable.width, h) { placeable.place(0, 0) }
+}
 
 @Composable
 internal fun PlayerBottomCardStack(
@@ -118,6 +143,17 @@ internal fun PlayerBottomCardStack(
     /** Long press opens the player editor, matching the cover's gesture. */
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * 1 when the cards are shown whole, their bodies closed off at the bottom instead of running
+     * off the screen: the bar's editor lifts the deck up to the middle of the screen.
+     */
+    closedProvider: () -> Float = { 0f },
+    /**
+     * How much taller than usual the cards are, px: pulled up in the player editor to show more of
+     * the lyrics (and of the queue). Read while laying out and drawing only.
+     */
+    growthProvider: () -> Float = { 0f },
+    look: PlayerCardLook = ClassicCardLook,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
 
@@ -134,16 +170,25 @@ internal fun PlayerBottomCardStack(
     }
 
     val lyricsEntity by playerConnection.currentLyrics.collectAsState(initial = null)
-    val queueItems by playerConnection.queueItems.collectAsState()
-    val currentMediaItemIndex by playerConnection.currentMediaItemIndex.collectAsState()
+    // The queue in play order, with the current song's place in that order. The song's index in
+    // the player is a different number once shuffled, and reading the list with it showed a
+    // "next song" that wasn't the one about to play.
+    val queue by playerConnection.queueSnapshot.collectAsState()
 
     val lines = remember(lyricsEntity?.lyrics) {
         val raw = lyricsEntity?.lyrics
-        if (raw.isNullOrBlank() || raw == LYRICS_NOT_FOUND) emptyList() else LyricsUtils.parseLyrics(raw)
+        if (raw.isNullOrBlank() || raw == LYRICS_NOT_FOUND) emptyList() else LyricsUtils.parseLyricsCached(raw)
     }
 
-    val nextSong = remember(queueItems, currentMediaItemIndex) {
-        queueItems.getOrNull(currentMediaItemIndex + 1)
+    val nextSong = remember(queue) {
+        queue.items.getOrNull(queue.currentIndex + 1)
+    }
+
+    // A taller lyric card shows each line's reading and translation, so it fills them in the way the
+    // lyrics page does. Only while it's tall: otherwise nothing here would show them.
+    val tall by remember { derivedStateOf { growthProvider() > 0.5f } }
+    if (tall && lines.isNotEmpty()) {
+        LyricsReadings(lines, mediaMetadata?.id, dev.meowlabs.blossomtune.LocalDatabase.current, lyricsEntity)
     }
 
     val flipDistancePx = with(density) { FlipDistance.toPx() }
@@ -157,9 +202,34 @@ internal fun PlayerBottomCardStack(
         return (flip + (1f - flip) * lyricsP) * (1f - queueP)
     }
 
+    // A taller deck makes only the lyric card taller, and only while it's in front. The queue card
+    // keeps its usual size with just the next song, and from behind it peeks over the tall card.
+    val lyricsGrowth: () -> Float = remember(growthProvider) {
+        { growthProvider() * (1f - queueFrontness()).coerceIn(0f, 1f) }
+    }
+    val queueGrowth: () -> Float = remember { { 0f } }
+
     // Only the order is decided in composition, and it changes once per flip - everything that
     // moves is read in layers below, so the deck doesn't recompose while it animates.
     val queueOnTop by remember { derivedStateOf { queueFrontness() >= 0.5f } }
+
+    // The front card's slot, through to the screen's bottom edge: where the expanding surface starts
+    // from and shrinks back into. The card a page grows out of is the one it's sized from - a
+    // short queue card or a tall lyric card - so the surface never jumps between the two mid-way.
+    val deckBounds = remember { arrayOfNulls<Rect>(1) }
+    fun publishCardRect() {
+        val bounds = deckBounds[0] ?: return
+        val shortCard = when (transition.linked) {
+            PlayerPage.QUEUE -> true
+            PlayerPage.LYRICS -> false
+            else -> queueOnTop
+        }
+        val growth = if (shortCard) 0f else growthProvider()
+        val cardTop = bounds.bottom - with(density) { PlayerCardHeight.toPx() } - growth
+        val slot = Rect(bounds.left, cardTop, bounds.right, bounds.bottom + with(density) { BottomBleed.toPx() })
+        if (morph.cardRect != slot) morph.cardRect = slot
+    }
+    LaunchedEffect(transition.linked, queueOnTop) { publishCardRect() }
     // The card growing into its page is drawn over the other one, at the front slot.
     val flying by remember {
         derivedStateOf {
@@ -189,14 +259,10 @@ internal fun PlayerBottomCardStack(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(PlayerDeckHeight)
+            .heightPlus(PlayerDeckHeight, growthProvider)
             .onGloballyPositioned { coords ->
-                // The front card's slot, through to the screen's bottom edge: where the expanding
-                // surface starts from and shrinks back into.
-                val bounds = coords.boundsInRoot()
-                val cardTop = bounds.bottom - with(density) { PlayerCardHeight.toPx() }
-                val slot = Rect(bounds.left, cardTop, bounds.right, bounds.bottom + with(density) { BottomBleed.toPx() })
-                if (morph.cardRect != slot) morph.cardRect = slot
+                deckBounds[0] = coords.boundsInRoot()
+                publishCardRect()
             }
             // Directional on purpose. A plain vertical `draggable` claimed *every* drag that
             // began on the card, so touching it made the player impossible to swipe closed. The
@@ -268,18 +334,23 @@ internal fun PlayerBottomCardStack(
             key(page) {
                 DeckCard(
                     page = page,
+                    look = look,
                     frontnessProvider = {
                         val q = queueFrontness()
                         if (page == PlayerPage.QUEUE) q else 1f - q
                     },
                     transition = transition,
                     morph = morph,
+                    closedProvider = closedProvider,
+                    ownGrowth = if (page == PlayerPage.LYRICS) lyricsGrowth else queueGrowth,
+                    otherGrowth = if (page == PlayerPage.LYRICS) queueGrowth else lyricsGrowth,
                 ) {
                     if (page == PlayerPage.LYRICS) {
                         MiniLyricsTicker(
                             lines = lines,
                             loaded = lyricsEntity != null,
                             morph = morph,
+                            growthProvider = lyricsGrowth,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(start = LyricContentStart, end = LyricContentStart),
@@ -300,9 +371,14 @@ internal fun PlayerBottomCardStack(
 @Composable
 private fun BoxScope.DeckCard(
     page: PlayerPage,
+    look: PlayerCardLook,
     frontnessProvider: () -> Float,
     transition: PlayerPageTransition,
     morph: CardMorphState,
+    closedProvider: () -> Float,
+    /** How much taller than usual this card is, px, and the other card in the deck. */
+    ownGrowth: () -> Float,
+    otherGrowth: () -> Float,
     content: @Composable () -> Unit,
 ) {
     // Growing into its page: the card's surface is handed to the expanding one (drawn by the
@@ -315,33 +391,41 @@ private fun BoxScope.DeckCard(
 
     val density = LocalDensity.current
 
+    // Behind a taller card, a card is lifted by the difference, so it still peeks over the top of
+    // the one in front instead of hiding behind it.
+    fun lift(f: Float): Float = (otherGrowth() - ownGrowth()).coerceAtLeast(0f) * BackCardScale * (1f - f)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(PlayerCardHeight)
+            .heightPlus(PlayerCardHeight, ownGrowth)
             .align(Alignment.BottomCenter)
             .graphicsLayer {
                 val f = frontness()
                 val scale = mixF(BackCardScale, 1f, f)
                 scaleX = scale
                 scaleY = scale
-                translationY = -mixF(PeekOffset.toPx(), 0f, f)
+                translationY = -mixF(PeekOffset.toPx(), 0f, f) - lift(f)
                 transformOrigin = TransformOrigin(0.5f, 1f)
             }
             .drawBehind {
                 if (flightProgress() > 0.0005f) return@drawBehind
                 val f = frontness()
                 val inset = mixF(PeekInset.toPx(), 0f, f)
-                val corner = PlayerCardCorner.toPx()
-                // Only the strip of a back card that shows above the front one is drawn. The front
-                // card's top sits CardHeight above the bottom; this card's sits higher by the peek.
+                val corner = look.corner.toPx()
+                // Only the strip of a back card that shows above the front one is drawn. Each card's
+                // top sits its own height above the bottom (scaled when behind), raised by the peek
+                // and, behind a taller card, by the lift.
                 val scale = mixF(BackCardScale, 1f, f)
                 val otherF = 1f - f
-                val thisTop = PlayerCardHeight.toPx() * scale + mixF(PeekOffset.toPx(), 0f, f)
-                val otherTop = PlayerCardHeight.toPx() * mixF(BackCardScale, 1f, otherF) +
-                    mixF(PeekOffset.toPx(), 0f, otherF)
+                val otherScale = mixF(BackCardScale, 1f, otherF)
+                val baseHeight = PlayerCardHeight.toPx()
+                val thisTop = size.height * scale + mixF(PeekOffset.toPx(), 0f, f) + lift(f)
+                val otherLift = (ownGrowth() - otherGrowth()).coerceAtLeast(0f) * BackCardScale * (1f - otherF)
+                val otherTop = (baseHeight + otherGrowth()) * otherScale +
+                    mixF(PeekOffset.toPx(), 0f, otherF) + otherLift
                 val exposed = (thisTop - otherTop) / scale
-                val bottom = size.height + BottomBleed.toPx()
+                val bottom = size.height + BottomBleed.toPx() * (1f - closedProvider().coerceIn(0f, 1f))
                 val visibleBottom = if (exposed > 0f) minOf(exposed, bottom) else bottom
                 if (visibleBottom <= 0f) return@drawBehind
 
@@ -349,19 +433,19 @@ private fun BoxScope.DeckCard(
                     val topLeft = Offset(inset, 0f)
                     val cardSize = Size(size.width - inset * 2f, bottom)
                     drawRoundRect(
-                        color = Color.White.copy(alpha = mixF(BackCardFillAlpha, FrontCardFillAlpha, f)),
+                        color = Color.White.copy(alpha = mixF(look.backFill, look.frontFill, f)),
                         topLeft = topLeft,
                         size = cardSize,
                         cornerRadius = CornerRadius(corner, corner),
                     )
                     // The border runs down the sides and off the screen with the body, so there's
-                    // no line along the bottom.
+                    // no line along the bottom (unless the editor has closed the card off).
                     drawRoundRect(
-                        color = Color.White.copy(alpha = mixF(BackCardBorderAlpha, FrontCardBorderAlpha, f)),
+                        color = Color.White.copy(alpha = mixF(look.backBorder, look.frontBorder, f)),
                         topLeft = topLeft,
                         size = cardSize,
                         cornerRadius = CornerRadius(corner, corner),
-                        style = Stroke(width = 1.dp.toPx()),
+                        style = Stroke(width = look.borderWidth.toPx()),
                     )
                 }
             }
@@ -375,12 +459,14 @@ private fun BoxScope.DeckCard(
                     if (flightProgress() > 0.0005f || frontnessProvider() < 0.999f) return@onGloballyPositioned
                     val r = coords.boundsInRoot()
                     with(density) {
+                        // the card's own row: all of a usual card, the top of a taller one
+                        val rowCenter = r.top + PlayerCardHeight.toPx() / 2f
                         if (page == PlayerPage.LYRICS) {
-                            morph.cardLyricAnchor = Offset(r.left + LyricContentStart.toPx(), r.center.y)
+                            morph.cardLyricAnchor = Offset(r.left + LyricContentStart.toPx(), rowCenter)
                         } else {
                             morph.cardArtAnchor = Offset(
                                 r.left + QueueContentStart.toPx(),
-                                r.center.y - ArtworkSize.toPx() / 2f,
+                                rowCenter - ArtworkSize.toPx() / 2f,
                             )
                         }
                     }
@@ -419,10 +505,11 @@ private fun BoxScope.DeckCard(
                     } else {
                         QueueContentStart.toPx()
                     }
+                    val rowCenter = PlayerCardHeight.toPx() / 2f
                     val pivotY = if (page == PlayerPage.LYRICS) {
-                        size.height / 2f
+                        rowCenter
                     } else {
-                        size.height / 2f - ArtworkSize.toPx() / 2f
+                        rowCenter - ArtworkSize.toPx() / 2f
                     }
                     transformOrigin = TransformOrigin(
                         (start / size.width).coerceIn(-4f, 4f),
@@ -442,8 +529,49 @@ private fun BoxScope.DeckCard(
 
 private fun Offset.isSpecified(): Boolean = this != Offset.Unspecified
 
+/** The queue card: just the next song, the same however tall the deck is. */
 @Composable
 private fun QueueCardContent(
+    nextTitle: String?,
+    nextArtist: String?,
+    artworkUri: String?,
+) {
+    Column(modifier = Modifier.fillMaxSize().clipToBounds()) {
+        NextSongRow(nextTitle, nextArtist, artworkUri)
+    }
+}
+
+// the deck as the player shows it at rest, for the selector's cards: the front card running off the bottom edge and the one behind peeking over it
+@Composable
+internal fun PlayerDeckPreview(look: PlayerCardLook, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(PlayerDeckHeight),
+    ) {
+        val cardHeight = PlayerCardHeight.toPx()
+        val bleed = BottomBleed.toPx()
+        val corner = CornerRadius(look.corner.toPx())
+        val border = look.borderWidth.toPx()
+        val frontTop = size.height - cardHeight
+        // the back card, scaled from the bottom and lifted by the peek, only where it shows over the front one
+        val inset = PeekInset.toPx()
+        val backTop = size.height - cardHeight * BackCardScale - PeekOffset.toPx()
+        clipRect(bottom = frontTop) {
+            val left = inset * BackCardScale + (size.width - size.width * BackCardScale) / 2f
+            val width = (size.width - inset * 2f) * BackCardScale
+            val backCorner = CornerRadius(look.corner.toPx() * BackCardScale)
+            drawRoundRect(Color.White.copy(alpha = look.backFill), Offset(left, backTop), Size(width, cardHeight + bleed), backCorner)
+            drawRoundRect(Color.White.copy(alpha = look.backBorder), Offset(left, backTop), Size(width, cardHeight + bleed), backCorner, style = Stroke(border * BackCardScale))
+        }
+        drawRoundRect(Color.White.copy(alpha = look.frontFill), Offset(0f, frontTop), Size(size.width, cardHeight + bleed), corner)
+        drawRoundRect(Color.White.copy(alpha = look.frontBorder), Offset(0f, frontTop), Size(size.width, cardHeight + bleed), corner, style = Stroke(border))
+    }
+}
+
+/** the queue card's own row: the next song's artwork, and its title and artist */
+@Composable
+private fun NextSongRow(
     nextTitle: String?,
     nextArtist: String?,
     artworkUri: String?,
@@ -451,7 +579,8 @@ private fun QueueCardContent(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .height(PlayerCardHeight)
             .padding(horizontal = QueueContentStart)
     ) {
         if (artworkUri != null) {
@@ -475,7 +604,7 @@ private fun QueueCardContent(
         Column(modifier = Modifier.weight(1f).fadingRightEdge()) {
 
             Text(
-                text = "Next Song",
+                text = stringResource(R.string.pc_next_song),
                 style = MaterialTheme.typography.labelSmall.copy(lineHeight = 11.sp),
                 color = Color.White.copy(alpha = 0.5f),
             )
@@ -484,7 +613,7 @@ private fun QueueCardContent(
                     listOfNotNull(nextTitle, nextArtist?.takeIf { it.isNotBlank() })
                         .joinToString(" - ")
                 } else {
-                    "End of queue"
+                    stringResource(R.string.pc_end_of_queue)
                 },
                 style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 15.sp),
                 fontWeight = FontWeight.SemiBold,

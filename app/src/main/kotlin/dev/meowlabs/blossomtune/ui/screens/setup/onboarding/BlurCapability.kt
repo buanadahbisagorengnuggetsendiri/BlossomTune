@@ -1,12 +1,4 @@
-// BlurCapability.kt
-//
-// Should onboarding suggest turning blur off? Phone specs alone don't answer it: a Galaxy A03
-// (Unisoc, 720p at 60 Hz) and A24 (Helio G99, 90 Hz) run the glass fine, while a Redmi Note 11 Pro
-// (Helio G96, 1080p at 120 Hz) has a stronger GPU on paper and still drops frames, because it has
-// to fill four times the pixels per second. So the real answer comes from timing frames: the Hello
-// card page draws a blurred glow plus confetti for ~3 s, which costs about what the app's glass
-// does, and every frame's arrival is recorded. A small table of phones confirmed either way
-// settles the borderline cases.
+// decides whether onboarding suggests turning blur off, by timing real frames on the hello page
 
 package dev.meowlabs.blossomtune.ui.screens.setup.onboarding
 
@@ -14,13 +6,14 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import android.view.WindowManager
+import dev.meowlabs.blossomtune.R
 import java.util.Locale
 
 object BlurCapability {
 
     enum class Verdict { Fine, Laggy, NotApplicable }
 
-    /** Frame timings from the Hello page. */
+    /** frame timings measured on the hello page */
     data class Probe(
         val frames: Int,
         val slowFrames: Int,
@@ -32,16 +25,16 @@ object BlurCapability {
 
     data class Result(val verdict: Verdict, val summary: String)
 
-    /** Chips confirmed to stutter under the app's glass. */
+    /** chips confirmed to stutter under the app's glass */
     private val knownLaggy = listOf(
-        "mt6781", // Helio G96 — Redmi Note 11 Pro 4G, the reference "can, but laggy" phone
+        "mt6781", // helio g96, redmi note 11 pro 4g, the reference laggy phone
     )
 
-    /** Chips confirmed fine, even though the frame timing can be borderline. */
+    /** chips confirmed fine even when the frame timing is borderline */
     private val knownFine = listOf(
-        "mt6789", // Helio G99 — Galaxy A24
-        "t606", "ums9230", // Unisoc T606 — Galaxy A03
-        "sc9863", // Unisoc SC9863A — Galaxy A03 Core
+        "mt6789", // helio g99, galaxy a24
+        "t606", "ums9230", // unisoc t606, galaxy a03
+        "sc9863", // unisoc sc9863a, galaxy a03 core
     )
 
     fun socName(): String {
@@ -69,15 +62,15 @@ object BlurCapability {
     fun decide(context: Context, probe: Probe?): Result {
         // below Android 12 the app draws its glass without a blur at all, so there's nothing to turn off
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            return Result(Verdict.NotApplicable, "Blur needs Android 12")
+            return Result(Verdict.NotApplicable, context.getString(R.string.onb_blur_needs_android_12))
         }
         val soc = socName()
         val socLabel = displaySoc()
         val hz = probe?.refreshHz ?: refreshRate(context)
-        val timing = probe?.let { "${(it.slowRatio * 100).toInt()}% slow frames at ${hz.toInt()} Hz" } ?: "${hz.toInt()} Hz"
+        val timing = probe?.let { context.getString(R.string.onb_blur_slow_frames, (it.slowRatio * 100).toInt(), hz.toInt()) } ?: "${hz.toInt()} Hz"
 
         val lowRam = (context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice == true
-        if (lowRam) return Result(Verdict.Laggy, "$socLabel · low-memory device")
+        if (lowRam) return Result(Verdict.Laggy, context.getString(R.string.onb_blur_low_memory, socLabel))
         if (knownLaggy.any { it in soc }) return Result(Verdict.Laggy, "$socLabel · $timing")
 
         val probeSaysLaggy = probe != null && probe.frames >= 20 && (
@@ -101,14 +94,14 @@ object BlurCapability {
         return Build.HARDWARE.ifBlank { Build.MODEL }
     }
 
-    /** More than this share of frames arriving late (over 1.5 refresh intervals) reads as stutter. */
+    /** more than this share of late frames (over 1.5 refresh intervals) reads as stutter */
     private const val SLOW_RATIO_LIMIT = 0.2f
 
-    /** Or the average frame taking this much longer than one refresh interval. */
+    /** or an average frame taking this much longer than one refresh interval */
     private const val AVERAGE_LIMIT = 1.3f
 }
 
-/** Collects frame intervals; fed from a withFrameNanos loop on the Hello page. */
+/** collects frame intervals, fed from a withFrameNanos loop on the hello page */
 internal class FrameProbeRecorder(private val refreshHz: Float) {
     private var last = 0L
     private var started = 0L

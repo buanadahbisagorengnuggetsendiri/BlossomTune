@@ -1,5 +1,3 @@
-// changelogscreen.kt
-
 package dev.meowlabs.blossomtune.core.changelog
 
 import android.content.Context
@@ -141,7 +139,7 @@ fun ChangelogScreen(
                         showingCached = true
                     }
                 } else {
-                    val changelogUrl = URL("https://github.com/buanadahbisagorengnuggetsendiri/blossomtune/releases/download/$tag/changelog.json")
+                    val changelogUrl = URL("https://github.com/realidkroo/BlossomTune-Music/releases/download/$tag/changelog.json")
                     val connection = changelogUrl.openConnection() as HttpURLConnection
                     connection.setRequestProperty("User-Agent", "BlossomTune-Changelog-App")
                     connection.setRequestProperty("Accept", "application/json")
@@ -214,7 +212,7 @@ fun ChangelogScreen(
         isFetchingOldReleases = true
         coroutineScope.launch(Dispatchers.IO) {
             try {
-                val releasesUrl = URL("https://api.github.com/repos/buanadahbisagorengnuggetsendiri/blossomtune/releases")
+                val releasesUrl = URL("https://api.github.com/repos/realidkroo/BlossomTune-Music/releases")
                 val connection = releasesUrl.openConnection() as HttpURLConnection
                 connection.setRequestProperty("User-Agent", "BlossomTune-Changelog-App")
                 connection.setRequestProperty("Accept", "application/vnd.github+json")

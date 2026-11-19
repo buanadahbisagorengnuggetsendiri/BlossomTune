@@ -1,8 +1,4 @@
-// EqGraphEditor.kt
-//
-// The equalizer's Graph tab: the frequency response with a coloured hill for every band and the
-// white sum on top, the music's own spectrum moving faintly behind, nodes to drag (left-right is
-// frequency, up-down is gain), double-tap to add one, and the picked node's settings below.
+// the equalizer's graph tab: drag nodes for frequency and gain, double tap to add one
 
 package dev.meowlabs.blossomtune.ui.screens.equalizer
 
@@ -54,6 +50,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -79,7 +76,6 @@ import dev.meowlabs.blossomtune.ui.screens.audiolab.rememberOnScreen
 import dev.meowlabs.blossomtune.ui.screens.audiolab.rememberPicturesHeld
 import dev.meowlabs.blossomtune.ui.screens.audiolab.trackOnScreen
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.viewmodels.filterTypeLabel
 import dev.meowlabs.blossomtune.viewmodels.frequencyLabel
 import dev.meowlabs.blossomtune.viewmodels.gainLabel
 import kotlin.math.abs
@@ -104,6 +100,14 @@ internal class Plot(val left: Float, val top: Float, val right: Float, val botto
     fun gainAt(y: Float): Double = rangeDb - ((y - top) / (bottom - top)).coerceIn(0f, 1f) * 2 * rangeDb
 }
 
+private fun filterTypeRes(type: FilterType): Int = when (type) {
+    FilterType.PK -> R.string.eqx_filter_peak
+    FilterType.LSC -> R.string.eqx_filter_low_shelf
+    FilterType.HSC -> R.string.eqx_filter_high_shelf
+    FilterType.LPQ -> R.string.eqx_filter_low_pass
+    FilterType.HPQ -> R.string.eqx_filter_high_pass
+}
+
 /** the pass filters have no gain, so their node rides the 0 dB line */
 private fun ParametricEQBand.nodeGain(): Double = when (filterType) {
     FilterType.LPQ, FilterType.HPQ -> 0.0
@@ -122,12 +126,12 @@ fun EqGraphSection(
     canAdd: Boolean,
 ) {
     val index = selected.coerceIn(0, (nodes.size - 1).coerceAtLeast(0))
-    LabSectionLabel("Graph editor")
+    LabSectionLabel(stringResource(R.string.eqx_graph_editor))
     LabCard(padding = 12.dp) {
         val node = nodes.getOrNull(index)
         Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "FREQUENCY RESPONSE",
+                stringResource(R.string.eqx_freq_response),
                 fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.2.sp,
                 color = LabColors.Secondary, modifier = Modifier.weight(1f),
             )
@@ -143,7 +147,7 @@ fun EqGraphSection(
         EqGraph(nodes = nodes, selected = index, onSelect = onSelect, onMove = onMove, onAdd = onAdd)
         Spacer(Modifier.height(10.dp))
         Text(
-            "Drag a node to shape the sound · double-tap to add one",
+            stringResource(R.string.eqx_graph_hint),
             fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Faint,
             modifier = Modifier.padding(horizontal = 6.dp),
         )
@@ -166,7 +170,7 @@ fun EqGraphSection(
                         .clickable { onAdd(freeFrequency(nodes), 0.0) },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(painterResource(R.drawable.add), "Add a band", tint = LabColors.Primary, modifier = Modifier.size(18.dp))
+                    Icon(painterResource(R.drawable.add), stringResource(R.string.eqx_add_band), tint = Color.White, modifier = Modifier.size(18.dp))
                 }
             }
         },
@@ -323,7 +327,7 @@ private fun EqGraph(
             // the sound you hear: every band summed
             drawPath(
                 curvePath(plot, total),
-                LabColors.Primary,
+                Color.White,
                 style = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
             )
         }
@@ -336,9 +340,9 @@ private fun EqGraph(
             if (isSelected) {
                 drawCircle(color.copy(alpha = 0.18f + 0.1f * selectedPulse), r * 2.1f, center)
             }
-            drawCircle(LabColors.Stage, r + 2.dp.toPx(), center)
+            drawCircle(Color.Black, r + 2.dp.toPx(), center)
             drawCircle(color, r, center)
-            if (isSelected) drawCircle(LabColors.Primary, r + 2.dp.toPx(), center, style = Stroke(1.5.dp.toPx()))
+            if (isSelected) drawCircle(Color.White, r + 2.dp.toPx(), center, style = Stroke(1.5.dp.toPx()))
         }
     }
 }
@@ -377,10 +381,10 @@ internal fun DrawScope.drawGrid(
     style: TextStyle,
     yLabels: List<Pair<Double, String>> = listOf(12.0 to "+12", 6.0 to "+6", 0.0 to "0", -6.0 to "-6", -12.0 to "-12"),
 ) {
-    val line = LabColors.Primary.copy(alpha = 0.06f)
+    val line = Color.White.copy(alpha = 0.06f)
     yLabels.forEach { (db, label) ->
         val y = plot.y(db)
-        drawLine(if (db == 0.0) LabColors.Primary.copy(alpha = 0.16f) else line, Offset(plot.left, y), Offset(plot.right, y), 1.dp.toPx())
+        drawLine(if (db == 0.0) Color.White.copy(alpha = 0.16f) else line, Offset(plot.left, y), Offset(plot.right, y), 1.dp.toPx())
         val layout = measurer.measure(label, style)
         drawText(layout, topLeft = Offset(plot.left - layout.size.width - 6.dp.toPx(), y - layout.size.height / 2f))
     }
@@ -412,12 +416,12 @@ private fun DrawScope.drawSpectrum(plot: Plot, levels: FloatArray) {
     drawPath(
         path,
         Brush.verticalGradient(
-            listOf(LabColors.Primary.copy(alpha = 0.09f), LabColors.Primary.copy(alpha = 0.01f)),
+            listOf(Color.White.copy(alpha = 0.09f), Color.White.copy(alpha = 0.01f)),
             startY = plot.bottom - height,
             endY = plot.bottom,
         ),
     )
-    drawPath(stroke, LabColors.Primary.copy(alpha = 0.12f), style = Stroke(1.dp.toPx()))
+    drawPath(stroke, Color.White.copy(alpha = 0.12f), style = Stroke(1.dp.toPx()))
 }
 
 @Composable
@@ -434,11 +438,11 @@ private fun NodeDetail(
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    "${frequencyLabel(node.frequency)} node",
-                    fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = LabColors.Primary,
+                    stringResource(R.string.eqx_node_title, frequencyLabel(node.frequency)),
+                    fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White,
                 )
                 Text(
-                    "${filterTypeLabel(node.filterType).lowercase()} · Q ${String.format("%.1f", node.q)}" +
+                    "${stringResource(filterTypeRes(node.filterType)).lowercase()} · Q ${String.format("%.1f", node.q)}" +
                         if (node.filterType == FilterType.LPQ || node.filterType == FilterType.HPQ) "" else " · ${gainLabel(node.gain)}",
                     fontFamily = InterFontFamily, fontSize = 13.sp, color = LabColors.Secondary,
                 )
@@ -447,10 +451,10 @@ private fun NodeDetail(
         }
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            listOf(FilterType.LSC to "Low shelf", FilterType.PK to "Peak", FilterType.HSC to "High shelf").forEach { (type, label) ->
+            listOf(FilterType.LSC, FilterType.PK, FilterType.HSC).forEach { type ->
                 val picked = node.filterType == type
-                val bg by animateColorAsState(if (picked) LabColors.Primary else LabColors.Stage, tween(160), label = "type")
-                val fg by animateColorAsState(if (picked) LabColors.OnPrimary else LabColors.Primary, tween(160), label = "typeText")
+                val bg by animateColorAsState(if (picked) Color(0xFFD1D1D6) else Color.Black, tween(160), label = "type")
+                val fg by animateColorAsState(if (picked) Color.Black else Color.White, tween(160), label = "typeText")
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -468,13 +472,13 @@ private fun NodeDetail(
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(label, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = fg)
+                    Text(stringResource(filterTypeRes(type)), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = fg)
                 }
             }
         }
         Spacer(Modifier.height(18.dp))
         LabSlider(
-            label = "GAIN",
+            label = stringResource(R.string.eqx_gain),
             valueText = gainLabel(node.gain),
             value = node.gain.toFloat(),
             onValueChange = { v -> onUpdate { it.copy(gain = snap(v.toDouble())) } },
@@ -482,7 +486,7 @@ private fun NodeDetail(
         )
         Spacer(Modifier.height(10.dp))
         LabSlider(
-            label = "FREQUENCY",
+            label = stringResource(R.string.eqx_frequency),
             valueText = if (node.frequency >= 1000) String.format("%.2f kHz", node.frequency / 1000) else "${node.frequency.roundToInt()} Hz",
             value = log10(node.frequency).toFloat(),
             onValueChange = { v -> onUpdate { it.copy(frequency = 10.0.pow(v.toDouble()).roundToInt().toDouble()) } },
@@ -507,7 +511,7 @@ private fun NodeDetail(
                     .clickable(onClick = onRemove),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Remove node", fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                Text(stringResource(R.string.eqx_remove_node), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
                     color = Color(0xFFFF8A80))
             }
         }

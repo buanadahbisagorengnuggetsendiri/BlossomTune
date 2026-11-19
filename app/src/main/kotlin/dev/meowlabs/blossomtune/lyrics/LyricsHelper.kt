@@ -115,10 +115,11 @@ constructor(
         val (lastResort, regular) = providers.withIndex()
             .partition { it.value.name == YouTubeCaptionsLyricsProvider.name }
         var candidates = fetchIndexed(mediaMetadata, regular)
-        var best = pickBest(mediaMetadata, candidates, providers.size)
+        // picking parses every candidate's lyrics, so it runs off the main thread the player calls from
+        var best = withContext(Dispatchers.Default) { pickBest(mediaMetadata, candidates, providers.size) }
         if (best == null && lastResort.isNotEmpty()) {
             candidates = candidates + fetchIndexed(mediaMetadata, lastResort)
-            best = pickBest(mediaMetadata, candidates, providers.size)
+            best = withContext(Dispatchers.Default) { pickBest(mediaMetadata, candidates, providers.size) }
         }
         if (best == null) return LyricsWithProvider(LYRICS_NOT_FOUND, "Unknown")
         val result = LyricsWithProvider(best.lyrics, best.providerName)
@@ -234,8 +235,9 @@ constructor(
      * Then, among lyrics in the right language, sync quality (word > line > plain), then duet
      * tags, then provider order.
      *
-     * Not every source gets a say, though: KuGou and YouTube's auto captions only do when the
-     * better sources have nothing - see [eligible]. Null when nothing is left to pick from.
+     * Not every source gets a say, though: the Chinese services and YouTube's auto captions only
+     * do when the better sources have nothing - see [eligible]. Null when nothing is left to pick
+     * from.
      */
     private fun pickBest(
         mediaMetadata: MediaMetadata,
@@ -268,7 +270,10 @@ constructor(
         }
 
         val chineseSong = isChineseSong(referenceScript, candidates)
-        val pool = eligible(candidates, chineseSong)
+        val hindiSong = referenceScript == LyricsUtils.Script.DEVANAGARI ||
+            candidates.any { it.script == LyricsUtils.Script.DEVANAGARI || it.language == "hi-Latn" }
+        val songLanguage = songLanguage(referenceScript, candidates)
+        val pool = eligible(candidates, chineseSong, songLanguage)
         if (pool.isEmpty()) return null
 
         // what most of the sources say the song is in, asked only when the song itself doesn't say
@@ -289,7 +294,14 @@ constructor(
         }
 
         return pool.withIndex().maxByOrNull { (index, c) ->
+            // hindi songs come back in devanagari from youtube and in romanised hindi from apple and musixmatch; both are the real song
+            val hindiMatch = hindiSong && (
+                c.script == LyricsUtils.Script.DEVANAGARI ||
+                    c.language == "hi-Latn" ||
+                    (c.script == LyricsUtils.Script.LATIN && c.language == null)
+                )
             val scriptScore = when {
+                hindiMatch -> 3
                 referenceScript != null -> when {
                     c.script == referenceScript -> 3
                     sameLanguageFamily(c.script, referenceScript) -> 2
@@ -331,14 +343,19 @@ constructor(
                 else -> 0
             }
 
-            // KuGou is the strongest source for Chinese songs, so for one it wins a tie outright
-            val orderScore = if (chineseSong && c.providerName == KuGouLyricsProvider.name) {
-                providerCount + 1
+            // for hindi songs betterlyrics and lyricsplus beat youtube music whenever they have the song
+            val preferredBonus = if (hindiMatch && c.providerName in PreferredHindiProviders) SyncWeight * 3 else 0
+
+            // The Chinese services are the strongest sources for Chinese songs, so for one they win
+            // a tie outright, and among themselves the user's order decides
+            val orderScore = if (chineseSong && c.providerName in ChineseSources) {
+                providerCount * 2 - c.order
             } else {
                 providerCount - c.order
             }
 
             scriptScore * ScriptWeight +
+                preferredBonus +
                 syncScore * SyncWeight +
                 duetScore * DuetWeight +
                 orderScore
@@ -383,11 +400,12 @@ constructor(
     }
 
     /**
-     * Whether the song is Chinese, which decides how far KuGou is believed. The song's own evidence
-     * decides when there is some ([referenceScript]: its title, artist or album, or YouTube's
-     * lyrics for this video). Without any, the other sources do: when Chinese is what most of the
-     * ones that aren't KuGou came back in - and none in kana, since kana makes kanji Japanese - the
-     * song is Chinese, and KuGou's Chinese is believed along with them.
+     * Whether the song is Chinese, which decides how far the Chinese services are believed. The
+     * song's own evidence decides when there is some ([referenceScript]: its title, artist or
+     * album, or YouTube's lyrics for this video). Without any, the other sources do: when Chinese
+     * is what most of the ones that aren't Chinese services came back in - and none in kana, since
+     * kana makes kanji Japanese - the song is Chinese, and the Chinese services are believed along
+     * with them. They don't vote themselves: they answer in Chinese for songs that aren't.
      */
     private fun isChineseSong(
         referenceScript: LyricsUtils.Script?,
@@ -396,7 +414,7 @@ constructor(
         if (referenceScript != null) {
             referenceScript == LyricsUtils.Script.HAN
         } else {
-            val others = candidates.filter { it.providerName != KuGouLyricsProvider.name }
+            val others = candidates.filter { it.providerName !in ChineseSources }
             candidates.none { it.script == LyricsUtils.Script.KANA } &&
                 majorityLanguage(languageKeys(others), minVotes = 1) == LyricsUtils.Script.HAN.name
         }
@@ -405,23 +423,59 @@ constructor(
      * Which candidates are picked from, in tiers - a tier is only heard when every tier above it
      * came back empty:
      *
-     *  1. Every source but KuGou and YouTube's auto captions; KuGou too for a Chinese song, since
-     *     that is what it is good at.
-     *  2. KuGou for any other song, and then only lyrics of its that aren't Chinese. KuGou answers
-     *     songs in every language with Chinese translations, or a different song with a similar
-     *     name, often enough that Chinese from it is not believed for a song that isn't Chinese.
-     *     The source picker still lists it, for anyone who wants it anyway.
+     *  1. Every source but the Chinese services (KuGou, NetEase, QQ Music) and YouTube's auto
+     *     captions; the Chinese services too for a Chinese song, since that is what they are good at.
+     *     For any other song, their word-timed lyrics join in too when they're in the song's own
+     *     language ([songLanguage]). They're often the only word timing there is for a Japanese,
+     *     Korean or English song, and kept out they lost to anyone's line-timed lyrics. Their usual
+     *     mistakes - a Chinese translation, another song with a similar name in another language -
+     *     don't pass that check.
+     *  2. The Chinese services for any other song, and then only lyrics of theirs that aren't
+     *     Chinese. They answer songs in every language with Chinese translations, or a different
+     *     song with a similar name, often enough that Chinese from them is not believed for a song
+     *     that isn't Chinese. The source picker still lists them, for anyone who wants them anyway.
      *  3. YouTube's auto captions: speech recognition, so lyrics only when there are no lyrics.
      */
     private fun eligible(
         candidates: List<ProviderCandidate>,
         chineseSong: Boolean,
+        songLanguage: String?,
     ): List<ProviderCandidate> {
-        val (kugou, rest) = candidates.partition { it.providerName == KuGouLyricsProvider.name }
+        val (chinese, rest) = candidates.partition { it.providerName in ChineseSources }
         val (captions, main) = rest.partition { it.providerName == YouTubeCaptionsLyricsProvider.name }
-        return (if (chineseSong) main + kugou else main)
-            .ifEmpty { kugou.filter { it.script != LyricsUtils.Script.HAN } }
+        val wordTimedOriginals = chinese.filter { c ->
+            c.sync == LyricsUtils.SyncKind.WORD && c.script != LyricsUtils.Script.HAN &&
+                songLanguage != null && languageKey(c, songLanguage) == songLanguage
+        }
+        return (if (chineseSong) main + chinese else main + wordTimedOriginals)
+            .ifEmpty { chinese.filter { it.script != LyricsUtils.Script.HAN } }
             .ifEmpty { captions }
+    }
+
+    /**
+     * What language the song is sung in, as a language key (see [languageKeys]), from evidence
+     * that isn't the Chinese services': the song's own title, artist or album script, or YouTube's
+     * lyrics for the video ([referenceScript]), or else what most of the other sources came back
+     * in. Null when nothing says.
+     */
+    private fun songLanguage(referenceScript: LyricsUtils.Script?, candidates: List<ProviderCandidate>): String? {
+        if (referenceScript != null) return referenceScript.name
+        val others = candidates.filter { it.providerName !in ChineseSources && it.providerName != YouTubeCaptionsLyricsProvider.name }
+        return majorityLanguage(languageKeys(others), minVotes = 1)
+    }
+
+    /**
+     * [candidate]'s language key, read the way [songLanguage] is: kanji and kana count as one
+     * family (a kanji-only title is still a Japanese song), and Latin lyrics whose language
+     * couldn't be told take the song's, when the song is in a Latin language.
+     */
+    private fun languageKey(candidate: ProviderCandidate, songLanguage: String): String = when {
+        candidate.script == LyricsUtils.Script.LATIN ->
+            candidate.language?.let { LatinPrefix + it }
+                ?: songLanguage.takeIf { it.startsWith(LatinPrefix) || it == LyricsUtils.Script.LATIN.name }
+                ?: LyricsUtils.Script.LATIN.name
+        candidate.script == LyricsUtils.Script.KANA && songLanguage == LyricsUtils.Script.HAN.name -> songLanguage
+        else -> candidate.script.name
     }
 
     private fun isNative(script: LyricsUtils.Script) =
@@ -515,6 +569,14 @@ constructor(
          * language is the song's language.
          */
         private val LanguageReferenceProviders = setOf("YouTubeMusic", "YouTubeSubtitle")
+        private val PreferredHindiProviders = setOf("BetterLyrics", "YouLyPlus")
+
+        /** Chinese services: trusted first-hand only for Chinese songs; see [eligible]. */
+        private val ChineseSources = setOf(
+            KuGouLyricsProvider.name,
+            NetEaseLyricsProvider.name,
+            QQMusicLyricsProvider.name,
+        )
 
         /** Marks a language key as a Latin-script language: "latin:en", "latin:id". */
         private const val LatinPrefix = "latin:"

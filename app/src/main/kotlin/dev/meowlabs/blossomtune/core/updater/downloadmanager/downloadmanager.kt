@@ -1,5 +1,3 @@
-// downloadmanager.kt
-
 package dev.meowlabs.blossomtune.core.updater.downloadmanager
 
 import android.content.Context

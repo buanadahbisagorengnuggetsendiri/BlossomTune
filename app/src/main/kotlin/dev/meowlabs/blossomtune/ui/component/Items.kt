@@ -57,7 +57,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -79,8 +78,6 @@ import androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
 import androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING
 import androidx.media3.exoplayer.offline.Download.STATE_QUEUED
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.music.innertube.models.AlbumItem
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.PlaylistItem
@@ -440,10 +437,10 @@ fun SongListItem(
 
     if (isSwipeable) {
         // the caller's modifier (its click handler, its item animation) goes on the row's root
-        SwipeActionsBox(
+        SongSwipeBox(
             modifier = modifier.fillMaxWidth(),
-            start = { librarySwipeAction(song.song) },
-            end = { queueSwipeAction { song.toMediaItem() } },
+            library = { librarySwipeAction(song.song) },
+            queue = { queueSwipeAction { song.toMediaItem() } },
         ) {
             content(Modifier)
         }
@@ -550,13 +547,7 @@ fun ArtistListItem(
     badges = badges,
     thumbnailContent = {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(artist.artist.thumbnailUrl?.resize(256, 256))
-                .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .crossfade(false)
-                .build(),
+            model = artist.artist.thumbnailUrl?.resize(256, 256),
             contentDescription = null,
             modifier = Modifier
                 .size(ListThumbnailSize)
@@ -584,13 +575,7 @@ fun ArtistGridItem(
     badges = badges,
     thumbnailContent = {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(artist.artist.thumbnailUrl?.resize(544, 544))
-                .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .crossfade(false)
-                .build(),
+            model = artist.artist.thumbnailUrl?.resize(544, 544),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -970,10 +955,10 @@ fun YouTubeListItem(
     }
 
     if (item is SongItem && isSwipeable) {
-        SwipeActionsBox(
+        SongSwipeBox(
             modifier = modifier.fillMaxWidth(),
-            start = { librarySwipeAction(item) },
-            end = { queueSwipeAction { item.copy(thumbnail = item.thumbnail.resize(544, 544)).toMediaItem() } },
+            library = { librarySwipeAction(item) },
+            queue = { queueSwipeAction { item.copy(thumbnail = item.thumbnail.resize(544, 544)).toMediaItem() } },
         ) {
             content(Modifier)
         }
@@ -1150,6 +1135,19 @@ fun ItemThumbnail(
     albumIndex: Int? = null,
     isSelected: Boolean = false,
     thumbnailRatio: Float = 1f
+) = ItemThumbnail(thumbnailUrl, isActive, { isPlaying }, shape, modifier, albumIndex, isSelected, thumbnailRatio)
+
+// isPlaying is read only inside the indicator, so a play or pause leaves the cover image alone
+@Composable
+fun ItemThumbnail(
+    thumbnailUrl: String?,
+    isActive: Boolean,
+    isPlaying: () -> Boolean,
+    shape: Shape,
+    modifier: Modifier = Modifier,
+    albumIndex: Int? = null,
+    isSelected: Boolean = false,
+    thumbnailRatio: Float = 1f
 ) {
     val cropAlbumArt = LocalCropAlbumArt.current
 
@@ -1161,19 +1159,12 @@ fun ItemThumbnail(
             .clip(shape)
     ) {
         if (albumIndex == null) {
+            // the box above already clips to the shape, a second clip here was just one more layer per cover
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(thumbnailUrl?.resize(544, 544))
-                    .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                    .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                    .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
-                    .crossfade(false)
-                    .build(),
+                model = thumbnailUrl?.resize(544, 544),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(shape)
+                modifier = Modifier.fillMaxSize()
             )
         }
 
@@ -1237,13 +1228,7 @@ fun LocalThumbnail(
             .clip(shape)
     ) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(thumbnailUrl)
-                .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .crossfade(false)
-                .build(),
+            model = thumbnailUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -1352,14 +1337,7 @@ fun PlaylistThumbnail(
             placeHolder()
         }
         1 -> AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(thumbnails[0].resize(544, 544))
-                .apply {  }
-                .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
-                .crossfade(false)
-                .build(),
+            model = thumbnails[0].resize(544, 544),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             placeholder = painterResource(R.drawable.queue_music),
@@ -1380,14 +1358,7 @@ fun PlaylistThumbnail(
                 Alignment.BottomEnd
             ).fastForEachIndexed { index, alignment ->
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(thumbnails.getOrNull(index)?.resize(544, 544))
-                        .apply {  }
-                        .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                        .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                        .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
-                        .crossfade(false)
-                        .build(),
+                    model = thumbnails.getOrNull(index)?.resize(544, 544),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(R.drawable.queue_music),

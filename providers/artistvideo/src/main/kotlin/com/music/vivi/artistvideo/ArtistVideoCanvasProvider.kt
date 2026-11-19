@@ -1,5 +1,3 @@
-// ArtistVideoCanvasProvider.kt
-
 package dev.meowlabs.blossomtune.artistvideo
 
 import io.ktor.client.HttpClient

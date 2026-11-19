@@ -1,5 +1,3 @@
-// ParametricEQParser.kt
-
 package dev.meowlabs.blossomtune.eq.data
 
 import java.io.File

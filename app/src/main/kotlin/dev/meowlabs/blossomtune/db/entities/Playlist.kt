@@ -1,5 +1,3 @@
-// Playlist.kt
-
 package dev.meowlabs.blossomtune.db.entities
 
 import androidx.compose.runtime.Immutable
@@ -31,7 +29,7 @@ data class Playlist(
     override val title: String
         get() = playlist.name
     override val thumbnailUrl: String?
-        get() = null
+        get() = thumbnails.firstOrNull()
 
     val thumbnails: List<String>
         get() {

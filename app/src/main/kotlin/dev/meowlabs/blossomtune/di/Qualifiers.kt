@@ -1,5 +1,3 @@
-// Qualifiers.kt
-
 package dev.meowlabs.blossomtune.di
 
 import javax.inject.Qualifier

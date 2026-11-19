@@ -1,15 +1,13 @@
-// AudioLabStore.kt
-
 package dev.meowlabs.blossomtune.eq
 
 import android.content.Context
 import androidx.core.content.edit
 import dev.meowlabs.blossomtune.eq.audio.Biquad
 import dev.meowlabs.blossomtune.eq.audio.LoudnessParams
+import dev.meowlabs.blossomtune.eq.audio.PeakLimiter
 import dev.meowlabs.blossomtune.eq.audio.ReplayGainMode
 import dev.meowlabs.blossomtune.eq.audio.ReplayGainParams
 import dev.meowlabs.blossomtune.eq.audio.ResponseCurve
-import dev.meowlabs.blossomtune.eq.audio.ReverbParams
 import dev.meowlabs.blossomtune.eq.audio.SpatialMode
 import dev.meowlabs.blossomtune.eq.audio.SpatialParams
 import dev.meowlabs.blossomtune.eq.audio.VolumeCurve
@@ -19,15 +17,21 @@ import dev.meowlabs.blossomtune.eq.data.EQProfileRepository
 import dev.meowlabs.blossomtune.eq.data.FilterType
 import dev.meowlabs.blossomtune.eq.data.ParametricEQ
 import dev.meowlabs.blossomtune.eq.data.ParametricEQBand
+import dev.meowlabs.blossomtune.eq.stage.StageNative
+import dev.meowlabs.blossomtune.eq.stage.StageOutput
+import dev.meowlabs.blossomtune.eq.stage.StageSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -38,11 +42,11 @@ import javax.inject.Singleton
 import kotlin.math.max
 import kotlin.math.pow
 
-/** what Sonic, the player's speed stage, can do */
+/** what sonic, the player's speed stage, can do */
 const val MinSpeed = 0.1f
 const val MaxSpeed = 8f
 
-/** A headphone correction picked from the AutoEq database, with the filters it came to. */
+/** a headphone correction picked from the autoeq database, with the filters it came to */
 @Serializable
 data class AutoEqCorrection(
     val model: String,
@@ -69,41 +73,13 @@ data class EqSettings(
     /** the user's own curve: the graph's nodes and the bands' sliders are the same list */
     val nodes: List<ParametricEQBand> = EqPresets.flatNodes(),
     val preamp: Double = 0.0,
-    /** pulls the level down by however much the curve boosts, so nothing clips */
+    /** pulls the level down by the part of the boost the limiter can't catch, so nothing clips */
     val autoPreamp: Boolean = true,
     /** the preset the curve still matches; null once it's been edited */
     val presetId: String? = EqPresets.FlatId,
     val correction: AutoEqCorrection? = null,
     val correctionEnabled: Boolean = true,
 )
-
-@Serializable
-data class ReverbSettings(
-    val enabled: Boolean = false,
-    val mix: Float = 0.5f,
-    val roomSize: Float = 0.55f,
-    val damping: Float = 0.45f,
-    val wet: Float = 0.6f,
-    val dry: Float = 1f,
-    val width: Float = 1f,
-    val preDelayMs: Float = 12f,
-    val lowCutHz: Float = 180f,
-    val presetId: String? = ReverbPresets.Default.id,
-) {
-    fun toParams() = ReverbParams(enabled, mix, roomSize, damping, wet, dry, width, preDelayMs, lowCutHz)
-
-    fun withPreset(preset: ReverbPresets.Preset) = copy(
-        mix = preset.mix,
-        roomSize = preset.roomSize,
-        damping = preset.damping,
-        wet = preset.wet,
-        dry = 1f,
-        width = preset.width,
-        preDelayMs = preset.preDelayMs,
-        lowCutHz = preset.lowCutHz,
-        presetId = preset.id,
-    )
-}
 
 @Serializable
 data class LoudnessSettings(
@@ -122,7 +98,7 @@ data class SpatialSettings(
     val feedDb: Float = 4.5f,
     val speakerAngle: Float = 30f,
     val amount: Float = 1f,
-    /** Dolby Atmos / surround rendered binaurally by BlossomTune rather than by the device */
+    /** dolby atmos / surround rendered binaurally by blossomtune rather than by the device */
     val surround: Boolean = false,
     /** both ears hear the whole mix */
     val mono: Boolean = false,
@@ -130,7 +106,7 @@ data class SpatialSettings(
     fun toParams() = SpatialParams(enabled, mode, cutoffHz, feedDb, speakerAngle, amount, surround, mono)
 }
 
-/** "Even out songs" for files that carry ReplayGain (Monochrome's FLACs, many local files) */
+/** "even out songs" for files that carry replaygain (monochrome's flacs, many local files) */
 @Serializable
 data class NormalizeSettings(
     val replayGainMode: ReplayGainMode = ReplayGainMode.Track,
@@ -162,14 +138,10 @@ data class VolumeSettings(
     fun toCurve() = VolumeCurve(enabled, exponent, limit)
 }
 
-/**
- * Everything Audio Lab sets, in one place: the equalizer (curve, presets, headphone correction)
- * and Audio FX (reverb, loudness, spatial, speed and pitch, volume curve). Each change goes
- * straight to the players, live, and is saved a moment later, so a slider can be dragged freely.
- */
+/** everything audio lab sets (equalizer and audio fx), each change goes to the players live and is saved a moment later, so a slider can be dragged freely */
 @Singleton
 class AudioLabStore @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val equalizerService: EqualizerService,
     private val audioFx: AudioFxService,
     private val legacyProfiles: EQProfileRepository,
@@ -182,9 +154,14 @@ class AudioLabStore @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var saveJob: Job? = null
     private val headroomCurve = ResponseCurve(ResponseCurve.logSpaced(160))
+    private val boostRoom = headroomCurve.frequencies.map(PeakLimiter::boostRoomDb).toDoubleArray()
 
     private val _eq = MutableStateFlow(load("eq") ?: EqSettings())
     val eq: StateFlow<EqSettings> = _eq.asStateFlow()
+
+    // the playing song's own preset from its edit sheet, heard instead of the curve above; never saved, the service sets it per song
+    private val _songPreset = MutableStateFlow<EqPreset?>(null)
+    val songPreset: StateFlow<EqPreset?> = _songPreset.asStateFlow()
 
     private val _reverb = MutableStateFlow(load("reverb") ?: ReverbSettings())
     val reverb: StateFlow<ReverbSettings> = _reverb.asStateFlow()
@@ -208,10 +185,34 @@ class AudioLabStore @Inject constructor(
     private val _normalize = MutableStateFlow(load("normalize") ?: NormalizeSettings())
     val normalize: StateFlow<NormalizeSettings> = _normalize.asStateFlow()
 
+    private val _stage = MutableStateFlow(load("stage") ?: StageSettings())
+    val stage: StateFlow<StageSettings> = _stage.asStateFlow()
+
+    /** where the music is playing right now, told by the service whenever the route changes */
+    private val _stageOutput = MutableStateFlow(StageOutput.PhoneSpeaker)
+    val stageOutput: StateFlow<StageOutput> = _stageOutput.asStateFlow()
+
+    @Volatile
+    private var hrtfRequested = false
+
+    /** whether anything here changes the sound: offloaded playback skips every effect, so it has to stay off while this is true */
+    val shapesSound: Flow<Boolean> = combine(
+        combine(eq, reverb, loudness, spatial, songPreset) { eq, reverb, loudness, spatial, songPreset ->
+            eq.enabled || songPreset != null || reverb.enabled || loudness.enabled || spatial.enabled || spatial.mono
+        },
+        stage,
+    ) { others, stage -> others || stage.enabled }.distinctUntilChanged()
+
     init {
         migrateLegacyEqualizer()
         pushEq()
         pushFx()
+    }
+
+    fun updateReverb(transform: (ReverbSettings) -> ReverbSettings) {
+        _reverb.update(transform)
+        pushFx()
+        scheduleSave()
     }
 
     fun updateLoudness(transform: (LoudnessSettings) -> LoudnessSettings) {
@@ -224,6 +225,18 @@ class AudioLabStore @Inject constructor(
         _spatial.update(transform)
         pushFx()
         scheduleSave()
+    }
+
+    fun updateStage(transform: (StageSettings) -> StageSettings) {
+        _stage.update(transform)
+        pushFx()
+        scheduleSave()
+    }
+
+    fun setStageOutput(output: StageOutput) {
+        if (_stageOutput.value == output) return
+        _stageOutput.value = output
+        pushFx()
     }
 
     fun updatePlayback(transform: (PlaybackSettings) -> PlaybackSettings) {
@@ -249,12 +262,6 @@ class AudioLabStore @Inject constructor(
         scheduleSave()
     }
 
-    fun updateReverb(transform: (ReverbSettings) -> ReverbSettings) {
-        _reverb.update(transform)
-        pushFx()
-        scheduleSave()
-    }
-
     fun savePreset(name: String) {
         val current = _eq.value
         val preset = EqPreset("user_${System.currentTimeMillis()}", name.trim(), current.nodes, current.preamp)
@@ -262,18 +269,32 @@ class AudioLabStore @Inject constructor(
         updateEq { it.copy(presetId = preset.id) }
     }
 
+    // a song's own preset while it plays, null to go back to the user's curve; the headphone correction stays on either way
+    fun useSongPreset(preset: EqPreset?) {
+        if (_songPreset.value == preset) return
+        _songPreset.value = preset
+        pushEq()
+    }
+
+    // a built in or saved preset by its id, as the song edit sheet stores it
+    fun presetById(id: String): EqPreset? =
+        _presets.value.firstOrNull { it.id == id }
+            ?: EqPresets.BuiltIn.firstOrNull { it.id == id }?.let { EqPreset(it.id, it.name, it.nodes) }
+
     fun deletePreset(id: String) {
         _presets.update { list -> list.filterNot { it.id == id } }
         if (_eq.value.presetId == id) updateEq { it.copy(presetId = null) } else scheduleSave()
     }
 
-    /** the dB the auto preamp takes off for [settings], 0 or less */
+    /** the db the auto preamp takes off for settings (0 or less): only the boost the limiter can't catch, taking off all of it left a bass boost no louder than no eq */
     fun autoHeadroom(settings: EqSettings = _eq.value): Double = synchronized(headroomCurve) {
         val response = headroomCurve.response(audibleBands(settings))
-        -max(0.0, response.maxOrNull() ?: 0.0)
+        var over = 0.0
+        for (i in response.indices) over = max(over, response[i] - boostRoom[i])
+        -over
     }
 
-    /** what the processors play for [settings]; null is a straight wire */
+    /** what the processors play for settings; null is a straight wire */
     fun design(settings: EqSettings): ParametricEQ? {
         if (!settings.enabled) return null
         val bands = audibleBands(settings)
@@ -294,12 +315,19 @@ class AudioLabStore @Inject constructor(
         return own + correction.filter(Biquad::isAudible)
     }
 
-    private fun pushEq() = equalizerService.apply(design(_eq.value))
+    private fun pushEq() {
+        val song = _songPreset.value
+        val playing = if (song == null) _eq.value else _eq.value.copy(enabled = true, nodes = song.nodes, preamp = song.preamp, presetId = song.id)
+        equalizerService.apply(design(playing))
+    }
 
     private fun pushFx() {
         audioFx.reverb = _reverb.value.toParams()
         audioFx.loudness = _loudness.value.toParams()
         audioFx.spatial = _spatial.value.toParams()
+        val stage = _stage.value
+        audioFx.stage = stage.toParams(speaker = _stageOutput.value.isSpeaker(stage))
+        if (stage.enabled) loadHrtf()
         audioFx.replayGain = _normalize.value.toParams()
         val curve = _volume.value.toCurve()
         if (curve != audioFx.volumeCurve) audioFx.volumeCurve = curve
@@ -317,11 +345,24 @@ class AudioLabStore @Inject constructor(
                 putString("playback", json.encodeToString(PlaybackSettings.serializer(), _playback.value))
                 putString("volume", json.encodeToString(VolumeSettings.serializer(), _volume.value))
                 putString("normalize", json.encodeToString(NormalizeSettings.serializer(), _normalize.value))
+                putString("stage", json.encodeToString(StageSettings.serializer(), _stage.value))
                 putString(
                     "presets",
                     json.encodeToString(kotlinx.serialization.builtins.ListSerializer(EqPreset.serializer()), _presets.value),
                 )
             }
+        }
+    }
+
+    // the ear responses 3d sims places sounds with, read once the first time it's switched on
+    private fun loadHrtf() {
+        if (hrtfRequested) return
+        hrtfRequested = true
+        // tried once: without the library or the asset the room falls back to plain stereo placement
+        scope.launch {
+            runCatching {
+                StageNative.loaded && StageNative.loadHrtf(context.assets.open("stage_hrtf.bin").use { it.readBytes() })
+            }.onFailure { Timber.tag("AudioLab").w(it, "Couldn't load the 3D Sims ear responses") }
         }
     }
 
@@ -344,7 +385,7 @@ class AudioLabStore @Inject constructor(
                     presetId = null,
                 )
             }
-            val saved = legacyProfiles.getSortedProfiles().filter { it.id != "blossomtune_custom_eq" && it.bands.isNotEmpty() }
+            val saved = legacyProfiles.getSortedProfiles().filter { it.id != "musicfy_custom_eq" && it.bands.isNotEmpty() }
             if (saved.isNotEmpty()) {
                 _presets.update { it + saved.map { p -> EqPreset("legacy_${p.id}", p.name, p.bands, p.preamp) } }
             }
@@ -354,7 +395,7 @@ class AudioLabStore @Inject constructor(
     }
 }
 
-/** The built-in curves, as gains for the ten classic bands. */
+/** the built-in curves, as gains for the ten classic bands */
 object EqPresets {
     const val FlatId = "flat"
 
@@ -393,33 +434,5 @@ object EqPresets {
         Preset("treble_boost", "Treble Booster", doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.5, 3.5, 4.5, 5.5)),
         Preset("treble_cut", "Treble Reducer", doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -2.5, -3.5, -4.5, -5.5)),
         Preset("vocal", "Vocal Booster", doubleArrayOf(-1.5, -3.0, -3.0, 1.5, 3.5, 3.5, 3.0, 1.5, 0.0, -1.5)),
-    )
-}
-
-/** Rooms to start from; any slider moved afterwards makes it Custom. */
-object ReverbPresets {
-    class Preset(
-        val id: String,
-        val name: String,
-        val mix: Float,
-        val roomSize: Float,
-        val damping: Float,
-        val wet: Float,
-        val width: Float,
-        val preDelayMs: Float,
-        val lowCutHz: Float,
-    )
-
-    val Default = Preset("room", "Room", 0.5f, 0.55f, 0.45f, 0.6f, 1f, 12f, 180f)
-
-    val All = listOf(
-        Default,
-        Preset("studio", "Studio", 0.4f, 0.3f, 0.65f, 0.45f, 0.8f, 5f, 250f),
-        Preset("bathroom", "Bathroom", 0.5f, 0.42f, 0.05f, 0.7f, 0.6f, 2f, 120f),
-        Preset("plate", "Plate", 0.45f, 0.65f, 0.1f, 0.55f, 1f, 0f, 300f),
-        Preset("hall", "Hall", 0.5f, 0.78f, 0.35f, 0.6f, 1f, 25f, 150f),
-        Preset("cathedral", "Cathedral", 0.55f, 0.95f, 0.2f, 0.7f, 1f, 40f, 120f),
-        Preset("stadium", "Stadium", 0.6f, 0.9f, 0.5f, 0.65f, 1f, 60f, 200f),
-        Preset("dream", "Dreamy", 0.7f, 0.93f, 0.6f, 0.85f, 1f, 30f, 300f),
     )
 }

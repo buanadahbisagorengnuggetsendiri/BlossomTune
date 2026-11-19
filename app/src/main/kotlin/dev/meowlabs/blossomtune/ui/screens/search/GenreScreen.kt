@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -51,6 +50,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,11 +58,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.music.innertube.models.AlbumItem
-import com.music.innertube.models.ArtistItem
-import com.music.innertube.models.PlaylistItem
-import com.music.innertube.models.SongItem
-import com.music.innertube.models.YTItem
 import dev.meowlabs.blossomtune.LocalPlayerAwareWindowInsets
 import dev.meowlabs.blossomtune.LocalPlayerConnection
 import dev.meowlabs.blossomtune.R
@@ -71,10 +66,17 @@ import dev.meowlabs.blossomtune.playback.queues.YouTubeQueue
 import dev.meowlabs.blossomtune.ui.component.BlurDirection
 import dev.meowlabs.blossomtune.ui.component.GlassState
 import dev.meowlabs.blossomtune.ui.component.ProgressiveGlassBackground
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.glassRoot
 import dev.meowlabs.blossomtune.ui.utils.resize
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import dev.meowlabs.blossomtune.viewmodels.CommunityPlaylistItem
 import dev.meowlabs.blossomtune.viewmodels.GenreViewModel
+import com.music.innertube.models.AlbumItem
+import com.music.innertube.models.ArtistItem
+import com.music.innertube.models.PlaylistItem
+import com.music.innertube.models.SongItem
+import com.music.innertube.models.YTItem
 
 private val HeaderHeight = 300.dp
 
@@ -91,7 +93,7 @@ fun GenreScreen(
     val listState = rememberLazyListState()
     val glassState = remember { GlassState() }
     val density = LocalDensity.current
-    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBar = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
     val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
 
     val enterPx = with(density) { (HeaderHeight - statusBar - 96.dp).toPx().coerceAtLeast(1f) }
@@ -99,39 +101,45 @@ fun GenreScreen(
     val collapsed by remember(listState, enterPx) {
         derivedStateOf {
             val offset = listState.firstVisibleItemScrollOffset.toFloat()
-            val next = when {
-                listState.firstVisibleItemIndex > 0 -> true
-                offset > enterPx -> true
-                offset < enterPx * 0.55f -> false
-                else -> latch[0]
-            }
+            val next =
+                when {
+                    listState.firstVisibleItemIndex > 0 -> true
+                    offset > enterPx -> true
+                    offset < enterPx * 0.55f -> false
+                    else -> latch[0]
+                }
             latch[0] = next
             next
         }
     }
-    val collapse = animateFloatAsState(
-        targetValue = if (collapsed) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = SearchCollapseDurationMs,
-            easing = SearchCollapseEasing,
-        ),
-        label = "genreCollapse",
-    )
+    val collapse =
+        animateFloatAsState(
+            targetValue = if (collapsed) 1f else 0f,
+            animationSpec =
+                tween(
+                    durationMillis = SearchCollapseDurationMs,
+                    easing = SearchCollapseEasing,
+                ),
+            label = "genreCollapse",
+        )
     val progressProvider = remember(collapse) { { collapse.value } }
 
     val title = browseResult?.title.orEmpty()
-    val headerArt = remember(browseResult) {
-        browseResult?.items
-            ?.asSequence()
-            ?.flatMap { it.items.asSequence() }
-            ?.mapNotNull(YTItem::thumbnail)
-            ?.firstOrNull()
-    }
+    val headerArt =
+        remember(browseResult) {
+            browseResult
+                ?.items
+                ?.asSequence()
+                ?.flatMap { it.items.asSequence() }
+                ?.mapNotNull(YTItem::thumbnail)
+                ?.firstOrNull()
+        }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(SearchColors.page(pureBlack))
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(SearchColors.page(pureBlack)),
     ) {
         Box(modifier = Modifier.fillMaxSize().glassRoot(glassState)) {
             LazyColumn(
@@ -166,7 +174,7 @@ fun GenreScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = "Nothing here yet",
+                                    text = stringResource(R.string.genre_nothing_here),
                                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                                     color = SearchColors.Secondary,
                                 )
@@ -177,13 +185,13 @@ fun GenreScreen(
                         item(key = "section_${index}_${section.title}") {
                             if (index == 0) Spacer(modifier = Modifier.height(10.dp))
                             SearchSectionHeader(
-                                title = section.title ?: "Featured",
+                                title = section.title ?: stringResource(R.string.genre_featured),
                                 ruleAbove = false,
                                 ruleBelow = false,
                                 large = false,
                             )
                         }
-                        item(key = "row_${index}") {
+                        item(key = "row_$index") {
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = SearchHorizontalPadding),
                                 horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -197,14 +205,23 @@ fun GenreScreen(
                                         item = item,
                                         onClick = {
                                             when (item) {
-                                                is SongItem -> playerConnection?.playQueue(
-                                                    YouTubeQueue.radio(item.toMediaMetadata())
-                                                )
+                                                is SongItem -> {
+                                                    playerConnection?.playQueue(
+                                                        YouTubeQueue.radio(item.toMediaMetadata()),
+                                                    )
+                                                }
 
-                                                is AlbumItem -> navController.navigate("album/${item.id}")
-                                                is ArtistItem -> navController.navigate("artist/${item.id}")
-                                                is PlaylistItem ->
+                                                is AlbumItem -> {
+                                                    navController.navigate("album/${item.id}")
+                                                }
+
+                                                is ArtistItem -> {
+                                                    navController.navigate("artist/${item.id}")
+                                                }
+
+                                                is PlaylistItem -> {
                                                     navController.navigate("online_playlist/${item.id}")
+                                                }
                                             }
                                         },
                                     )
@@ -218,7 +235,7 @@ fun GenreScreen(
                             if (cards == null || cards.isNotEmpty()) {
                                 item(key = "community_header") {
                                     SearchSectionHeader(
-                                        title = "From the community",
+                                        title = stringResource(R.string.genre_from_the_community),
                                         ruleAbove = false,
                                         ruleBelow = false,
                                         large = false,
@@ -234,9 +251,10 @@ fun GenreScreen(
                                         }
                                     } else {
                                         LazyRow(
-                                            contentPadding = PaddingValues(
-                                                horizontal = SearchHorizontalPadding
-                                            ),
+                                            contentPadding =
+                                                PaddingValues(
+                                                    horizontal = SearchHorizontalPadding,
+                                                ),
                                             horizontalArrangement = Arrangement.spacedBy(14.dp),
                                         ) {
                                             items(
@@ -248,7 +266,7 @@ fun GenreScreen(
                                                     item = card,
                                                     onClick = {
                                                         navController.navigate(
-                                                            "online_playlist/${card.playlist.id}"
+                                                            "online_playlist/${card.playlist.id}",
                                                         )
                                                     },
                                                 )
@@ -286,77 +304,84 @@ private fun GenreHeader(
     val parallaxPx = with(density) { 90.dp.toPx() }
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(HeaderHeight)
-
-            .clipToBounds()
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(HeaderHeight)
+                .clipToBounds(),
     ) {
         if (artworkUrl != null) {
             AsyncImage(
                 model = artworkUrl.resize(720, 720),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        translationY = progressProvider() * parallaxPx
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            translationY = progressProvider() * parallaxPx
 
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                            renderEffect = dev.meowlabs.blossomtune.ui.component.BlurEffectCache.get(
-                                60f,
-                                android.graphics.Shader.TileMode.CLAMP,
-                            )
-                        }
-                        alpha = 1f - progressProvider() * 0.5f
-                    },
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                renderEffect =
+                                    dev.meowlabs.blossomtune.ui.component.BlurEffectCache.get(
+                                        60f,
+                                        android.graphics.Shader.TileMode.CLAMP,
+                                    )
+                            }
+                            alpha = 1f - progressProvider() * 0.5f
+                        },
             )
         } else {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF2C3952), Color(0xFF141A25), pageColor)
-                        )
-                    )
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF3A3A44), Color(0xFF1A1A1F), pageColor),
+                            ),
+                        ),
             )
         }
 
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawWithCache {
-                    val brush = Brush.verticalGradient(
-                        0f to pageColor.copy(alpha = 0.55f),
-                        0.35f to pageColor.copy(alpha = 0.25f),
-                        0.72f to pageColor.copy(alpha = 0.85f),
-                        1f to pageColor,
-                    )
-                    onDrawBehind { drawRect(brush = brush) }
-                }
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .drawWithCache {
+                        val brush =
+                            Brush.verticalGradient(
+                                0f to pageColor.copy(alpha = 0.55f),
+                                0.35f to pageColor.copy(alpha = 0.25f),
+                                0.72f to pageColor.copy(alpha = 0.85f),
+                                1f to pageColor,
+                            )
+                        onDrawBehind { drawRect(brush = brush) }
+                    },
         )
 
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = SearchHorizontalPadding, end = SearchHorizontalPadding, bottom = 28.dp)
-                .graphicsLayer {
-                    val p = progressProvider()
+            modifier =
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = SearchHorizontalPadding, end = SearchHorizontalPadding, bottom = 28.dp)
+                    .graphicsLayer {
+                        val p = progressProvider()
 
-                    alpha = (1f - p * 1.8f).coerceIn(0f, 1f)
-                    val scale = 1f - p * 0.12f
-                    scaleX = scale
-                    scaleY = scale
-                    transformOrigin = TransformOrigin(0f, 1f)
-                },
+                        alpha = (1f - p * 1.8f).coerceIn(0f, 1f)
+                        val scale = 1f - p * 0.12f
+                        scaleX = scale
+                        scaleY = scale
+                        transformOrigin = TransformOrigin(0f, 1f)
+                    },
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
+                style =
+                    MaterialTheme.typography.displaySmall.copy(
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
                 color = SearchColors.Primary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -365,10 +390,11 @@ private fun GenreHeader(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = genreDescription(title),
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 12.sp,
-                        lineHeight = 17.sp,
-                    ),
+                    style =
+                        MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
+                        ),
                     color = SearchColors.Secondary,
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis,
@@ -386,7 +412,7 @@ private fun GenreTopBar(
     pureBlack: Boolean,
     onBack: () -> Unit,
 ) {
-    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBar = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
     val pageColor = SearchColors.page(pureBlack)
     val density = LocalDensity.current
     val risePx = with(density) { 18.dp.toPx() }
@@ -395,9 +421,10 @@ private fun GenreTopBar(
         val showGlass by remember { derivedStateOf { progressProvider() > 0.01f } }
         if (showGlass) {
             Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .graphicsLayer { alpha = progressProvider().coerceIn(0f, 1f) }
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .graphicsLayer { alpha = progressProvider().coerceIn(0f, 1f) },
             ) {
                 ProgressiveGlassBackground(
                     state = glassState,
@@ -405,45 +432,56 @@ private fun GenreTopBar(
                     foundationColor = pageColor,
                     direction = BlurDirection.BottomToTop,
                     steps = 3,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
+            val progressiveBar =
+                dev.meowlabs.blossomtune.ui.component
+                    .rememberProgressiveBlur()
             Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .drawWithCache {
-                        onDrawBehind {
-                            val p = progressProvider().coerceIn(0f, 1f)
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    0f to pageColor.copy(alpha = p * 0.95f),
-                                    0.6f to pageColor.copy(alpha = p * 0.6f),
-                                    1f to Color.Transparent,
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .drawWithCache {
+                            onDrawBehind {
+                                val p = progressProvider().coerceIn(0f, 1f)
+                                if (!progressiveBar) {
+                                    drawRect(pageColor.copy(alpha = p * dev.meowlabs.blossomtune.ui.component.FlatBarScrimAlpha))
+                                    return@onDrawBehind
+                                }
+                                drawRect(
+                                    brush =
+                                        Brush.verticalGradient(
+                                            0f to pageColor.copy(alpha = p * 0.95f),
+                                            0.6f to pageColor.copy(alpha = p * 0.6f),
+                                            1f to Color.Transparent,
+                                        ),
                                 )
-                            )
-                        }
-                    }
+                            }
+                        },
             )
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = statusBar + SearchTopClearance)
-                .height(56.dp)
-                .padding(horizontal = SearchHorizontalPadding),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = statusBar + SearchTopClearance)
+                    .height(56.dp)
+                    .padding(horizontal = SearchHorizontalPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.10f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onBack,
-                    ),
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.10f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = RemoteFocus,
+                            onClick = onBack,
+                        ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -456,19 +494,20 @@ private fun GenreTopBar(
             Spacer(modifier = Modifier.width(14.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
+                style =
+                    MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
                 color = SearchColors.Primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.graphicsLayer {
-
-                    val p = progressProvider()
-                    alpha = ((p - 0.55f) / 0.45f).coerceIn(0f, 1f)
-                    translationY = (1f - alpha) * risePx
-                },
+                modifier =
+                    Modifier.graphicsLayer {
+                        val p = progressProvider()
+                        alpha = ((p - 0.55f) / 0.45f).coerceIn(0f, 1f)
+                        translationY = (1f - alpha) * risePx
+                    },
             )
         }
     }
@@ -479,33 +518,52 @@ private fun GenreItemCard(
     item: YTItem,
     onClick: () -> Unit,
 ) {
-    val subtitle = when (item) {
-        is SongItem -> item.artists.joinToString { it.name }
-        is AlbumItem -> item.artists?.joinToString { it.name }.orEmpty().ifEmpty { "Album" }
-        is ArtistItem -> "Artist"
-        is PlaylistItem -> item.author?.name ?: "Playlist"
-    }
+    val subtitle =
+        when (item) {
+            is SongItem -> {
+                item.artists.joinToString { it.name }
+            }
+
+            is AlbumItem -> {
+                item.artists
+                    ?.joinToString { it.name }
+                    .orEmpty()
+                    .ifEmpty { stringResource(R.string.item_kind_album) }
+            }
+
+            is ArtistItem -> {
+                stringResource(R.string.item_kind_artist)
+            }
+
+            is PlaylistItem -> {
+                item.author?.name ?: stringResource(R.string.item_kind_playlist)
+            }
+        }
 
     Column(
-        modifier = Modifier
-            .width(146.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .width(146.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onClick),
     ) {
         SearchArtwork(
             url = item.thumbnail,
             size = 146.dp,
             circle = item is ArtistItem,
             corner = 10.dp,
-            sharedElementKey = dev.meowlabs.blossomtune.ui.component.coverTransitionKey(item),
+            sharedElementKey =
+                dev.meowlabs.blossomtune.ui.component
+                    .coverTransitionKey(item),
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = item.title,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-            ),
+            style =
+                MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
             color = SearchColors.Primary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -526,26 +584,27 @@ private fun GenreCommunityCard(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .width(268.dp)
-            .height(320.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(SearchColors.Tile)
-            .searchCardBorder(20.dp)
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .width(268.dp)
+                .height(320.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFF151519))
+                .searchCardBorder(20.dp)
+                .clickable(onClick = onClick),
     ) {
-
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(196.dp)
-                .graphicsLayer {
-                    rotationZ = 35f
-                    scaleX = 1.3f
-                    scaleY = 1.3f
-                    translationX = 40.dp.toPx()
-                    translationY = -26.dp.toPx()
-                },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(196.dp)
+                    .graphicsLayer {
+                        rotationZ = 35f
+                        scaleX = 1.3f
+                        scaleY = 1.3f
+                        translationX = 40.dp.toPx()
+                        translationY = -26.dp.toPx()
+                    },
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -576,30 +635,33 @@ private fun GenreCommunityCard(
         }
 
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        0.45f to Color.Transparent,
-                        0.75f to Color.Black.copy(alpha = 0.72f),
-                        1f to Color.Black.copy(alpha = 0.92f),
-                    )
-                )
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.45f to Color.Transparent,
+                            0.75f to Color.Black.copy(alpha = 0.72f),
+                            1f to Color.Black.copy(alpha = 0.92f),
+                        ),
+                    ),
         )
 
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 20.dp, end = 16.dp, bottom = 22.dp),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 20.dp, end = 16.dp, bottom = 22.dp),
         ) {
             Text(
                 text = item.playlist.title,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-                color = SearchColors.Primary,
+                style =
+                    MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                color = Color.White,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -607,7 +669,7 @@ private fun GenreCommunityCard(
                 Text(
                     text = count,
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = SearchColors.Secondary,
+                    color = Color.White.copy(alpha = 0.75f),
                     maxLines = 1,
                 )
             }

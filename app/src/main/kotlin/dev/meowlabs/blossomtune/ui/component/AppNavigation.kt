@@ -2,67 +2,48 @@
 
 package dev.meowlabs.blossomtune.ui.component
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import dev.meowlabs.blossomtune.ui.screens.Screens
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.background
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
 import dev.meowlabs.blossomtune.LocalGlassState
 
@@ -135,12 +116,12 @@ private val RouteOwners: List<Pair<String, String>> = listOf(
     "playback_diagnostics" to "settings",
     "blossomtune_settings" to "settings",
     "general_settings" to "settings",
-    "audio_settings" to "settings",
-    "appearance_settings" to "settings",
     "playback_settings" to "settings",
+    "now_playing_settings" to "settings",
     "experimental_settings" to "settings",
     "developer_space" to "settings",
-    "edit_profile" to "settings",
+    "developer_playground" to "settings",
+    "storage_settings" to "settings",
     "import_sync" to "settings",
     "import_providers" to "settings",
     "import_tunemymusic" to "settings",
@@ -218,84 +199,12 @@ class TabOwnership(private val navigationItems: List<Screens>) {
     }
 }
 
-@Composable
-fun AppNavigationRail(
-    navigationItems: List<Screens>,
-    currentRoute: String?,
-    /** from [owningTab]: the tab the page on screen belongs to */
-    selectedTabRoute: String,
-    onItemClick: (Screens, Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    pureBlack: Boolean = false,
-    onSearchLongClick: (() -> Unit)? = null
-) {
-    val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
-    val haptics = LocalHapticFeedback.current
-    val viewConfiguration = LocalViewConfiguration.current
+/** The bar itself, a stadium the mini player's 64dp matches. */
+internal val NavBarHeight = 64.dp
+internal val NavBarShape = RoundedCornerShape(50)
 
-    NavigationRail(
-        modifier = modifier,
-        containerColor = containerColor
-    ) {
-        Spacer(modifier = Modifier.weight(1f))
-
-        navigationItems.forEach { screen ->
-            val isSelected = screen.route == selectedTabRoute
-            val iconRes = remember(isSelected, screen) {
-                if (isSelected) screen.iconIdActive else screen.iconIdInactive
-            }
-
-            val isSearchItem = screen == Screens.Search && onSearchLongClick != null
-            val interactionSource = remember { MutableInteractionSource() }
-            val currentSelected by androidx.compose.runtime.rememberUpdatedState(isSelected)
-
-            if (isSearchItem) {
-                LaunchedEffect(interactionSource) {
-                    var isLongClick = false
-                    interactionSource.interactions.collectLatest { interaction ->
-                        when (interaction) {
-                            is PressInteraction.Press -> {
-                                isLongClick = false
-                                delay(viewConfiguration.longPressTimeoutMillis)
-                                isLongClick = true
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onSearchLongClick.invoke()
-                            }
-                            is PressInteraction.Release -> {
-                                if (!isLongClick) {
-                                    onItemClick(screen, currentSelected)
-                                }
-                            }
-                            is PressInteraction.Cancel -> {
-                                isLongClick = false
-                            }
-                        }
-                    }
-                }
-            }
-
-            NavigationRailItem(
-                selected = isSelected,
-                onClick = {
-                    if (!isSearchItem) {
-                        onItemClick(screen, isSelected)
-                    }
-
-                },
-                interactionSource = interactionSource,
-                icon = {
-                    Icon(
-                        painter = coil3.compose.rememberAsyncImagePainter(model = iconRes),
-                        contentDescription = stringResource(screen.titleId),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-    }
-}
+/** How bright an unlit tab's icon is. */
+private const val UnlitIconAlpha = 0.7f
 
 @Composable
 fun AppNavigationBar(
@@ -307,157 +216,166 @@ fun AppNavigationBar(
     modifier: Modifier = Modifier,
     pureBlack: Boolean = false,
     slimNav: Boolean = false,
-    onSearchLongClick: (() -> Unit)? = null
+    /** a second quick tap on Search: straight into typing */
+    onSearchDoubleTap: (() -> Unit)? = null
 ) {
-    val haptics = LocalHapticFeedback.current
-    val viewConfiguration = LocalViewConfiguration.current
-    val playerConnection = dev.meowlabs.blossomtune.LocalPlayerConnection.current
-    val currentSong by playerConnection?.service?.currentMediaMetadata?.collectAsState(initial = null) ?: androidx.compose.runtime.mutableStateOf(null)
+    val glassState = LocalGlassState.current ?: remember { GlassState() }
+    val accentWash = rememberChromeAccentWash()
+    val selectedIndex = navigationItems.indexOfFirst { it.route == selectedTabRoute }
+    val tabCount = navigationItems.size
+    val pill = rememberNavPill(selectedIndex)
+    // a look's glass can draw its own edge and its own pill, and then blossomtune leaves its hairline, shadow or highlight out
+    val moduleGlass = rememberChromeModuleGlass()
+    val density = LocalDensity.current
+    val glassPill = remember(pill, tabCount, density) {
+        { bar: Size -> pill.forGlass(bar, with(density) { NavRowPadding.toPx() }, tabCount, density) }
+    }
 
-
-    androidx.compose.foundation.layout.Box(modifier = modifier) {
-        val containerColor = if (pureBlack) Color.Black else GlassChromeColor
-        val contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-
-        val glassState = LocalGlassState.current ?: remember { GlassState() }
-        val accentWash = rememberChromeAccentWash()
-
-        androidx.compose.foundation.layout.Box(
+    Box(modifier = modifier) {
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                 .padding(horizontal = 24.dp, vertical = 8.dp)
                 .align(Alignment.TopCenter)
-                .height(64.dp)
-
+                .height(NavBarHeight)
                 .press3D(maxTilt = 4f, pressedScale = 0.985f)
-                .clip(RoundedCornerShape(32.dp))
-                .border(
-                    1.dp,
-                    if (pureBlack) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.outline,
-                    RoundedCornerShape(32.dp)
-                )
+                .then(if (moduleGlass?.shadow == false) Modifier else Modifier.dropShadow(NavBarShape, ChromeShadow))
+                .clip(NavBarShape)
+                .drawWithContent {
+                    drawContent()
+                    if (moduleGlass?.outline != false) drawChromeOutline(Offset.Zero, size, cornerRadius = size.height / 2f)
+                }
         ) {
-            GlassPillBackground(
+            FrostedChromeGlass(
                 state = glassState,
-                blurRadius = { GlassChromeBlurRadius },
-                tint = containerColor.copy(alpha = 0.65f),
-                foundationColor = containerColor,
+                pureBlack = pureBlack,
                 accentWash = accentWash,
-
-                tileMode = android.graphics.Shader.TileMode.CLAMP,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                pill = glassPill,
             )
 
-            androidx.compose.foundation.layout.Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceAround,
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = NavRowPadding)
+                    .navHighlight(pill, tabCount) { moduleGlass?.drawsPill != true }
+                    .navPillDrag(pill, tabCount, selectedIndex) { index ->
+                        navigationItems.getOrNull(index)?.let { onItemClick(it, index == selectedIndex) }
+                    },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 navigationItems.forEach { screen ->
                     // lit = the tab this page belongs to. what a tap on it does (scroll to the top
                     // on the tab's own page, back to that page from deeper in) is the caller's call
-                    val isSelected = screen.route == selectedTabRoute
-                    val iconRes = remember(isSelected, screen) {
-                        if (isSelected) screen.iconIdActive else screen.iconIdInactive
-                    }
-
-                    val isSearchItem = screen == Screens.Search && onSearchLongClick != null
-                    val interactionSource = remember { MutableInteractionSource() }
-                    val isPressed by interactionSource.collectIsPressedAsState()
-                    // the long-press listener below is started once; it reads this so a tap
-                    // never acts on whichever tab was lit when it started
-                    val currentSelected by androidx.compose.runtime.rememberUpdatedState(isSelected)
-
-                    val scale by animateFloatAsState(
-                        targetValue = if (isPressed) 0.85f else 1f,
-                        animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f),
-                        label = "nav_item_scale"
+                    NavTab(
+                        screen = screen,
+                        isSelected = screen.route == selectedTabRoute,
+                        onItemClick = onItemClick,
+                        onDoubleTap = onSearchDoubleTap.takeIf { screen == Screens.Search },
                     )
-
-                    // Tombol aktif = pill biru yang mendominasi bar; ikon di dalamnya
-                    // putih. Putih di atas kaca putih tidak terbaca sama sekali.
-                    val targetBackgroundColor = if (isSelected) {
-                        dev.meowlabs.blossomtune.ui.theme.BlossomColors.NavBlue
-                    } else Color.Transparent
-
-                    val animatedBackgroundColor by animateColorAsState(
-                        targetValue = targetBackgroundColor,
-                        animationSpec = tween(200),
-                        label = "nav_item_bg_color"
-                    )
-
-                    val targetIconTint = if (isSelected) {
-                        Color.White
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    }
-
-                    val animatedIconTint by animateColorAsState(
-                        targetValue = targetIconTint,
-                        animationSpec = tween(200),
-                        label = "nav_item_icon_tint"
-                    )
-
-                    if (isSearchItem) {
-                        LaunchedEffect(interactionSource) {
-                            var isLongClick = false
-                            interactionSource.interactions.collectLatest { interaction ->
-                                when (interaction) {
-                                    is androidx.compose.foundation.interaction.PressInteraction.Press -> {
-                                        isLongClick = false
-                                        kotlinx.coroutines.delay(viewConfiguration.longPressTimeoutMillis)
-                                        isLongClick = true
-                                        haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                        onSearchLongClick.invoke()
-                                    }
-                                    is androidx.compose.foundation.interaction.PressInteraction.Release -> {
-                                        if (!isLongClick) {
-                                            onItemClick(screen, currentSelected)
-                                        }
-                                    }
-                                    is androidx.compose.foundation.interaction.PressInteraction.Cancel -> {
-                                        isLongClick = false
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    androidx.compose.foundation.layout.Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(vertical = 8.dp, horizontal = 4.dp)
-                            .scale(scale)
-                            .clip(RoundedCornerShape(32.dp))
-                            .background(animatedBackgroundColor)
-                            .clickable(
-                                interactionSource = interactionSource,
-                                indication = null,
-                                onClick = {
-                                    if (!isSearchItem) {
-                                        onItemClick(screen, isSelected)
-                                    }
-                                }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Crossfade(
-                            targetState = iconRes,
-                            animationSpec = tween(200),
-                            label = "nav_icon_crossfade"
-                        ) { targetIconRes ->
-                            Icon(
-                                painter = coil3.compose.rememberAsyncImagePainter(model = targetIconRes),
-                                contentDescription = stringResource(screen.titleId),
-                                modifier = Modifier.size(if (screen == Screens.Home || screen == Screens.Search) 22.dp else 24.dp),
-                                tint = animatedIconTint
-                            )
-                        }
-                    }
                 }
             }
         }
+    }
+}
+
+/**
+ * A tab's tap, or with [onDoubleTap] a second tap close behind the first: the first still goes to
+ * the tab at once, the second does [onDoubleTap] instead. [lastTap] holds the time of the one before.
+ */
+private fun tabTapped(lastTap: LongArray, doubleTapTimeoutMillis: Long, onDoubleTap: (() -> Unit)?, onTap: () -> Unit) {
+    val now = android.os.SystemClock.uptimeMillis()
+    if (onDoubleTap != null && now - lastTap[0] < doubleTapTimeoutMillis) {
+        lastTap[0] = 0L
+        onDoubleTap()
+    } else {
+        lastTap[0] = now
+        onTap()
+    }
+}
+
+/**
+ * One tab of the bar. Its icon swaps to the filled one and brightens as it lights up, and it
+ * squishes under a press. [onDoubleTap] is for Search, where two taps open the search field.
+ * The Library's icon turns into a download badge while songs download.
+ */
+@Composable
+internal fun RowScope.NavTab(
+    screen: Screens,
+    isSelected: Boolean,
+    onItemClick: (Screens, Boolean) -> Unit,
+    onDoubleTap: (() -> Unit)?,
+) {
+    val viewConfiguration = LocalViewConfiguration.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val lastTap = remember { longArrayOf(0L) }
+    val lit = animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0f,
+        animationSpec = tween(200),
+        label = "nav_tab_lit"
+    )
+
+    // Both icons stay loaded, so lighting a tab never shows an empty frame while its filled icon loads.
+    val unlitIcon = coil3.compose.rememberAsyncImagePainter(model = screen.iconIdInactive)
+    val litIcon = coil3.compose.rememberAsyncImagePainter(model = screen.iconIdActive)
+    val iconSize = if (screen == Screens.Home || screen == Screens.Search) 22.dp else 24.dp
+
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .pressBounce(interactionSource, pressedScale = 0.85f)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = RemoteFocus,
+                onClick = {
+                    tabTapped(lastTap, viewConfiguration.doubleTapTimeoutMillis, onDoubleTap) {
+                        onItemClick(screen, isSelected)
+                    }
+                }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (screen == Screens.Library) {
+            LibraryDownloadIcon { TabIcons(screen, unlitIcon, litIcon, iconSize) { lit.value } }
+        } else {
+            TabIcons(screen, unlitIcon, litIcon, iconSize) { lit.value }
+        }
+    }
+}
+
+/** a tab's two icons, the filled one fading in over the outline as the tab lights up */
+@Composable
+private fun TabIcons(
+    screen: Screens,
+    unlitIcon: androidx.compose.ui.graphics.painter.Painter,
+    litIcon: androidx.compose.ui.graphics.painter.Painter,
+    iconSize: androidx.compose.ui.unit.Dp,
+    lit: () -> Float,
+) {
+    Box(contentAlignment = Alignment.Center) {
+        Icon(
+            painter = unlitIcon,
+            contentDescription = stringResource(screen.titleId),
+            tint = Color.White,
+            modifier = Modifier
+                .size(iconSize)
+                .graphicsLayer {
+                    alpha = UnlitIconAlpha * (1f - lit())
+                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                }
+        )
+        Icon(
+            painter = litIcon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier
+                .size(iconSize)
+                .graphicsLayer {
+                    alpha = lit()
+                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                }
+        )
     }
 }

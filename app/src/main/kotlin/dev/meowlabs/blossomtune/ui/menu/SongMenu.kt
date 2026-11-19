@@ -2,7 +2,6 @@
 
 package dev.meowlabs.blossomtune.ui.menu
 
-import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -21,8 +20,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -37,7 +34,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,21 +45,22 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.music.innertube.YouTube
 import dev.meowlabs.blossomtune.LocalDatabase
+import dev.meowlabs.blossomtune.importer.ImportedVersions
+import dev.meowlabs.blossomtune.importer.TrackMatch
+import dev.meowlabs.blossomtune.ui.component.LocalMenuState
+import dev.meowlabs.blossomtune.ui.component.TopToaster
 import dev.meowlabs.blossomtune.LocalDownloadUtil
 import dev.meowlabs.blossomtune.LocalPlayerConnection
 import dev.meowlabs.blossomtune.LocalSyncUtils
@@ -86,11 +83,14 @@ import dev.meowlabs.blossomtune.ui.component.Material3MenuGroup
 import dev.meowlabs.blossomtune.ui.component.Material3MenuItemData
 import dev.meowlabs.blossomtune.ui.component.NewAction
 import dev.meowlabs.blossomtune.ui.component.NewActionGrid
-import dev.meowlabs.blossomtune.ui.component.SheetDivider
+import dev.meowlabs.blossomtune.ui.component.SheetActionCard
+import dev.meowlabs.blossomtune.ui.component.SheetActionCardRow
+import dev.meowlabs.blossomtune.ui.component.SheetDownloadCard
+import dev.meowlabs.blossomtune.ui.component.SheetHeaderGap
 import dev.meowlabs.blossomtune.ui.component.SheetHeader
 import dev.meowlabs.blossomtune.ui.component.SheetHeaderButton
 import dev.meowlabs.blossomtune.ui.component.SongListItem
-import dev.meowlabs.blossomtune.ui.component.TextFieldDialog
+import dev.meowlabs.blossomtune.ui.menu.songedit.SongEditSheet
 import dev.meowlabs.blossomtune.utils.listItemShape
 import dev.meowlabs.blossomtune.ui.utils.ShowMediaInfo
 import dev.meowlabs.blossomtune.viewmodels.CachePlaylistViewModel
@@ -98,7 +98,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.Color
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun SongMenu(
@@ -113,7 +112,7 @@ fun SongMenu(
     val context = LocalContext.current
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val songState = database.song(originalSong.id).collectAsState(initial = originalSong)
+    val songState = remember(database, originalSong.id) { database.song(originalSong.id) }.collectAsState(initial = originalSong)
     val song = songState.value ?: originalSong
     val downloadUtil = LocalDownloadUtil.current
 
@@ -133,7 +132,14 @@ fun SongMenu(
         label = "",
     )
 
-    val isPinned by database.speedDialDao.isPinned(song.id).collectAsState(initial = false)
+    val isPinned by remember(database, song.id) { database.speedDialDao.isPinned(song.id) }.collectAsState(initial = false)
+
+    // the track an import brought this song in as: offers "Choose different version", and makes
+    // Refetch search for that track again rather than only refresh this song's details
+    val importMatch by produceState<TrackMatch?>(initialValue = null, song.id) {
+        value = ImportedVersions.trackFor(context, database, song.id)
+    }
+    val menuState = LocalMenuState.current
 
     val orderedArtists by produceState(initialValue = emptyList<ArtistEntity>(), song) {
         withContext(Dispatchers.IO) {
@@ -149,57 +155,9 @@ fun SongMenu(
         mutableStateOf(false)
     }
 
-    val TextFieldValueSaver: Saver<TextFieldValue, *> = Saver(
-        save = { it.text },
-        restore = { text -> TextFieldValue(text, TextRange(text.length)) }
-    )
-
-    var titleField by rememberSaveable(stateSaver = TextFieldValueSaver) {
-        mutableStateOf(TextFieldValue(song.song.title))
-    }
-
-    var artistField by rememberSaveable(stateSaver = TextFieldValueSaver) {
-        mutableStateOf(TextFieldValue(song.artists.firstOrNull()?.name.orEmpty()))
-    }
-
+    // the full song edit sheet: cover, name, lyrics, offset, speed, eq, artists, album and its video
     if (showEditDialog) {
-        TextFieldDialog(
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.edit),
-                    contentDescription = null
-                )
-            },
-            title = {
-                Text(text = stringResource(R.string.edit_song))
-            },
-            textFields = listOf(
-                stringResource(R.string.song_title) to titleField,
-                stringResource(R.string.artist_name) to artistField
-            ),
-            onTextFieldsChange = { index, newValue ->
-                if (index == 0) titleField = newValue
-                else artistField = newValue
-            },
-            onDoneMultiple = { values ->
-                val newTitle = values[0]
-                val newArtist = values[1]
-
-                coroutineScope.launch {
-                    database.query {
-                        update(song.song.copy(title = newTitle))
-                        val artist = song.artists.firstOrNull()
-                        if (artist != null) {
-                            update(artist.copy(name = newArtist))
-                        }
-                    }
-
-                    showEditDialog = false
-                    onDismiss()
-                }
-            },
-            onDismiss = { showEditDialog = false }
-        )
+        SongEditSheet(metadata = song.toMediaMetadata(), onDismiss = { showEditDialog = false })
     }
 
     var showChoosePlaylistDialog by rememberSaveable {
@@ -312,8 +270,7 @@ fun SongMenu(
         trailing = {
             SheetHeaderButton(
                 icon = if (song.song.liked) R.drawable.favorite else R.drawable.favorite_border,
-                active = song.song.liked,
-                tint = if (song.song.liked) MaterialTheme.colorScheme.error else BlossomInk.Primary,
+                tint = if (song.song.liked) MaterialTheme.colorScheme.error else Color.White,
                 onClick = {
                     val s = song.song.toggleLike()
                     database.query {
@@ -325,7 +282,7 @@ fun SongMenu(
         },
     )
 
-    SheetDivider()
+    Spacer(Modifier.height(SheetHeaderGap))
 
     val bottomSheetPageState = LocalBottomSheetPageState.current
     val configuration = LocalConfiguration.current
@@ -340,7 +297,50 @@ fun SongMenu(
         ),
     ) {
         item {
-            // The song-menu mock's four first - add to playlist, share, album, artist - then the rest.
+            // Download and Play next are what people open a song's menu for, so they get the two
+            // big cards. Then the song-menu mock's four rows - add to playlist, share, album,
+            // artist - and the rest.
+            SheetActionCardRow {
+                SheetDownloadCard(
+                    downloadState = download?.state,
+                    onDownload = {
+                        val downloadRequest = DownloadRequest
+                            .Builder(song.id, song.id.toUri())
+                            .setCustomCacheKey(song.id)
+                            .setData(song.song.title.toByteArray())
+                            .build()
+                        DownloadService.sendAddDownload(
+                            context,
+                            ExoDownloadService::class.java,
+                            downloadRequest,
+                            false,
+                        )
+                    },
+                    onRemove = {
+                        DownloadService.sendRemoveDownload(
+                            context,
+                            ExoDownloadService::class.java,
+                            song.id,
+                            false,
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                SheetActionCard(
+                    icon = R.drawable.playlist_play,
+                    title = stringResource(R.string.play_next),
+                    onClick = {
+                        onDismiss()
+                        playerConnection.playNext(song.toMediaItem())
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(10.dp)) }
+
+        item {
             Material3MenuGroup(
                 items = listOfNotNull(
                     Material3MenuItemData(
@@ -363,12 +363,7 @@ fun SongMenu(
                         },
                         onClick = {
                             onDismiss()
-                            val intent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
-                            }
-                            context.startActivity(Intent.createChooser(intent, null))
+                            dev.meowlabs.blossomtune.ui.player.share.song.SongShare.open(song.toMediaMetadata())
                         }
                     ),
                     if (song.song.albumId != null) {
@@ -468,22 +463,6 @@ fun SongMenu(
                     } else null,
                     if (true) {
                         Material3MenuItemData(
-                            title = { Text(text = stringResource(R.string.play_next)) },
-                            description = { Text(text = stringResource(R.string.play_next_desc)) },
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.playlist_play),
-                                    contentDescription = null,
-                                )
-                            },
-                            onClick = {
-                                onDismiss()
-                                playerConnection.playNext(song.toMediaItem())
-                            }
-                        )
-                    } else null,
-                    if (true) {
-                        Material3MenuItemData(
                             title = { Text(text = stringResource(R.string.add_to_queue)) },
                             description = { Text(text = stringResource(R.string.add_to_queue_desc)) },
                             icon = {
@@ -511,7 +490,7 @@ fun SongMenu(
                         Material3MenuItemData(
                             title = {
                                 Text(
-                                    text = if (isPinned) "Unpin from library" else "Pin to library"
+                                    text = stringResource(if (isPinned) R.string.unpin_from_speed_dial else R.string.pin_to_speed_dial)
                                 )
                             },
                             icon = {
@@ -658,90 +637,33 @@ fun SongMenu(
 
         item {
             Material3MenuGroup(
-                items = listOf(
-                    when (download?.state) {
-                        Download.STATE_COMPLETED -> {
+                items = buildList {
+                    importMatch?.let { match ->
+                        add(
                             Material3MenuItemData(
-                                title = {
-                                    Text(
-                                        text = stringResource(R.string.remove_download)
-                                    )
-                                },
+                                title = { Text(text = stringResource(R.string.menu_choose_version)) },
+                                description = { Text(text = stringResource(R.string.menu_choose_version_desc)) },
                                 icon = {
                                     Icon(
-                                        painter = painterResource(R.drawable.offline),
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    DownloadService.sendRemoveDownload(
-                                        context,
-                                        ExoDownloadService::class.java,
-                                        song.id,
-                                        false,
-                                    )
-                                }
-                            )
-                        }
-                        Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                            Material3MenuItemData(
-                                title = { Text(text = stringResource(R.string.downloading)) },
-                                icon = {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                },
-                                onClick = {
-                                    DownloadService.sendRemoveDownload(
-                                        context,
-                                        ExoDownloadService::class.java,
-                                        song.id,
-                                        false,
-                                    )
-                                }
-                            )
-                        }
-                        else -> {
-                            Material3MenuItemData(
-                                title = { Text(text = stringResource(R.string.action_download)) },
-                                description = { Text(text = stringResource(R.string.download_desc)) },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.download),
+                                        painter = painterResource(R.drawable.tune),
                                         contentDescription = null,
                                     )
                                 },
                                 onClick = {
-                                    val downloadRequest =
-                                        DownloadRequest
-                                            .Builder(song.id, song.id.toUri())
-                                            .setCustomCacheKey(song.id)
-                                            .setData(song.song.title.toByteArray())
-                                            .build()
-                                    DownloadService.sendAddDownload(
-                                        context,
-                                        ExoDownloadService::class.java,
-                                        downloadRequest,
-                                        false,
-                                    )
+                                    menuState.showChooseVersionSheet(match, onChosen = onDismiss)
                                 }
                             )
-                        }
+                        )
                     }
-                )
-            )
-        }
-
-        item { Spacer(modifier = Modifier.height(12.dp)) }
-
-        item {
-            Material3MenuGroup(
-                items = buildList {
                     add(
                         Material3MenuItemData(
                             title = { Text(text = stringResource(R.string.refetch)) },
-                            description = { Text(text = stringResource(R.string.refetch_desc)) },
+                            description = {
+                                Text(
+                                    text = if (importMatch != null) stringResource(R.string.pc_refetch_import_desc)
+                                    else stringResource(R.string.refetch_desc)
+                                )
+                            },
                             icon = {
                                 Icon(
                                     painter = painterResource(R.drawable.sync),
@@ -751,12 +673,17 @@ fun SongMenu(
                             },
                             onClick = {
                                 refetchIconDegree -= 360
-                                scope.launch(Dispatchers.IO) {
-                                    YouTube.queue(listOf(song.id)).onSuccess {
-                                        val newSong = it.firstOrNull()
-                                        if (newSong != null) {
-                                            database.transaction {
-                                                update(song, newSong.toMediaMetadata())
+                                val match = importMatch
+                                if (match != null) {
+                                    refetchImported(context, database, match)
+                                } else {
+                                    scope.launch(Dispatchers.IO) {
+                                        YouTube.queue(listOf(song.id)).onSuccess {
+                                            val newSong = it.firstOrNull()
+                                            if (newSong != null) {
+                                                database.transaction {
+                                                    update(song, newSong.toMediaMetadata())
+                                                }
                                             }
                                         }
                                     }
@@ -783,6 +710,26 @@ fun SongMenu(
                         )
                     )
                 }
+            )
+        }
+    }
+}
+
+/**
+ * Refetch on an imported song: searches for the track it was imported as again, and says what came
+ * of it. It used to only refresh this song's own details, so a wrong version stayed wrong and the
+ * button looked like it did nothing.
+ */
+private fun refetchImported(context: android.content.Context, database: dev.meowlabs.blossomtune.db.MusicDatabase, match: TrackMatch) {
+    ImportedVersions.scope.launch {
+        val switched = ImportedVersions.refetch(context.applicationContext, database, match)
+        if (switched != null) {
+            TopToaster.show(text = context.getString(R.string.pc_closer_match, switched.title), thumbnail = switched.thumbnail, iconRes = R.drawable.sync)
+        } else {
+            TopToaster.show(
+                text = context.getString(R.string.pc_closest_match),
+                iconRes = R.drawable.sync,
+                durationMs = 4000L,
             )
         }
     }

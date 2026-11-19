@@ -2,6 +2,7 @@
 
 package dev.meowlabs.blossomtune.ui.launch
 
+import android.content.Context
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -31,6 +32,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
@@ -39,13 +41,16 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.PathParser
 import dev.meowlabs.blossomtune.ui.component.BlurEffectCache
+import dev.meowlabs.blossomtune.utils.AppIcon
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -54,6 +59,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import kotlin.math.PI
 import kotlin.math.ceil
+import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.pow
@@ -62,12 +69,14 @@ import kotlin.math.sin
 /*
  * A cold start, in order:
  *
- *  1. The system splash shows the filled mark. On the app's first frame [LaunchIntroOverlay]
- *     draws the very same mark in the very same spot and the splash goes (see SplashScreenExit).
+ *  1. The system splash shows the filled mark (an anime launcher icon on android 13+: the icon
+ *     itself). On the app's first frame [LaunchIntroOverlay] draws the very same thing in the very
+ *     same spot and the splash goes (see SplashScreenExit). The anime icon then zooms out with a
+ *     bounce into the filled mark, a ripple running out from it, before step 3.
  *  2. The mark holds still while the essentials come up underneath it: the player service, the
  *     theme, and Home (its logo and bones). Anything slow here is invisible, nothing moves.
- *  3. The mark flies into Home's logo, crossfading from the splash's ink into the mark's own white
- *     with a blur through the middle, while the skeleton rises in ([launchRise]).
+ *  3. The mark flies into Home's logo, crossfading from the filled splash mark into the outline
+ *     one with a blur through the middle, while the skeleton rises in ([launchRise]).
  *  4. Only then does the heavy work get the main thread: Home swaps its bones for content, the
  *     PoToken WebView boots, auto-sync runs ([LaunchGate.awaitIntro]).
  */
@@ -142,26 +151,39 @@ private const val SplashTimeoutMillis = 1_500L
 // blur through the middle of the morph, in the mark's own units (it scales with the mark)
 private const val BlurPeak = 8f
 
+// the anime icon bouncing out into the mark, ripple and all
+private const val PreludeMillis = 1_100
+
+// an adaptive icon on the splash: its 108dp layers drawn at 240dp, shown through a 160dp circle
+private const val IconLayerSize = 240f / 288f * 235f
+private const val IconCircleRadius = 80f / 288f * 235f
+
 // the system splash draws an icon with no background at 288dp, masked to a 192dp circle
 private val SplashIconSize = 288.dp
 private const val SplashViewport = 235f
 private const val SplashMaskRadius = 96f / 288f * SplashViewport
 
-// ic_splash_mark and ic_blossomtune_mark are the same shape; the splash one is the mark's own
-// 128-unit geometry translated onto the splash viewport's centre
-private val MarkOffset = Offset(53.5f, 53.5f)
+// ic_splash_mark and ic_blossomtune_mark are the same shapes; the splash one sits 58,48 further in
+private val MarkOffset = Offset(58f, 48f)
 private const val MarkViewportWidth = 128f
-private const val MarkViewportHeight = 128f
+private const val MarkViewportHeight = 139f
 
 // the splash viewport's centre: the point the flight scales around
 private val Pivot = Offset(SplashViewport / 2f, SplashViewport / 2f)
 
-// everything the mark draws (bbox 17,15 - 111,113 in its own units, plus MarkOffset), with room
-// for the blur, in splash units: the layer the blur runs on
-private val ArtBounds = RectF(62f, 60f, 173f, 175f)
+// everything the marks draw, plus room for the blur, in splash units
+private val ArtBounds = RectF(44f, 36f, 204f, 200f)
+
+// the layer the blur runs on: the marks, and the anime icon's circle as it winds up
+private val LayerBounds = RectF(28f, 28f, 207f, 207f)
 
 @Stable
-class LaunchIntroState internal constructor(val plays: Boolean) {
+class LaunchIntroState internal constructor(
+    val plays: Boolean,
+    // the anime icon the splash showed (android 13+); null starts from the filled mark as always
+    internal val icon: AppIcon? = null,
+) {
+    internal val prelude = Animatable(if (plays && icon != null) 0f else 1f)
     internal val flight = Animatable(if (plays) 0f else 1f)
     internal val rise = Animatable(if (plays) 0f else 1f)
 
@@ -265,6 +287,9 @@ fun LaunchIntroOverlay(state: LaunchIntroState, essentialsReady: Boolean) {
     val ready by rememberUpdatedState(essentialsReady)
     val art = remember { LaunchMarkArt() }
     val frame = remember { MarkFrame() }
+    val context = LocalContext.current
+    // read once for the first frame: it has to match what the splash showed
+    val iconArt = remember { state.icon?.let { LaunchIconArt(context, it) } }
 
     LaunchedEffect(state) {
         val shownAt = SystemClock.uptimeMillis()
@@ -282,6 +307,9 @@ fun LaunchIntroOverlay(state: LaunchIntroState, essentialsReady: Boolean) {
         // whatever just came up draws its first (heavy) frame while the mark is still standing
         withFrameNanos { }
         withFrameNanos { }
+        if (state.prelude.value < 1f) {
+            state.prelude.animateTo(1f, tween(PreludeMillis, easing = LinearEasing))
+        }
         val flightAt = SystemClock.uptimeMillis()
         var worstFrame = 0L
         coroutineScope {
@@ -323,15 +351,32 @@ fun LaunchIntroOverlay(state: LaunchIntroState, essentialsReady: Boolean) {
                 }
         )
 
+        // the anime icon's ripple, running out from under the mark as it bounces in; drawn flat, never blurred
+        if (iconArt != null) {
+            Spacer(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        val ripple = rippleAt(state.prelude.value) ?: return@drawBehind
+                        drawCircle(
+                            color = Color.White.copy(alpha = 0.32f * (1f - ripple)),
+                            radius = IconCircleRadius * (0.9f + 1.3f * ripple) * frame.unit,
+                            center = frame.origin + Pivot * frame.unit,
+                            style = Stroke(width = (7f * (1f - ripple) + 1.5f) * frame.unit),
+                        )
+                    }
+            )
+        }
+
         // the mark, on a layer just big enough for it so the blur stays cheap at every size
         Spacer(
             modifier = Modifier
                 .layout { measurable, constraints ->
                     val placement = placementAt(state, IntSize(constraints.maxWidth, constraints.maxHeight))
-                    val left = floor(placement.origin.x + ArtBounds.left * placement.unit).toInt()
-                    val top = floor(placement.origin.y + ArtBounds.top * placement.unit).toInt()
-                    val right = ceil(placement.origin.x + ArtBounds.right * placement.unit).toInt()
-                    val bottom = ceil(placement.origin.y + ArtBounds.bottom * placement.unit).toInt()
+                    val left = floor(placement.origin.x + LayerBounds.left * placement.unit).toInt()
+                    val top = floor(placement.origin.y + LayerBounds.top * placement.unit).toInt()
+                    val right = ceil(placement.origin.x + LayerBounds.right * placement.unit).toInt()
+                    val bottom = ceil(placement.origin.y + LayerBounds.bottom * placement.unit).toInt()
                     frame.origin = placement.origin
                     frame.unit = placement.unit
                     frame.layerTopLeft = Offset(left.toFloat(), top.toFloat())
@@ -341,12 +386,27 @@ fun LaunchIntroOverlay(state: LaunchIntroState, essentialsReady: Boolean) {
                     }
                 }
                 .graphicsLayer {
-                    val t = state.flight.value
-                    renderEffect = BlurEffectCache.get(BlurPeak * bell((t - 0.04f) / 0.76f) * frame.unit)
+                    val p = state.prelude.value
+                    val blur = if (p < 1f) preludeLook(p).blur else BlurPeak * bell((state.flight.value - 0.04f) / 0.76f)
+                    renderEffect = BlurEffectCache.element(blur * frame.unit)
                 }
                 .drawBehind {
                     val t = state.flight.value
                     if (state.landed) return@drawBehind
+                    val p = state.prelude.value
+                    if (p < 1f && iconArt != null) {
+                        val look = preludeLook(p)
+                        drawIntoCanvas { canvas ->
+                            val native = canvas.nativeCanvas
+                            native.save()
+                            native.translate(frame.origin.x - frame.layerTopLeft.x, frame.origin.y - frame.layerTopLeft.y)
+                            native.scale(frame.unit, frame.unit)
+                            iconArt.draw(native, look.iconAlpha, look.iconScale)
+                            art.draw(native, look.markAlpha, 0f, look.markScale)
+                            native.restore()
+                        }
+                        return@drawBehind
+                    }
                     val fade = if (state.markBounds == null) 1f - smoothstep(0.55f, 1f, t) else 1f
                     val filledAlpha = (1f - smoothstep(0.3f, 0.78f, t)) * fade
                     val outlineAlpha = smoothstep(0.12f, 0.6f, t) * fade
@@ -391,35 +451,58 @@ private fun Density.placementAt(state: LaunchIntroState, size: IntSize): MarkPla
     return MarkPlacement(origin = pivot - Pivot * unit, unit = unit)
 }
 
-/** the mark, in the splash drawable's units, ready to draw at any scale */
+/** the two marks, in the splash drawable's units, ready to draw at any scale */
 private class LaunchMarkArt {
-    private val mark = path(
-        "M111.12,64.00A13,11.5 0 1,1 85.12,64.00A13,11.5 0 1,1 111.12,64.00Z" +
-            "M75.88,112.50A13,11.5 72 1,1 67.85,87.78A13,11.5 72 1,1 75.88,112.50Z" +
-            "M18.86,93.98A13,11.5 144 1,1 39.89,78.69A13,11.5 144 1,1 18.86,93.98Z" +
-            "M18.86,34.02A13,11.5 216 1,1 39.89,49.31A13,11.5 216 1,1 18.86,34.02Z" +
-            "M75.88,15.50A13,11.5 288 1,1 67.85,40.22A13,11.5 288 1,1 75.88,15.50Z" +
-            "M71.87,59.72A12.5,9.5 -20 1,1 48.37,68.28A12.5,9.5 -20 1,1 71.87,59.72Z"
+    private val triangle = path(
+        "M163.5 96.3493C180.167 105.972 180.167 130.028 163.5 139.651L108 171.694C91.3333 181.316 " +
+            "70.5 169.288 70.5 150.043V85.9569C70.5 66.7119 91.3333 54.6838 108 64.3063L163.5 96.3493Z"
     )
+    // the face: the little chevron and the smile under it
+    private val face = path("M97 112L108.5 98L120 112M110.325 125C111.871 133.439 121.868 148.704 142.944 149.92")
     private val mask = Path().apply { addCircle(Pivot.x, Pivot.y, SplashMaskRadius, Path.Direction.CW) }
 
-    // ic_splash_mark: ink, on the splash's white
-    private val splashFill = paint(0xFF212121.toInt()) { style = Paint.Style.FILL }
+    // ic_splash_mark: a white shape with a dark outline and a dark face
+    private val fill = paint(android.graphics.Color.WHITE) { style = Paint.Style.FILL }
+    private val darkOutline = paint(0xFF212121.toInt()) {
+        style = Paint.Style.STROKE
+        strokeWidth = 19f
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val darkFace = paint(0xFF212121.toInt()) {
+        style = Paint.Style.STROKE
+        strokeWidth = 11f
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
 
-    // ic_blossomtune_mark: the same shape, white, over the dark backdrop it lands on
-    private val landingFill = paint(android.graphics.Color.WHITE) { style = Paint.Style.FILL }
+    // ic_blossomtune_mark: the same outline and face, white, nothing filled
+    private val lightOutline = paint(android.graphics.Color.WHITE) {
+        style = Paint.Style.STROKE
+        strokeWidth = 19f
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val lightFace = paint(android.graphics.Color.WHITE) {
+        style = Paint.Style.STROKE
+        strokeWidth = 11f
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
 
-    fun draw(canvas: android.graphics.Canvas, filledAlpha: Float, outlineAlpha: Float) {
-        // each version is faded as a whole, so the two never blend into a grey in between
+    fun draw(canvas: android.graphics.Canvas, filledAlpha: Float, outlineAlpha: Float, filledScale: Float = 1f) {
+        // each mark is faded as a whole, so its overlapping strokes never show through each other
         if (filledAlpha > 0.002f) {
-            canvas.saveLayerAlpha(ArtBounds, (filledAlpha * 255f).toInt())
+            canvas.saveLayerAlpha(LayerBounds, (filledAlpha * 255f).toInt())
+            canvas.scale(filledScale, filledScale, Pivot.x, Pivot.y)
             canvas.clipPath(mask)
-            canvas.drawPath(mark, splashFill)
+            canvas.drawPath(triangle, fill)
+            canvas.drawPath(triangle, darkOutline)
+            canvas.drawPath(face, darkFace)
             canvas.restore()
         }
         if (outlineAlpha > 0.002f) {
             canvas.saveLayerAlpha(ArtBounds, (outlineAlpha * 255f).toInt())
-            canvas.drawPath(mark, landingFill)
+            canvas.drawPath(triangle, lightOutline)
+            canvas.drawPath(face, lightFace)
             canvas.restore()
         }
     }
@@ -432,6 +515,57 @@ private class LaunchMarkArt {
             setup()
         }
 }
+
+/** the launcher icon as the splash drew it: its background and art through a circle, in splash units */
+private class LaunchIconArt(context: Context, icon: AppIcon) {
+    private val fill = icon.background?.let { color -> Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = context.getColor(color) } }
+    // drawn into a fixed box and scaled, so a vector renders sharp at whatever size the canvas asks
+    private val art = ContextCompat.getDrawable(context, icon.foreground)?.mutate()?.apply { setBounds(0, 0, ArtBox, ArtBox) }
+    private val circle = Path().apply { addCircle(Pivot.x, Pivot.y, IconCircleRadius, Path.Direction.CW) }
+
+    fun draw(canvas: android.graphics.Canvas, alpha: Float, scale: Float) {
+        if (alpha <= 0.002f) return
+        canvas.saveLayerAlpha(LayerBounds, (alpha * 255f).toInt())
+        canvas.scale(scale, scale, Pivot.x, Pivot.y)
+        canvas.clipPath(circle)
+        fill?.let { canvas.drawPath(circle, it) }
+        art?.let {
+            canvas.translate(Pivot.x - IconLayerSize / 2f, Pivot.y - IconLayerSize / 2f)
+            canvas.scale(IconLayerSize / ArtBox, IconLayerSize / ArtBox)
+            it.draw(canvas)
+        }
+        canvas.restore()
+    }
+
+    private companion object {
+        const val ArtBox = 1024
+    }
+}
+
+/** the icon and the mark at one point of the prelude, and the blur over both */
+private class PreludeLook(val iconAlpha: Float, val iconScale: Float, val markAlpha: Float, val markScale: Float, val blur: Float)
+
+// blossomtune winds up a little and zooms out, then the mark pops in past its size and settles while the ripple runs out
+private fun preludeLook(t: Float): PreludeLook {
+    val out = (t / 0.5f).coerceIn(0f, 1f)
+    val pop = ((t - 0.38f) / 0.62f).coerceIn(0f, 1f)
+    return PreludeLook(
+        iconAlpha = 1f - smoothstep(0.55f, 1f, out),
+        iconScale = 1f - 0.7f * backIn(out),
+        markAlpha = smoothstep(0f, 0.25f, pop),
+        markScale = 0.35f + 0.65f * springOut(pop),
+        blur = BlurPeak * 1.4f * bell((t - 0.12f) / 0.5f),
+    )
+}
+
+/** how far the ripple has run, 0 to 1, or null while there's none */
+private fun rippleAt(t: Float): Float? = ((t - 0.5f) / 0.5f).takeIf { it in 0f..1f }
+
+// starts by pulling back a little before it goes, the wind-up of a zoom out
+private fun backIn(x: Float): Float = x * x * (2.70158f * x - 1.70158f)
+
+// a spring let go: past 1 by about a sixth, back under, then still, landing on exactly 1
+private fun springOut(x: Float): Float = (1f - exp(-6f * x) * cos(10f * x)) / (1f - exp(-6f) * cos(10f))
 
 private fun smoothstep(from: Float, to: Float, x: Float): Float {
     val t = ((x - from) / (to - from)).coerceIn(0f, 1f)

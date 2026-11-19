@@ -1,5 +1,3 @@
-// Track.kt
-
 package dev.meowlabs.blossomtune.betterlyrics.models
 
 import kotlinx.serialization.Serializable

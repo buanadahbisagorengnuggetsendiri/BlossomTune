@@ -1,5 +1,3 @@
-// AppleMusicModule.kt
-
 package dev.meowlabs.blossomtune.module.applemusic
 
 import dev.meowlabs.blossomtune.module.AccountState

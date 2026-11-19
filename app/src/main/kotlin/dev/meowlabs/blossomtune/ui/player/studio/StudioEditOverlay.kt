@@ -32,8 +32,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,6 +66,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
@@ -79,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.LocalPlayerConnection
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.PlayerBackgroundStyle
+import dev.meowlabs.blossomtune.constants.PlayerBottomBarStyle
 import dev.meowlabs.blossomtune.constants.PlayerCoverStyle
 import dev.meowlabs.blossomtune.constants.PlayerEndTimestamp
 import dev.meowlabs.blossomtune.ui.component.BlurDirection
@@ -96,13 +96,16 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.utils.makeTimeString
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
 
 internal val PlayerBackgroundStyle.studioName: String
-    get() = when (this) {
-        PlayerBackgroundStyle.COVER_GRADIENT -> "Cover gradient"
-        PlayerBackgroundStyle.SOLID -> "Solid"
-        PlayerBackgroundStyle.DARK_GRADIENT -> "Dark gradient"
+    @Composable get() = when (this) {
+        PlayerBackgroundStyle.COVER_GRADIENT -> stringResource(R.string.ps_studio_bg_cover_gradient)
+        PlayerBackgroundStyle.SOLID -> stringResource(R.string.ps_studio_bg_solid)
+        PlayerBackgroundStyle.DARK_GRADIENT -> stringResource(R.string.ps_studio_bg_dark_gradient)
         PlayerBackgroundStyle.APPLE_MUSIC -> "Apple Music"
+        PlayerBackgroundStyle.AMBIENT -> stringResource(R.string.ps_studio_bg_ambient)
     }
 
 private fun inter(size: TextUnit, weight: FontWeight = FontWeight.Bold) = studioText(size, weight)
@@ -126,6 +129,9 @@ fun StudioEditOverlay(
     menuLayout: PlayerMenuLayout,
     seekBarStyle: SeekBarStyle,
     endTimestamp: PlayerEndTimestamp,
+    barStyles: List<PlayerBottomBarStyle>,
+    barStyle: PlayerBottomBarStyle,
+    onBarStyle: (PlayerBottomBarStyle) -> Unit,
     modifier: Modifier = Modifier,
     /** which menu actions are on right now, for the menu's buttons */
     isMenuActionActive: (PlayerMenuAction) -> Boolean = { false },
@@ -133,10 +139,12 @@ fun StudioEditOverlay(
     val studio = parts.studio
     val coverIndex = coverStyles.indexOf(coverStyle).coerceAtLeast(0)
     val backgroundIndex = backgroundStyles.indexOf(backgroundStyle).coerceAtLeast(0)
-    // the applied styles, for the live cover and the live box to sit against
+    val barIndex = barStyles.indexOf(barStyle).coerceAtLeast(0)
+    // the applied styles, for the live cover, the live box and the live bar to sit against
     SideEffect {
         studio.coverCommitted = coverIndex
         studio.backdropCommitted = backgroundIndex
+        studio.barCommitted = barIndex
     }
     val shown by remember(studio) { derivedStateOf { studio.edit.value > 0.0005f || studio.editing } }
     if (!shown) return
@@ -145,7 +153,10 @@ fun StudioEditOverlay(
     val coverOpen by remember(studio) { derivedStateOf { studio.cover.value > 0.0005f } }
     // open from the moment its pieces are lifted, so they never leave the screen for a frame
     val middleOpen by remember(studio) {
-        derivedStateOf { studio.middle.value > 0.0005f || parts.pieces?.lifted == true }
+        derivedStateOf { studio.middle.value > 0.0005f || parts.pieces?.liftedPart == LiftedPart.MIDDLE }
+    }
+    val barOpen by remember(studio) {
+        derivedStateOf { studio.bar.value > 0.0005f || parts.pieces?.liftedPart == LiftedPart.BAR }
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -166,6 +177,9 @@ fun StudioEditOverlay(
         if (middleOpen) {
             MiddleEditor(parts, capture, menuLayout, isMenuActionActive, w, h)
         }
+        if (barOpen) {
+            BarEditor(parts, capture, barStyles, onBarStyle, w, h)
+        }
         StudioTopBar(studio, glassState)
     }
 }
@@ -177,14 +191,19 @@ fun StudioEditOverlay(
 @Composable
 private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
     val r = rememberResponsive()
-    val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val title by remember(studio) {
+    val statusTop = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
+    val editBackground = stringResource(R.string.ps_studio_edit_background)
+    val editCover = stringResource(R.string.ps_studio_edit_cover)
+    val editMiddle = stringResource(R.string.ps_studio_edit_middle)
+    val editMenu = stringResource(R.string.ps_studio_edit_menu)
+    val editPlayer = stringResource(R.string.ps_studio_edit_player)
+    val title by remember(studio, editBackground, editCover, editMiddle, editMenu, editPlayer) {
         derivedStateOf {
             when (studio.stage) {
-                StudioStage.COVER -> if (studio.backdrop.value > 0.5f) "Edit Background" else "Edit Cover"
-                StudioStage.MIDDLE -> "Edit Middle part"
-                StudioStage.MENU -> "Edit Menu"
-                else -> "Edit Player"
+                StudioStage.COVER -> if (studio.backdrop.value > 0.5f) editBackground else editCover
+                StudioStage.MIDDLE -> editMiddle
+                StudioStage.MENU -> editMenu
+                else -> editPlayer
             }
         }
     }
@@ -196,8 +215,11 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
     ) {
         ProgressiveGlassBackground(
             state = glassState,
-            // over the middle part's still (already soft) the bar only darkens
-            maxBlurRadius = { 30f * (1f - studio.backdrop.value * studio.cover.value) * (1f - studio.middle.value.coerceIn(0f, 1f)) },
+            // over a camera's still (already soft) the bar only darkens
+            maxBlurRadius = {
+                30f * (1f - studio.backdrop.value * studio.cover.value) *
+                    (1f - studio.middle.value.coerceIn(0f, 1f)) * (1f - studio.bar.value.coerceIn(0f, 1f))
+            },
             tint = Color.Black.copy(alpha = 0.16f),
             direction = BlurDirection.BottomToTop,
             steps = 3,
@@ -206,19 +228,25 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
                 .height(statusTop + 92.dp)
                 .graphicsLayer { alpha = (1f - studio.backdrop.value * studio.cover.value).coerceIn(0f, 1f) },
         )
+        val progressiveBar = dev.meowlabs.blossomtune.ui.component.rememberProgressiveBlur()
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(statusTop + 112.dp)
+                // a flat bar's tint stops at its hairline, the fade ran a little past it
+                .height(statusTop + if (progressiveBar) 112.dp else 92.dp)
                 .drawBehind {
-                    drawRect(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.5f), 1f to Color.Transparent))
+                    if (progressiveBar) {
+                        drawRect(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.5f), 1f to Color.Transparent))
+                    } else {
+                        drawRect(Color.Black.copy(alpha = 0.3f))
+                    }
                 },
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
+                .stableStatusBarsPadding()
                 .padding(top = 10.dp)
                 .height(40.dp)
                 .padding(start = 22.dp, end = 22.dp),
@@ -234,21 +262,32 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back_button_desc),
                     tint = Color.White,
                     modifier = Modifier.size(16.dp).offset(x = 2.dp),
                 )
             }
             Spacer(Modifier.width(14.dp))
-            AnimatedContent(
-                targetState = title,
-                transitionSpec = {
-                    (slideInVertically(tween(420)) { it } + fadeIn(tween(300))) togetherWith
-                        (slideOutVertically(tween(360)) { -it } + fadeOut(tween(220)))
-                },
-                label = "studioTitle",
-            ) { text ->
-                Text(text, color = Color.White, style = inter(StudioType.Title))
+            Column {
+                AnimatedContent(
+                    targetState = title,
+                    transitionSpec = {
+                        (slideInVertically(tween(420)) { it } + fadeIn(tween(300))) togetherWith
+                            (slideOutVertically(tween(360)) { -it } + fadeOut(tween(220)))
+                    },
+                    label = "studioTitle",
+                ) { text ->
+                    Text(text, color = Color.White, style = inter(StudioType.Title))
+                }
+                // what the first page's tiles are for; it goes as a tile opens
+                val onTiles = studio.stage == StudioStage.EDIT
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = onTiles,
+                    enter = fadeIn(tween(240)) + androidx.compose.animation.expandVertically(tween(300)),
+                    exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(260)),
+                ) {
+                    Text(stringResource(R.string.ps_studio_hold_to_adjust), color = Color.White.copy(alpha = 0.7f), style = inter(StudioType.Subtitle, FontWeight.Medium))
+                }
             }
         }
     }
@@ -274,7 +313,7 @@ private fun CoverEditor(
     val density = LocalDensity.current
     val r = rememberResponsive()
     val touchSlop = LocalViewConfiguration.current.touchSlop
-    val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusTop = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
     val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val currentCovers by rememberUpdatedState(coverStyles)
     val currentBackgrounds by rememberUpdatedState(backgroundStyles)
@@ -284,6 +323,9 @@ private fun CoverEditor(
     val gapPx = with(density) { CardGap.toPx() }
     val maxW = with(density) { w.toDp() }
     val maxH = with(density) { h.toDp() }
+    // the other covers sit where the live one does, moved with the controls under it (nothing is
+    // held while this editor is open, so it's read once)
+    val coverOffset = with(density) { (parts.tweaks?.controlsOffset() ?: 0f).toDp() }
     val inBackdrop by remember(studio) { derivedStateOf { studio.backdrop.value > 0.5f } }
 
     Box(
@@ -362,7 +404,7 @@ private fun CoverEditor(
         // every other cover style, waiting beside the live cover; only the ones in view are drawn
         coverStyles.forEachIndexed { index, style ->
             key(style) {
-                val box = remember(style, maxW, maxH, statusTop) { coverArtBox(style, maxW, maxH, statusTop) }
+                val box = remember(style, maxW, maxH, statusTop, coverOffset) { coverArtBox(style, maxW, maxH, statusTop, coverOffset) }
                 Box(
                     modifier = Modifier
                         .offset(box.x, box.y)
@@ -405,7 +447,7 @@ private fun CoverEditor(
                 ) {
                     if (index != studio.backdropCommitted) {
                         PlayerBackgroundPreview(style = style, thumbnailUrl = track.thumbnailUrl, width = maxW, height = maxH, animate = false, warp = false, modifier = Modifier.fillMaxSize())
-                        val box = remember(coverStyle, maxW, maxH, statusTop) { coverArtBox(coverStyle, maxW, maxH, statusTop) }
+                        val box = remember(coverStyle, maxW, maxH, statusTop, coverOffset) { coverArtBox(coverStyle, maxW, maxH, statusTop, coverOffset) }
                         Box(Modifier.offset(box.x, box.y).size(box.width, box.height)) {
                             CoverArt(coverStyle, track, false, queue.currentIndex)
                         }
@@ -484,7 +526,7 @@ private fun CoverEditor(
                 .graphicsLayer { translationY = (1f - studio.cover.value) * 320.dp.toPx() },
         ) {
             AnimatedContent(
-                targetState = (if (inBackdrop) "BACKGROUND - %03d" else "STYLE - %03d").format(shownIndex + 1),
+                targetState = stringResource(if (inBackdrop) R.string.ps_studio_background_n else R.string.ps_studio_style_n, shownIndex + 1),
                 transitionSpec = { (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut()) },
                 label = "studioStyleNumber",
             ) { label ->
@@ -516,7 +558,7 @@ private fun CoverEditor(
                     Icon(painterResource(R.drawable.tune), null, tint = Color.Black, modifier = Modifier.size(14.dp))
                 }
                 Spacer(Modifier.width(14.dp))
-                Text("Show more option for this cover", color = Color.White, style = inter(StudioType.Body, FontWeight.SemiBold))
+                Text(stringResource(R.string.ps_studio_more_options), color = Color.White, style = inter(StudioType.Body, FontWeight.SemiBold))
             }
         }
 
@@ -525,7 +567,7 @@ private fun CoverEditor(
         val nudge by bounce.animateFloat(0f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "studioChevronNudge")
         Icon(
             painter = painterResource(R.drawable.expand_more),
-            contentDescription = if (inBackdrop) "Back to covers" else "Backgrounds",
+            contentDescription = stringResource(if (inBackdrop) R.string.ps_studio_back_to_covers else R.string.ps_studio_backgrounds),
             tint = Color.White.copy(alpha = 0.7f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)

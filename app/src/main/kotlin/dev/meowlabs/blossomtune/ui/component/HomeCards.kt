@@ -36,10 +36,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -95,15 +97,21 @@ private val HomeRankStyle = TextStyle(
     letterSpacing = HomeTracking,
 )
 
-// Chrome halaman, bukan teks di atas artwork: label section, chevron, judul baris,
-// nomor rank. Dulu putih karena halaman hitam; sekarang ikut tinta halaman terang.
-// Yang tetap putih adalah teks di atas cover/video (HomeVideoCard) - di situ
-// latarnya gambar, bukan halaman.
-private val SectionLabelColor = Color(0xFF0E1B2C)
-private val PageInk = Color(0xFF0E1B2C)
-private val PageInkMuted = Color(0xFF4E6C8A)
+private val SectionLabelColor = Color.White.copy(alpha = 0.69f)
 private val HomeRowShape = RoundedCornerShape(14.dp)
 val HomeRowHeight = 54.dp
+
+/**
+ * A song row's height: [HomeRowHeight], or taller when a big system font size makes the title and
+ * artist lines need more room. A fixed 54dp cut both lines off at the top and bottom.
+ */
+@Composable
+fun homeRowHeight(): Dp {
+    val linesHeight = with(LocalDensity.current) { (HomeRowTitleLineHeight.value + HomeCardSubtitleStyle.lineHeight.value).sp.toDp() }
+    return maxOf(HomeRowHeight, linesHeight + 14.dp)
+}
+
+private val HomeRowTitleLineHeight = 17.sp
 
 // pressing anything on Home shows a soft rounded box behind it instead of a square ripple
 private val SectionTapMargin = 12.dp
@@ -129,8 +137,6 @@ fun HomeSectionTitle(
     label: String? = null,
     thumbnail: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
-    /** No longer drawn: the three dots beside the title are gone. Kept so callers needn't change. */
-    @Suppress("UNUSED_PARAMETER") onPlayAllClick: (() -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -165,7 +171,7 @@ fun HomeSectionTitle(
                 Text(
                     text = label,
                     style = HomeCardSubtitleStyle,
-                    color = PageInkMuted,
+                    color = Color.White.copy(alpha = 0.45f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -190,7 +196,7 @@ private fun SectionChevron() {
     Icon(
         painter = painterResource(R.drawable.ic_chevron_right),
         contentDescription = null,
-        tint = PageInkMuted,
+        tint = Color.White.copy(alpha = 0.55f),
         modifier = Modifier.size(18.dp),
     )
 }
@@ -208,10 +214,23 @@ fun HomeCoverCard(
     sharedElementKey: String? = null,
     badges: @Composable RowScope.() -> Unit = {},
     cover: (@Composable (Dp) -> Unit)? = null,
-    // Default = tinta halaman es (Home). Halaman detail yang latarnya warna sampul gelap
-    // (album, artis, playlist) mengirim putih.
-    titleColor: Color = PageInk,
-    subtitleColor: Color = PageInkMuted,
+) = HomeCoverCard(
+    title, subtitle, thumbnailUrl, modifier, circular, isActive, { isPlaying }, sharedElementKey, badges, cover,
+)
+
+// isPlaying is read only inside the cover's indicator, so a play or pause doesn't recompose every card
+@Composable
+fun HomeCoverCard(
+    title: String,
+    subtitle: String?,
+    thumbnailUrl: String?,
+    modifier: Modifier = Modifier,
+    circular: Boolean = false,
+    isActive: Boolean = false,
+    isPlaying: () -> Boolean,
+    sharedElementKey: String? = null,
+    badges: @Composable RowScope.() -> Unit = {},
+    cover: (@Composable (Dp) -> Unit)? = null,
 ) {
     val size = homeCardSize()
     val shape = if (circular) CircleShape else RoundedCornerShape(HomeCardCornerRadius)
@@ -240,7 +259,7 @@ fun HomeCoverCard(
         Text(
             text = title,
             style = HomeCardTitleStyle,
-            color = titleColor,
+            color = Color.White.copy(alpha = 0.92f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = if (circular) TextAlign.Center else TextAlign.Start,
@@ -252,7 +271,7 @@ fun HomeCoverCard(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle,
-                    color = subtitleColor,
+                    color = Color.White.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -287,11 +306,7 @@ private val HomeVideoScrim = Brush.verticalGradient(
     0.52f to Color.Transparent,
 )
 
-/**
- * the wide banner for Live Shows and Music Videos: the video's frame fills the card and the title
- * sits over its top-left corner. the 1280px still goes on first; a video without one falls back to
- * the smaller still YouTube listed it with.
- */
+
 @Composable
 fun HomeVideoCard(
     title: String,
@@ -301,6 +316,19 @@ fun HomeVideoCard(
     width: Dp,
     isActive: Boolean,
     isPlaying: Boolean,
+    modifier: Modifier = Modifier,
+) = HomeVideoCard(title, subtitle, videoId, fallbackThumbnailUrl, width, isActive, { isPlaying }, modifier)
+
+// isPlaying is read only inside the indicator, same as the cover card
+@Composable
+fun HomeVideoCard(
+    title: String,
+    subtitle: String?,
+    videoId: String,
+    fallbackThumbnailUrl: String?,
+    width: Dp,
+    isActive: Boolean,
+    isPlaying: () -> Boolean,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(HomeCardCornerRadius)
@@ -371,16 +399,38 @@ fun HomeTrackRow(
     modifier: Modifier = Modifier,
     rank: Int? = null,
     /** The cover's outline: Home's rounded square, or a circle for an artist. */
-    coverShape: Shape = HomeRowShape,
+    coverShape: Shape = RoundedCornerShape((HomeCardCornerRadius * 0.56f).coerceIn(0.dp, 20.dp)),
     /** Applied to the cover itself, e.g. to open a playlist growing out of it. */
     coverModifier: Modifier = Modifier,
     /** A song's id: marks the row when the song is downloaded or an imported file. */
+    songId: String? = null,
+) = HomeTrackRow(
+    thumbnailUrl, title, subtitle, isActive, { isPlaying }, onClick, onLongClick, onMoreClick, modifier,
+    rank, coverShape, coverModifier, songId,
+)
+
+// isPlaying is read only inside the cover's indicator, so a play or pause doesn't recompose every row
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun HomeTrackRow(
+    thumbnailUrl: String?,
+    title: String,
+    subtitle: String?,
+    isActive: Boolean,
+    isPlaying: () -> Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onMoreClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    rank: Int? = null,
+    coverShape: Shape = RoundedCornerShape((HomeCardCornerRadius * 0.56f).coerceIn(0.dp, 20.dp)),
+    coverModifier: Modifier = Modifier,
     songId: String? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .height(HomeRowHeight)
+            .height(homeRowHeight())
             .combinedClickable(
                 interactionSource = null,
                 indication = TrackRowHighlight,
@@ -392,7 +442,7 @@ fun HomeTrackRow(
             Text(
                 text = rank.toString(),
                 style = HomeRankStyle,
-                color = PageInk,
+                color = Color.White,
                 maxLines = 1,
                 modifier = Modifier.width(37.dp),
             )
@@ -419,7 +469,7 @@ fun HomeTrackRow(
             Text(
                 text = title,
                 style = HomeCardTitleStyle.copy(fontSize = 15.sp),
-                color = PageInk,
+                color = if (isActive) Color.White else Color.White.copy(alpha = 0.92f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -427,7 +477,7 @@ fun HomeTrackRow(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle,
-                    color = PageInkMuted,
+                    color = Color.White.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -445,12 +495,12 @@ fun HomeTrackRow(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(24.dp)
-                    .background(PageInk.copy(alpha = 0.06f), CircleShape),
+                    .background(Color.White.copy(alpha = 0.14f), CircleShape),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.more_horiz),
-                    contentDescription = "More",
-                    tint = PageInk,
+                    contentDescription = stringResource(R.string.more_label),
+                    tint = Color.White.copy(alpha = 0.85f),
                     modifier = Modifier.size(17.dp),
                 )
             }
@@ -483,6 +533,140 @@ fun HomeSectionBones(modifier: Modifier = Modifier) {
                     Bone(width = size * 0.62f, height = 15.dp)
                     Spacer(Modifier.height(3.dp))
                     Bone(width = size * 0.28f, height = 11.dp)
+                }
+            }
+        }
+    }
+}
+
+private val HopInCardBg = Color(0xFF1A1A1C)
+val HopInCardHeight = 60.dp
+
+// compact horizontal pill card used in the hop in 2x2 speed-dial grid at the top of home
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun HomeHopInCard(
+    title: String,
+    subtitle: String?,
+    thumbnailUrl: String?,
+    isActive: Boolean,
+    isPlaying: () -> Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    sharedElementKey: String? = null,
+    cover: (@Composable (Dp, Shape) -> Unit)? = null,
+) {
+    val radius = (HomeCardCornerRadius * 0.65f).coerceIn(0.dp, 18.dp)
+    val shape = RoundedCornerShape(radius)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .height(HopInCardHeight)
+            .clip(shape)
+            .background(HopInCardBg)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(HopInCardHeight)
+                .homeSharedElement(sharedElementKey, coverUrl = thumbnailUrl)
+                .clip(shape)
+                .background(BoneColor),
+        ) {
+            if (cover != null) {
+                cover(HopInCardHeight, shape)
+            } else {
+                ItemThumbnail(
+                    thumbnailUrl = thumbnailUrl,
+                    isActive = isActive,
+                    isPlaying = isPlaying,
+                    shape = shape,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 11.dp),
+        ) {
+            Text(
+                text = title,
+                style = HomeCardTitleStyle.copy(fontSize = 13.5.sp, lineHeight = 16.sp),
+                color = Color.White.copy(alpha = 0.94f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!subtitle.isNullOrEmpty()) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = HomeCardSubtitleStyle.copy(fontSize = 11.sp, lineHeight = 13.sp),
+                    color = Color.White.copy(alpha = 0.5f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+// skeleton bones for the compact listen-now or hop-in top section while home loads
+@Composable
+fun HomeCompactTopBones(
+    isHopIn: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val radius = (HomeCardCornerRadius * 0.65f).coerceIn(0.dp, 18.dp)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = HomeContentInset),
+    ) {
+        Bone(width = 148.dp, height = 16.dp)
+        Spacer(Modifier.height(14.dp))
+        if (isHopIn) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                repeat(2) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        repeat(2) {
+                            Bone(
+                                width = 154.dp,
+                                height = HopInCardHeight,
+                                shape = RoundedCornerShape(radius),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                repeat(3) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.height(HomeRowHeight),
+                    ) {
+                        Bone(
+                            width = HomeRowHeight,
+                            height = HomeRowHeight,
+                            shape = RoundedCornerShape(radius),
+                        )
+                        Spacer(Modifier.width(13.dp))
+                        Column {
+                            Bone(width = 140.dp, height = 14.dp)
+                            Spacer(Modifier.height(6.dp))
+                            Bone(width = 88.dp, height = 11.dp)
+                        }
+                    }
                 }
             }
         }

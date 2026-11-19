@@ -1,5 +1,3 @@
-// UpdateInfoDialog.kt
-
 package dev.meowlabs.blossomtune.core.component
 
 import androidx.compose.foundation.layout.Arrangement

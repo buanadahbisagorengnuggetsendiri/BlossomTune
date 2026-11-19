@@ -1,5 +1,3 @@
-// MonochromeApiCanvasTest.kt
-
 package dev.meowlabs.blossomtune.canvas
 
 import kotlinx.coroutines.runBlocking

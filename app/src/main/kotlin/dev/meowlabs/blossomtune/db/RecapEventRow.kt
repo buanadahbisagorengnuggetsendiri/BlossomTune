@@ -1,5 +1,3 @@
-// RecapEventRow.kt
-
 package dev.meowlabs.blossomtune.db
 
 /**

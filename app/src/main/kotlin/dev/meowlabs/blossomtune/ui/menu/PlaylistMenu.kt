@@ -2,10 +2,12 @@
 
 package dev.meowlabs.blossomtune.ui.menu
 
-import dev.meowlabs.blossomtune.ui.component.SheetDivider
+import androidx.compose.ui.res.pluralStringResource
+import dev.meowlabs.blossomtune.ui.component.SheetHeaderGap
 import dev.meowlabs.blossomtune.ui.component.SheetHeaderButton
 import dev.meowlabs.blossomtune.ui.component.SheetHeader
 import android.content.Intent
+import androidx.navigation.NavController
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -73,7 +74,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import androidx.compose.ui.graphics.Color
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun PlaylistMenu(
@@ -83,12 +83,14 @@ fun PlaylistMenu(
     autoPlaylist: Boolean? = false,
     downloadPlaylist: Boolean? = false,
     songList: List<Song>? = emptyList(),
+    /** Lets Re-sync open a service's sign-in page for a playlist imported from an account. */
+    navController: NavController? = null,
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val dbPlaylist by database.playlist(playlist.id).collectAsState(initial = playlist)
+    val dbPlaylist by remember(database, playlist.id) { database.playlist(playlist.id) }.collectAsState(initial = playlist)
     var songs by remember {
         mutableStateOf(emptyList<Song>())
     }
@@ -111,7 +113,8 @@ fun PlaylistMenu(
 
     val editable: Boolean = playlist.playlist.isEditable == true
 
-    val isPinned by database.speedDialDao.isPinned(playlist.id).collectAsState(initial = false)
+    val isPinned by remember(database, playlist.id) { database.speedDialDao.isPinned(playlist.id) }.collectAsState(initial = false)
+    val resync = rememberPlaylistResync(playlist.id, playlist.playlist.browseId, navController, onDismiss)
 
     LaunchedEffect(songs) {
         if (songs.isEmpty()) return@LaunchedEffect
@@ -233,13 +236,12 @@ fun PlaylistMenu(
     SheetHeader(
         thumbnailUrl = playlist.thumbnails.firstOrNull(),
         title = playlist.playlist.name,
-        subtitle = if (playlist.songCount == 1) "1 song" else "${playlist.songCount} songs",
+        subtitle = pluralStringResource(R.plurals.pc_detail_songs, playlist.songCount, playlist.songCount),
         trailing = if (playlist.playlist.isEditable != true) {
             {
                 SheetHeaderButton(
                     icon = if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border,
-                    active = dbPlaylist?.playlist?.bookmarkedAt != null,
-                    tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else BlossomInk.Primary,
+                    tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else Color.White,
                     onClick = {
                         database.query {
                             dbPlaylist?.playlist?.toggleLike()?.let { update(it) }
@@ -250,7 +252,7 @@ fun PlaylistMenu(
         } else null,
     )
 
-    SheetDivider()
+    Spacer(Modifier.height(SheetHeaderGap))
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -310,26 +312,6 @@ fun PlaylistMenu(
                                 }
                             }
                         ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.share),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.share),
-                        onClick = {
-                            onDismiss()
-                            val intent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/playlist?list=${dbPlaylist?.playlist?.browseId}")
-                            }
-                            context.startActivity(Intent.createChooser(intent, null))
-                        }
-                    )
                 ),
                 modifier = Modifier.padding(bottom = 12.dp),
                 columns = if (false) 1 else 3
@@ -442,7 +424,7 @@ fun PlaylistMenu(
                         Material3MenuItemData(
                             title = {
                                 Text(
-                                    text = if (isPinned) "Unpin from library" else "Pin to library"
+                                    text = stringResource(if (isPinned) R.string.unpin_from_speed_dial else R.string.pin_to_speed_dial)
                                 )
                             },
                             icon = {
@@ -471,6 +453,7 @@ fun PlaylistMenu(
                             }
                         )
                     )
+                    resync.menuItem()?.let(::add)
                     if (downloadPlaylist != true) {
                         add(
                             when (downloadState) {

@@ -7,54 +7,63 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.db.entities.Album
 import dev.meowlabs.blossomtune.extensions.toMediaItem
+import dev.meowlabs.blossomtune.importer.ImportSource
 import dev.meowlabs.blossomtune.playback.queues.ListQueue
 import dev.meowlabs.blossomtune.viewmodels.LibraryHomeViewModel
+import dev.meowlabs.blossomtune.viewmodels.LibraryImportedViewModel
+import dev.meowlabs.blossomtune.viewmodels.LibraryShelfKind
 
 /**
- * The library's albums, or with [localOnly] the Local page's: only the albums a local song is
- * from. Those can include an imported file's album, which is only a tag and has no page - opening
- * one plays its local songs instead.
+ * The library's albums, or with a [shelf] the Local or Cached tab's: only the albums one of that
+ * tab's songs is from. Those can include an imported file's album, which is only a tag and has no
+ * page - opening one plays its songs instead. With a [source], the albums one service's songs come from.
  */
 @Composable
 fun LibraryAlbumsScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
     pureBlack: Boolean = false,
-    localOnly: Boolean = false,
+    shelf: LibraryShelfKind? = null,
+    source: ImportSource? = null,
 ) {
-    if (localOnly) {
-        LocalAlbumsScreen(navController, modifier, pureBlack)
+    if (shelf != null) {
+        ShelfAlbumsScreen(navController, shelf, modifier, pureBlack)
+        return
+    }
+    if (source != null) {
+        ImportedAlbumsScreen(navController, source, modifier, pureBlack)
         return
     }
 
-    val viewModel: LibraryHomeViewModel = hiltViewModel()
-    val albums by viewModel.albums.collectAsState()
+    LibraryAlbumsPage(navController)
+}
 
-    val entries = remember(albums) {
-        albums.map {
-            LibraryGridEntry(
-                id = it.id,
-                title = it.title,
-                subtitle = it.artists.joinToString { a -> a.name }.ifBlank { null },
-                thumbnailUrl = it.album.thumbnailUrl,
-                sharedElementKey = "album-${it.id}",
-            )
-        }
-    }
+@Composable
+private fun ImportedAlbumsScreen(
+    navController: NavController,
+    source: ImportSource,
+    modifier: Modifier,
+    pureBlack: Boolean,
+) {
+    val viewModel: LibraryImportedViewModel = hiltViewModel()
+    val albums by viewModel.albums.collectAsState()
+    val entries = remember(albums) { albums.toGridEntries() }
 
     LibraryGridScreen(
-        title = "Albums",
-        subtitle = "All album on your library listed here.",
-        searchPlaceholder = "Find song listed here, by the lyrics, or the artist",
+        title = stringResource(R.string.albums),
+        subtitle = stringResource(R.string.library_imported_albums_subtitle, source.label),
+        searchPlaceholder = stringResource(R.string.library_albums_search),
         entries = entries,
         onOpen = { navController.navigate("album/${it.id}") },
-        // Both buttons open the newest album rather than building a queue across every album:
-        // this screen only loads album metadata, so a real "play everything" would mean fetching
-        // every album's tracklist up front just to make one button work.
+        // same as the library's albums: only album details are loaded here, so both open one
         onPlay = { albums.firstOrNull()?.let { navController.navigate("album/${it.id}") } },
         onShuffle = { albums.randomOrNull()?.let { navController.navigate("album/${it.id}") } },
         modifier = modifier,
@@ -62,14 +71,26 @@ fun LibraryAlbumsScreen(
     )
 }
 
+private fun List<Album>.toGridEntries() = map {
+    LibraryGridEntry(
+        id = it.id,
+        title = it.title,
+        subtitle = it.artists.joinToString { a -> a.name }.ifBlank { null },
+        thumbnailUrl = it.album.thumbnailUrl,
+        sharedElementKey = "album-${it.id}",
+    )
+}
+
 @Composable
-private fun LocalAlbumsScreen(
+private fun ShelfAlbumsScreen(
     navController: NavController,
+    shelf: LibraryShelfKind,
     modifier: Modifier,
     pureBlack: Boolean,
 ) {
     val viewModel: LibraryHomeViewModel = hiltViewModel()
-    val albums by viewModel.localAlbums.collectAsState()
+    // with the lifecycle: the Cached shelf looks at the cache every couple of seconds while watched
+    val albums by viewModel.shelf(shelf).albums.collectAsStateWithLifecycle()
     val playerConnection = LocalPlayerConnection.current ?: return
 
     val entries = remember(albums) {
@@ -88,13 +109,18 @@ private fun LocalAlbumsScreen(
         val songs = albums.flatMap { it.songs }
         if (songs.isEmpty()) return
         val ordered = if (shuffle) songs.shuffled() else songs
-        playerConnection.playQueue(ListQueue(title = "Local", items = ordered.map { it.toMediaItem() }))
+        playerConnection.playQueue(ListQueue(title = shelf.label, items = ordered.map { it.toMediaItem() }))
     }
 
     LibraryGridScreen(
-        title = "Albums",
-        subtitle = "Albums with music on this device.",
-        searchPlaceholder = "Find an album listed here",
+        title = stringResource(R.string.albums),
+        subtitle = stringResource(
+            when (shelf) {
+                LibraryShelfKind.Local -> R.string.lib_albums_local_subtitle
+                LibraryShelfKind.Cached -> R.string.lib_albums_cached_subtitle
+            },
+        ),
+        searchPlaceholder = stringResource(R.string.library_albums_search),
         entries = entries,
         onOpen = { entry ->
             val album = albums.firstOrNull { it.key == entry.id } ?: return@LibraryGridScreen
@@ -107,7 +133,7 @@ private fun LocalAlbumsScreen(
             }
         },
         // Every album here has its songs on hand, so these play them all for real: album by
-        // album, or every local album's songs shuffled together.
+        // album, or every album's songs here shuffled together.
         onPlay = { playAll(shuffle = false) },
         onShuffle = { playAll(shuffle = true) },
         modifier = modifier,

@@ -4,45 +4,49 @@ package dev.meowlabs.blossomtune.ui.menu
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.media3.exoplayer.offline.Download
+import androidx.navigation.NavController
+import dev.meowlabs.blossomtune.LocalDatabase
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.db.entities.Playlist
 import dev.meowlabs.blossomtune.db.entities.PlaylistSong
+import dev.meowlabs.blossomtune.playback.AutoDownloads
+import dev.meowlabs.blossomtune.ui.component.AppSwitch
 import dev.meowlabs.blossomtune.ui.component.Material3MenuGroup
 import dev.meowlabs.blossomtune.ui.component.Material3MenuItemData
 import dev.meowlabs.blossomtune.ui.component.SheetActionCard
-import dev.meowlabs.blossomtune.ui.component.SheetDivider
+import dev.meowlabs.blossomtune.ui.component.SheetActionCardRow
+import dev.meowlabs.blossomtune.ui.component.SheetDownloadCard
 import dev.meowlabs.blossomtune.ui.component.SheetSearchLauncher
+import kotlinx.coroutines.launch
 
 /**
  * The menu behind a playlist screen's "more" button, laid out as in the mock: a search that opens
- * the screen's own song search, Download and Edit playlist as two cards, then Play next, Sort by,
- * Edit order and Add to playlist - and the rest of the options as they were.
+ * the screen's own song search, Download and Edit playlist as two cards (with Re-sync as a third
+ * for a playlist imported from a service), then Play next, Sort by, Edit order and Add to
+ * playlist - and the rest of the options as they were.
  *
  * Sort by and Edit order are the screen's sort dialog and its lock on reordering; they used to be
  * "Sort order" and "Lock/Unlock editing" further down the list.
@@ -64,8 +68,11 @@ fun LocalPlaylistMenu(
     onShowSortDialog: () -> Unit = {},
     onSearch: () -> Unit = {},
     onPlayNext: () -> Unit = {},
+    /** Lets Re-sync open a service's sign-in page; without it, it can only run the ones that need none. */
+    navController: NavController? = null,
 ) {
     val isYouTubePlaylist = playlist.playlist.browseId != null
+    val resync = rememberPlaylistResync(playlist.id, playlist.playlist.browseId, navController, onDismiss)
     var showAddToPlaylist by remember { mutableStateOf(false) }
     val topSong = remember(songs) {
         songs.minWithOrNull(compareBy({ it.map.position }, { it.map.id }))?.song
@@ -81,13 +88,6 @@ fun LocalPlaylistMenu(
         topSongArtworkUrl = topSong?.song?.thumbnailUrl,
     )
 
-    val downloadIcon = if (downloadState == Download.STATE_COMPLETED) R.drawable.offline else R.drawable.download
-    val downloadTitle = when (downloadState) {
-        Download.STATE_COMPLETED -> stringResource(R.string.remove_download)
-        Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> stringResource(R.string.downloading)
-        else -> stringResource(R.string.action_download)
-    }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -97,23 +97,24 @@ fun LocalPlaylistMenu(
             .padding(bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()),
     ) {
         SheetSearchLauncher(
-            placeholder = "Search any song on playlist",
+            placeholder = stringResource(R.string.pc_search_playlist_songs),
             onClick = {
                 onDismiss()
                 onSearch()
             },
         )
 
-        SheetDivider()
+        Spacer(Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            SheetActionCard(
-                icon = downloadIcon,
-                title = downloadTitle,
-                onClick = {
+        SheetActionCardRow {
+            // The screen's onDownload starts, cancels or removes, whichever fits the state.
+            SheetDownloadCard(
+                downloadState = downloadState,
+                onDownload = {
+                    onDownload()
+                    onDismiss()
+                },
+                onRemove = {
                     onDownload()
                     onDismiss()
                 },
@@ -122,18 +123,30 @@ fun LocalPlaylistMenu(
             // Over this menu rather than closing it: Done comes back here.
             SheetActionCard(
                 icon = R.drawable.edit,
-                title = "Edit playlist",
+                title = stringResource(R.string.edit_playlist),
                 onClick = onEdit,
                 modifier = Modifier.weight(1f),
             )
+            resync.title?.let { title ->
+                SheetActionCard(
+                    icon = R.drawable.sync,
+                    title = title,
+                    onClick = resync::start,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
+
+        Spacer(Modifier.height(10.dp))
+
+        AutoDownloadRow(playlist.id)
 
         Spacer(Modifier.height(10.dp))
 
         Material3MenuGroup(
             items = listOfNotNull(
                 Material3MenuItemData(
-                    title = { Text("Play next") },
+                    title = { Text(stringResource(R.string.play_next)) },
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.playlist_play),
@@ -148,7 +161,7 @@ fun LocalPlaylistMenu(
                     } else null,
                 ),
                 Material3MenuItemData(
-                    title = { Text("Sort by") },
+                    title = { Text(stringResource(R.string.menu_sort_by)) },
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.drag_handle),
@@ -162,7 +175,7 @@ fun LocalPlaylistMenu(
                 ),
                 if (playlist.playlist.isEditable) {
                     Material3MenuItemData(
-                        title = { Text(if (locked) "Edit order" else "Lock order") },
+                        title = { Text(stringResource(if (locked) R.string.pc_mode_edit_order else R.string.pc_lock_order)) },
                         icon = {
                             Icon(
                                 painter = painterResource(if (locked) R.drawable.lock_open else R.drawable.lock),
@@ -176,7 +189,7 @@ fun LocalPlaylistMenu(
                     )
                 } else null,
                 Material3MenuItemData(
-                    title = { Text("Add to playlist") },
+                    title = { Text(stringResource(R.string.add_to_playlist)) },
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.playlist_add),
@@ -284,76 +297,12 @@ fun AutoPlaylistMenu(
     downloadState: Int,
     onQueue: () -> Unit,
     onDownload: () -> Unit,
-    onDismiss: () -> Unit
-) {
-
-    val downloadMenuItem = when (downloadState) {
-        Download.STATE_COMPLETED -> Material3MenuItemData(
-            title = { Text(stringResource(R.string.remove_download)) },
-            description = { Text(stringResource(R.string.remove_download_playlist_desc)) },
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.offline),
-                    contentDescription = null
-                )
-            },
-            onClick = {
-                onDownload()
-                onDismiss()
-            }
-        )
-        Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> Material3MenuItemData(
-            title = { Text(stringResource(R.string.downloading)) },
-            description = { Text(stringResource(R.string.download_in_progress_desc)) },
-            icon = {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
-            },
-            onClick = {
-                onDownload()
-                onDismiss()
-            }
-        )
-        else -> Material3MenuItemData(
-            title = { Text(stringResource(R.string.action_download)) },
-            description = { Text(stringResource(R.string.download_playlist_desc)) },
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.download),
-                    contentDescription = null
-                )
-            },
-            onClick = {
-                onDownload()
-                onDismiss()
-            }
-        )
-    }
-
-    Material3MenuGroup(
-        items = listOfNotNull(
-            if (true) {
-                Material3MenuItemData(
-                    title = { Text(stringResource(R.string.add_to_queue)) },
-                    description = { Text(stringResource(R.string.add_to_queue_desc)) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.queue_music),
-                            contentDescription = null
-                        )
-                    },
-                    onClick = {
-                        onQueue()
-                        onDismiss()
-                    }
-                )
-            } else null,
-            downloadMenuItem
-        )
-    )
-}
+    onDismiss: () -> Unit,
+    /** opens the list's own song search, as on a playlist's menu */
+    onSearch: (() -> Unit)? = null,
+    // the list whose new songs can download by themselves (liked songs), or none
+    autoDownloadId: String? = null,
+) = QueueAndDownloadCards(downloadState, onQueue, onDownload, onDismiss, onSearch, autoDownloadId)
 
 @Composable
 fun TopPlaylistMenu(
@@ -361,75 +310,7 @@ fun TopPlaylistMenu(
     onQueue: () -> Unit,
     onDownload: () -> Unit,
     onDismiss: () -> Unit
-) {
-
-    val downloadMenuItem = when (downloadState) {
-        Download.STATE_COMPLETED -> Material3MenuItemData(
-            title = { Text(stringResource(R.string.remove_download)) },
-            description = { Text(stringResource(R.string.remove_download_playlist_desc)) },
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.offline),
-                    contentDescription = null
-                )
-            },
-            onClick = {
-                onDownload()
-                onDismiss()
-            }
-        )
-        Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> Material3MenuItemData(
-            title = { Text(stringResource(R.string.downloading)) },
-            description = { Text(stringResource(R.string.download_in_progress_desc)) },
-            icon = {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
-            },
-            onClick = {
-                onDownload()
-                onDismiss()
-            }
-        )
-        else -> Material3MenuItemData(
-            title = { Text(stringResource(R.string.action_download)) },
-            description = { Text(stringResource(R.string.download_playlist_desc)) },
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.download),
-                    contentDescription = null
-                )
-            },
-            onClick = {
-                onDownload()
-                onDismiss()
-            }
-        )
-    }
-
-    Material3MenuGroup(
-        items = listOfNotNull(
-            if (true) {
-                Material3MenuItemData(
-                    title = { Text(stringResource(R.string.add_to_queue)) },
-                    description = { Text(stringResource(R.string.add_to_queue_desc)) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.queue_music),
-                            contentDescription = null
-                        )
-                    },
-                    onClick = {
-                        onQueue()
-                        onDismiss()
-                    }
-                )
-            } else null,
-            downloadMenuItem
-        )
-    )
-}
+) = QueueAndDownloadCards(downloadState, onQueue, onDownload, onDismiss)
 
 @Composable
 fun CachePlaylistMenu(
@@ -437,72 +318,86 @@ fun CachePlaylistMenu(
     onQueue: () -> Unit,
     onDownload: () -> Unit,
     onDismiss: () -> Unit
-) {
+) = QueueAndDownloadCards(downloadState, onQueue, onDownload, onDismiss)
 
-    val downloadMenuItem = when (downloadState) {
-        Download.STATE_COMPLETED -> Material3MenuItemData(
-            title = { Text(stringResource(R.string.remove_download)) },
-            description = { Text(stringResource(R.string.remove_download_playlist_desc)) },
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.offline),
-                    contentDescription = null
-                )
-            },
+/**
+ * The menu of a playlist the app makes for you (auto, top, cache). Queueing it up and saving it
+ * offline are the two things it offers, so both are big cards; with [onSearch], a search for its
+ * songs leads, as on a playlist's menu.
+ */
+@Composable
+private fun QueueAndDownloadCards(
+    downloadState: Int,
+    onQueue: () -> Unit,
+    onDownload: () -> Unit,
+    onDismiss: () -> Unit,
+    onSearch: (() -> Unit)? = null,
+    autoDownloadId: String? = null,
+) {
+    val bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
+    if (onSearch != null) {
+        SheetSearchLauncher(
+            placeholder = stringResource(R.string.pc_search_songs_here),
             onClick = {
-                onDownload()
                 onDismiss()
-            }
+                onSearch()
+            },
         )
-        Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> Material3MenuItemData(
-            title = { Text(stringResource(R.string.downloading)) },
-            description = { Text(stringResource(R.string.download_in_progress_desc)) },
-            icon = {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
-            },
+        Spacer(Modifier.height(16.dp))
+    }
+    SheetActionCardRow(
+        modifier = Modifier.padding(bottom = if (autoDownloadId != null) 10.dp else bottom),
+    ) {
+        SheetActionCard(
+            icon = R.drawable.queue_music,
+            title = stringResource(R.string.add_to_queue),
             onClick = {
-                onDownload()
+                onQueue()
                 onDismiss()
-            }
+            },
+            modifier = Modifier.weight(1f),
         )
-        else -> Material3MenuItemData(
-            title = { Text(stringResource(R.string.action_download)) },
-            description = { Text(stringResource(R.string.download_playlist_desc)) },
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.download),
-                    contentDescription = null
-                )
-            },
-            onClick = {
+        // The screen's onDownload starts, cancels or removes, whichever fits the state.
+        SheetDownloadCard(
+            downloadState = downloadState,
+            onDownload = {
                 onDownload()
                 onDismiss()
-            }
+            },
+            onRemove = {
+                onDownload()
+                onDismiss()
+            },
+            modifier = Modifier.weight(1f),
         )
     }
+    if (autoDownloadId != null) {
+        AutoDownloadRow(autoDownloadId)
+        Spacer(Modifier.height(bottom))
+    }
+}
 
+// "download new songs": songs added to this list from now on download by themselves
+@Composable
+private fun AutoDownloadRow(playlistId: String) {
+    val context = LocalContext.current
+    val database = LocalDatabase.current
+    val scope = rememberCoroutineScope()
+    val enabled = AutoDownloads.rememberEnabled(playlistId)
+    val toggle = { scope.launch { AutoDownloads.setEnabled(context, database, playlistId, !enabled) } }
     Material3MenuGroup(
-        items = listOfNotNull(
-            if (true) {
-                Material3MenuItemData(
-                    title = { Text(stringResource(R.string.add_to_queue)) },
-                    description = { Text(stringResource(R.string.add_to_queue_desc)) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.queue_music),
-                            contentDescription = null
-                        )
-                    },
-                    onClick = {
-                        onQueue()
-                        onDismiss()
-                    }
-                )
-            } else null,
-            downloadMenuItem
-        )
+        items = listOf(
+            Material3MenuItemData(
+                title = { Text(stringResource(R.string.auto_download_new_songs)) },
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.download),
+                        contentDescription = null,
+                    )
+                },
+                onClick = { toggle() },
+                trailingContent = { AppSwitch(checked = enabled, onCheckedChange = { toggle() }) },
+            ),
+        ),
     )
 }

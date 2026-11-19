@@ -1,5 +1,3 @@
-// BluetoothUtils.kt
-
 package dev.meowlabs.blossomtune.core
 
 import android.content.Context

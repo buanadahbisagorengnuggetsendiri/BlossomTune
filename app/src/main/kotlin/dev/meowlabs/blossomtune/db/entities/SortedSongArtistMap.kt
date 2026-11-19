@@ -1,5 +1,3 @@
-// SortedSongArtistMap.kt
-
 package dev.meowlabs.blossomtune.db.entities
 
 import androidx.room.ColumnInfo

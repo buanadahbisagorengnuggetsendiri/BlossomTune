@@ -20,6 +20,8 @@ import com.music.innertube.models.filterExplicit
 import com.music.innertube.models.filterVideoSongs
 import com.music.innertube.models.filterYoutubeShorts
 import com.music.innertube.models.filterAiGenerated
+import com.music.innertube.models.isAiGeneratedText
+import com.music.innertube.models.looksAiGenerated
 import com.music.innertube.pages.ChartsPage
 import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
@@ -49,6 +51,7 @@ import dev.meowlabs.blossomtune.playback.PlayerConnection
 import dev.meowlabs.blossomtune.utils.ArtistVideos
 import dev.meowlabs.blossomtune.utils.FeedVideoKind
 import dev.meowlabs.blossomtune.utils.HomeVideo
+import dev.meowlabs.blossomtune.utils.NotRecommended
 import dev.meowlabs.blossomtune.utils.SongVersions
 import dev.meowlabs.blossomtune.utils.SyncUtils
 import dev.meowlabs.blossomtune.utils.dataStore
@@ -72,6 +75,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.async
@@ -129,6 +133,7 @@ class HomeViewModel @Inject constructor(
     /** Library artists (onboarding's picks on a new install), for the hero before there's any history. */
     val libraryArtists = database.artists(dev.meowlabs.blossomtune.constants.ArtistSortType.CREATE_DATE, true)
         .map { artists -> artists.filter { it.artist.isYouTubeArtist }.take(5) }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Lazily, emptyList())
     val homePage = MutableStateFlow<HomePage?>(null)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
@@ -162,17 +167,31 @@ class HomeViewModel @Inject constructor(
                 }
                 .toMap()
         }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    // the feed's other all-video shelves, already turned into banners: cleaning each title builds a regex, which hitched the frame the row scrolled in
+    val feedVideoRows: StateFlow<Map<Int, List<HomeVideo>>> = homePage
+        .map { page ->
+            page?.sections.orEmpty()
+                .mapIndexedNotNull { index, section ->
+                    if (ArtistVideos.feedShelfKind(section.title, section.items) != FeedVideoKind.Other) return@mapIndexedNotNull null
+                    index to section.items.filterIsInstance<SongItem>().map(ArtistVideos::feedVideo)
+                }
+                .toMap()
+        }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     // YouTube's "Live performances" and "Music videos for you" fold into Home's rows of the same
     // name, so each shows once
     val liveRow: StateFlow<List<HomeVideo>?> = combine(liveShows, homePage, feedVideoKinds) { own, page, kinds ->
         ArtistVideos.merge(own, feedVideos(page, kinds, FeedVideoKind.Live))
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val musicVideoRow: StateFlow<List<HomeVideo>?> = combine(musicVideos, homePage, feedVideoKinds) { own, page, kinds ->
         ArtistVideos.merge(own, feedVideos(page, kinds, FeedVideoKind.MusicVideos))
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private fun feedVideos(page: HomePage?, kinds: Map<Int, FeedVideoKind>, kind: FeedVideoKind): List<HomeVideo> =
         page?.sections.orEmpty().flatMapIndexed { index, section ->
@@ -197,8 +216,9 @@ class HomeViewModel @Inject constructor(
     val allLocalItems = MutableStateFlow<List<LocalItem>>(emptyList())
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
 
-    val lastPlayedSong = database.events()
+    val lastPlayedSong = database.recentEvents(1)
         .map { it.firstOrNull()?.song?.toMediaMetadata() }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     val speedDialItems: StateFlow<List<YTItem>> =
@@ -284,7 +304,7 @@ class HomeViewModel @Inject constructor(
             }
 
             filled.take(targetSize)
-        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     suspend fun getRandomItem(): YTItem? {
         try {
@@ -385,11 +405,13 @@ class HomeViewModel @Inject constructor(
         // something you play all the time, something you played just now. one seed per artist.
         val playCounts = playEvents.groupingBy { it.song.id }.eachCount()
         val mostPlayed = recent.sortedByDescending { playCounts[it.id] ?: 0 }
+        val hidden = NotRecommended.songs
         val seeds = buildList<Song> {
             fun takeFrom(songs: List<Song>, count: Int) {
                 songs.shuffled()
                     .filter { song ->
-                        none { it.id == song.id } &&
+                        song.id !in hidden &&
+                            none { it.id == song.id } &&
                             none { it.artists.firstOrNull()?.id == song.artists.firstOrNull()?.id }
                     }
                     .take(count)
@@ -403,6 +425,7 @@ class HomeViewModel @Inject constructor(
 
         // anything you've already heard isn't much of a discovery
         val heard = recent.mapTo(HashSet()) { it.id }
+        val hideAi = hidesAi()
         val items = java.util.Collections.synchronizedList(mutableListOf<DailyDiscoverItem>())
 
         kotlinx.coroutines.coroutineScope {
@@ -412,9 +435,10 @@ class HomeViewModel @Inject constructor(
                     if (endpoint != null) {
                         YouTube.related(endpoint).onSuccess { page ->
                             val candidates = page.songs.filter { item ->
-                                item.id != seed.id &&
+                                item.id != seed.id && item.id !in hidden &&
                                     !(hideVideoSongs && item.isVideoSong) &&
-                                    !(hideExplicit && item.explicit)
+                                    !(hideExplicit && item.explicit) &&
+                                    !(hideAi && item.looksAiGenerated())
                             }
                             val recommendation = candidates.filter { it.id !in heard }.shuffled().firstOrNull()
                                 ?: candidates.shuffled().firstOrNull()
@@ -450,13 +474,16 @@ class HomeViewModel @Inject constructor(
                 val topSongs = database.mostPlayedSongs(fromTimeStamp = thirtyDaysAgo, limit = 20)
                     .first()
                     .filterVideoSongs(hideVideoSongs)
+                    .filterNot { it.id in NotRecommended }
 
                 quickPicks.value = topSongs.distinctBy { it.id }.take(20)
             }
             QuickPicks.LAST_LISTEN -> {
-                val song = database.events().first().firstOrNull()?.song
+                val song = database.recentEvents(1).first().firstOrNull()?.song
                 if (song != null && database.hasRelatedSongs(song.id)) {
-                    quickPicks.value = database.getRelatedSongs(song.id).first().filterVideoSongs(hideVideoSongs).shuffled().take(20)
+                    val hideAi = hidesAi()
+                    quickPicks.value = database.getRelatedSongs(song.id).first().filterVideoSongs(hideVideoSongs)
+                        .filterNot { it.id in NotRecommended || (hideAi && it.looksAiGenerated()) }.shuffled().take(20)
                 }
             }
         }
@@ -536,8 +563,13 @@ class HomeViewModel @Inject constructor(
 
         // a failed fetch used to overwrite the cached section (and the cache itself) with nothing,
         // which is how "From the community" vanished until the next lucky refresh
-        if (playlists.isNotEmpty()) {
-            val fresh = playlists.shuffled()
+        val hideAi = hidesAi()
+        val kept = playlists.mapNotNull { item ->
+            if (hideAi && item.playlist.looksAiGenerated()) return@mapNotNull null
+            item.copy(songs = item.songs.filterAiGenerated(hideAi)).takeIf { it.songs.isNotEmpty() }
+        }
+        if (kept.isNotEmpty()) {
+            val fresh = kept.shuffled()
             communityPlaylists.value = fresh
             homeFeedCache.saveCommunityPlaylists(fresh)
         }
@@ -560,7 +592,7 @@ class HomeViewModel @Inject constructor(
         if (System.currentTimeMillis() - lastPlayedLikedSongs < 86400000L * 7) {
             val likedCount = database.likedSongsCount().first()
             val likedPlaylistEntity = dev.meowlabs.blossomtune.db.entities.Playlist(
-                playlist = dev.meowlabs.blossomtune.db.entities.PlaylistEntity(id = "liked", name = context.getString(R.string.liked)),
+                playlist = dev.meowlabs.blossomtune.db.entities.PlaylistEntity(id = "liked", name = context.getString(R.string.liked), thumbnailUrl = likedCoverImage()),
                 songCount = likedCount,
                 songThumbnails = listOf()
             )
@@ -568,7 +600,7 @@ class HomeViewModel @Inject constructor(
             merged.add(0, likedPlaylistEntity)
         }
 
-        recentlyPlayed.value = merged.take(15)
+        recentlyPlayed.value = merged.distinctBy { it.id }.take(15)
     }
 
     private suspend fun loadMostPlayedForHome() {
@@ -582,7 +614,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun loadRecentHistory() {
-        recentHistorySongs.value = database.events().first().map { it.song }.take(15)
+        recentHistorySongs.value = database.recentEvents(15).first().map { it.song }.distinctBy { it.id }
     }
 
     private suspend fun loadAllTimeHits() {
@@ -597,7 +629,7 @@ class HomeViewModel @Inject constructor(
                 ?: page?.sections?.firstOrNull { it.items.isNotEmpty() }
         }
         // a chart is a list of songs here, even when YouTube ranks the videos
-        val hits = section?.items?.distinctBy { it.id }?.take(20)?.let { SongVersions.preferSongs(it) }
+        val hits = section?.items?.distinctBy { it.id }?.filterAiGenerated(hidesAi())?.take(20)?.let { SongVersions.preferSongs(it) }
         if (!hits.isNullOrEmpty()) {
             allTimeHits.value = hits
             homeFeedCache.saveAllTimeHits(hits)
@@ -690,7 +722,9 @@ class HomeViewModel @Inject constructor(
 
     // an empty result is a failed request, so the rows already on screen stay
     @Synchronized
-    private fun publishCategories(kind: HomeCategory.Kind, rows: List<HomeCategory>) {
+    private fun publishCategories(kind: HomeCategory.Kind, found: List<HomeCategory>) {
+        val hideAi = hidesAi()
+        val rows = found.mapNotNull { row -> row.copy(items = row.items.filterAiGenerated(hideAi)).takeIf { it.items.isNotEmpty() } }
         if (rows.isEmpty()) return
         categoryParts[kind] = rows
         homeCategories.value = HomeRecommender.arrange(categoryParts.toMap())
@@ -730,7 +764,7 @@ class HomeViewModel @Inject constructor(
         if (System.currentTimeMillis() - lastPlayedLikedSongs < 86400000L * 7) {
             val likedCount = database.likedSongsCount().first()
             val likedPlaylistEntity = dev.meowlabs.blossomtune.db.entities.Playlist(
-                playlist = dev.meowlabs.blossomtune.db.entities.PlaylistEntity(id = "liked", name = context.getString(R.string.liked)),
+                playlist = dev.meowlabs.blossomtune.db.entities.PlaylistEntity(id = "liked", name = context.getString(R.string.liked), thumbnailUrl = likedCoverImage()),
                 songCount = likedCount,
                 songThumbnails = listOf()
             )
@@ -750,6 +784,7 @@ class HomeViewModel @Inject constructor(
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
         val fromTimeStamp = System.currentTimeMillis() - 86400000L * 7 * 2
+        val hidden = NotRecommended.songs
 
         coroutineScope {
             val artistDeferreds = database.mostPlayedArtists(fromTimeStamp, limit = 15).first()
@@ -767,6 +802,7 @@ class HomeViewModel @Inject constructor(
                                 .distinctBy { item -> item.id }
                                 .filterExplicit(hideExplicit)
                                 .filterVideoSongs(hideVideoSongs)
+                                .filterNot { it.id in hidden }
                                 .shuffled()
                                 .take(12)
                                 .ifEmpty { return@async null }
@@ -791,6 +827,7 @@ class HomeViewModel @Inject constructor(
                                 .distinctBy { it.id }
                                 .filterExplicit(hideExplicit)
                                 .filterVideoSongs(hideVideoSongs)
+                                .filterNot { it.id in hidden }
                                 .shuffled()
                                 .ifEmpty { return@async null }
                         )
@@ -817,6 +854,7 @@ class HomeViewModel @Inject constructor(
                                 .distinctBy { it.id }
                                 .filterExplicit(hideExplicit)
                                 .filterVideoSongs(hideVideoSongs)
+                                .filterNot { it.id in hidden }
                                 .shuffled()
                                 .take(10)
                                 .ifEmpty { return@async null }
@@ -828,7 +866,11 @@ class HomeViewModel @Inject constructor(
             val nonNullResults = results.filterNotNull()
             // nothing came back: keep what the artist list already shows
             if (nonNullResults.isEmpty()) return@coroutineScope
-            similarRecommendations.value = nonNullResults.shuffled()
+            val hideAi = hidesAi()
+            similarRecommendations.value = nonNullResults
+                .mapNotNull { row -> row.copy(items = row.items.filterAiGenerated(hideAi)).takeIf { it.items.isNotEmpty() } }
+                .ifEmpty { return@coroutineScope }
+                .shuffled()
 
             data class GroupAccumulator(
                 var artistId: String?,
@@ -911,6 +953,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    // the setting stores the filter being switched off, so it's on until someone turns it off
+    private fun hidesAi() = !context.dataStore.get(DisableAiFilterKey, false)
+
+    // the same check for a song already in the database, which has names rather than a youtube item
+    private fun Song.looksAiGenerated() =
+        isAiGeneratedText(song.title) || isAiGeneratedText(song.albumName) || artists.any { isAiGeneratedText(it.name) }
+
     private fun isCommunityOrTrendingSection(title: String): Boolean {
         val titleLower = title.lowercase()
         return "trending" in titleLower || "community" in titleLower
@@ -919,8 +968,9 @@ class HomeViewModel @Inject constructor(
     private suspend fun loadNetworkDataPhase() {
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-        val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
-        val disableAiFilter = context.dataStore.get(DisableAiFilterKey, false)
+        val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, true)
+        val hideAi = hidesAi()
+        val hidden = NotRecommended.songs
 
         // each source on its own: one failing request must not cancel the others (that took whole
         // sections down with it), and an unexpected throw shouldn't reach the crash handler
@@ -937,7 +987,8 @@ class HomeViewModel @Inject constructor(
                             .filterExplicit(hideExplicit)
                             .filterVideoSongs(hideVideoSongs)
                             .filterYoutubeShorts(hideYoutubeShorts)
-                            .filterAiGenerated(disableAiFilter).distinctBy { it.id }
+                            .filterAiGenerated(hideAi).distinctBy { it.id }
+                            .filterNot { it.id in hidden }
                         if (filteredItems.isEmpty()) null else section.copy(items = filteredItems)
                     }
                     homePage.value = page.copy(sections = songVersionsOf(filteredSections))
@@ -1028,7 +1079,8 @@ class HomeViewModel @Inject constructor(
         if (continuation == null || _isLoadingMore.value) return
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-        val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
+        val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, true)
+        val hideAi = hidesAi()
 
         viewModelScope.launch(Dispatchers.IO) {
             _isLoadingMore.value = true
@@ -1042,7 +1094,8 @@ class HomeViewModel @Inject constructor(
                 chips = homePage.value?.chips,
                 sections = (homePage.value?.sections.orEmpty() + nextPage).mapNotNull { section ->
                     if (isCommunityOrTrendingSection(section.title)) return@mapNotNull null
-                    val filteredItems = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs).filterYoutubeShorts(hideYoutubeShorts).distinctBy { it.id }
+                    val filteredItems = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs).filterYoutubeShorts(hideYoutubeShorts)
+                        .filterAiGenerated(hideAi).distinctBy { it.id }
                     if (filteredItems.isEmpty()) null else section.copy(items = filteredItems)
                 }
             )
@@ -1065,14 +1118,18 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val hideExplicit = context.dataStore.get(HideExplicitKey, false)
             val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-            val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
+            val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, true)
+            val hideAi = hidesAi()
             val nextSections = YouTube.home(params = chip.endpoint?.params).getOrNull() ?: return@launch
 
             homePage.value = nextSections.copy(
                 chips = homePage.value?.chips,
                 sections = songVersionsOf(
                     nextSections.sections.map { section ->
-                        section.copy(items = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs).filterYoutubeShorts(hideYoutubeShorts).distinctBy { it.id })
+                        section.copy(
+                            items = section.items.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs).filterYoutubeShorts(hideYoutubeShorts)
+                                .filterAiGenerated(hideAi).distinctBy { it.id },
+                        )
                     }
                 )
             )
@@ -1164,7 +1221,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun loadAccountPlaylists() {
-        val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
+        val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, true)
         YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
             accountPlaylists.value = it.items.filterIsInstance<PlaylistItem>().distinctBy { it.id }
                 .filterNot { it.id == "SE" }
@@ -1263,7 +1320,7 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             context.dataStore.data
-                .map { it[HideYoutubeShortsKey] ?: false }
+                .map { it[HideYoutubeShortsKey] ?: true }
                 .distinctUntilChanged()
                 .collect {
                     if (YouTube.cookie != null && accountPlaylists.value != null) {
@@ -1271,6 +1328,15 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    // liked songs' cover as a picture, so home's cards, their colours and the see-all list show it like any playlist's
+    private suspend fun likedCoverImage(): String? = try {
+        dev.meowlabs.blossomtune.ui.component.LikedCoverImage.url(context, database.likedCovers().first())
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
     }
 }
 

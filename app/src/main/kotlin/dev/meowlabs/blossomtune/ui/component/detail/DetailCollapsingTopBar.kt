@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -42,6 +41,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -56,6 +56,7 @@ import dev.meowlabs.blossomtune.ui.component.ProgressiveGlassBackground
 import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
 
 private val DetailCollapseEasing = androidx.compose.animation.core.CubicBezierEasing(0.59f, 0.53f, 0f, 1f)
 private const val DetailMorphDurationMs = 1000
@@ -161,7 +162,7 @@ fun DetailCollapsingTopBar(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
+                .stableStatusBarsPadding()
                 .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 8.dp)
         ) {
             Box(
@@ -174,7 +175,7 @@ fun DetailCollapsingTopBar(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back_button_desc),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -257,7 +258,7 @@ fun DetailCollapsingTopBar(
                             // DECAL is API 31: read only behind the check, or Android 11 and
                             // older throw NoSuchFieldError here (no blur below 31 either way)
                             renderEffect = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                                dev.meowlabs.blossomtune.ui.component.BlurEffectCache.get(
+                                dev.meowlabs.blossomtune.ui.component.BlurEffectCache.element(
                                     motionBlurRadius,
                                     android.graphics.Shader.TileMode.DECAL
                                 )

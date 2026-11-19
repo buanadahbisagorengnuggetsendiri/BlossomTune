@@ -1,5 +1,3 @@
-// commitscreen.kt
-
 package dev.meowlabs.blossomtune.core.commitscreen
 
 import android.content.Intent
@@ -107,7 +105,7 @@ fun CommitScreen(
         hasError = false
         coroutineScope.launch(Dispatchers.IO) {
             try {
-                val url = URL("https://api.github.com/repos/buanadahbisagorengnuggetsendiri/blossomtune/commits?branch=main&per_page=50")
+                val url = URL("https://api.github.com/repos/realidkroo/BlossomTune-Music/commits?branch=main&per_page=50")
                 val json = url.openStream().bufferedReader().use { it.readText() }
                 val array = JSONArray(json)
                 val outputFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())

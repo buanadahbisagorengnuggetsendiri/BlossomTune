@@ -10,8 +10,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,7 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,10 +29,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameMillis
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -41,14 +43,18 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +68,7 @@ import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.lyrics.LyricsEntry
 import dev.meowlabs.blossomtune.ui.component.agslRenderEffect
 import dev.meowlabs.blossomtune.ui.component.createAgslShader
+import dev.meowlabs.blossomtune.ui.component.damageBoundary
 import dev.meowlabs.blossomtune.ui.component.setAgslUniform
 
 enum class LyricsLineState { ACTIVE, UPCOMING, PAST, DEFAULT }
@@ -109,8 +116,10 @@ private const val BlurQuantStepPx = 0.5f
 private val BlurEffectCache: Array<androidx.compose.ui.graphics.RenderEffect?> =
     arrayOfNulls((BlurStageRadii.max() / BlurQuantStepPx).toInt() + 2)
 
-private fun blurEffectForRadius(radius: Float): androidx.compose.ui.graphics.RenderEffect? {
+// a lyric line's or a note's own blur, so it goes with element blur switched off
+internal fun blurEffectForRadius(radius: Float): androidx.compose.ui.graphics.RenderEffect? {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || radius <= 0.05f) return null
+    if (!dev.meowlabs.blossomtune.ui.utils.AppMotion.elementBlur) return null
     val step = (radius / BlurQuantStepPx).roundToInt().coerceIn(1, BlurEffectCache.lastIndex)
     BlurEffectCache[step]?.let { return it }
     val quantised = step * BlurQuantStepPx
@@ -127,6 +136,58 @@ private fun blurEffectForRadius(radius: Float): androidx.compose.ui.graphics.Ren
 private const val UpcomingAlpha = 0.5f
 private const val PastAlpha = 0.24f
 private const val DefaultAlpha = 0.38f
+
+/** How bright a line rests in [state]. The lyrics share starts its flying copy from here too. */
+internal fun restingAlphaOf(state: LyricsLineState): Float = when (state) {
+    LyricsLineState.ACTIVE -> 1f
+    LyricsLineState.UPCOMING -> UpcomingAlpha
+    LyricsLineState.PAST -> PastAlpha
+    LyricsLineState.DEFAULT -> DefaultAlpha
+}
+
+/** How big a line rests in [state]: the line being sung is zoomed in a little. */
+internal fun restingScaleOf(state: LyricsLineState): Float = when (state) {
+    LyricsLineState.ACTIVE -> 1.06f
+    LyricsLineState.UPCOMING -> 0.98f
+    LyricsLineState.PAST -> 0.93f
+    LyricsLineState.DEFAULT -> 0.95f
+}
+
+/** The text style of a line without its karaoke sweep, from the theme's [base]. */
+internal fun restingLineStyle(base: androidx.compose.ui.text.TextStyle, active: Boolean, letterMotion: Boolean) =
+    base.copy(
+        fontSize = LyricsFontSize,
+        lineHeight = LyricsLineHeight,
+        fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold,
+    ).withLetterMotionFeatures(letterMotion)
+
+/**
+ * Where a line's words sit in its row: the room on each side of the tap highlight, and the
+ * highlight's own padding round the text.
+ */
+internal class LyricsLineInsets(
+    val start: androidx.compose.ui.unit.Dp,
+    val end: androidx.compose.ui.unit.Dp,
+    val top: androidx.compose.ui.unit.Dp,
+    val padH: androidx.compose.ui.unit.Dp,
+    val padV: androidx.compose.ui.unit.Dp,
+)
+
+/**
+ * The anchored side lines up with the artwork; the far side keeps room for the 1.06 zoom (padding
+ * is applied before the scale, so a line that fills the width would otherwise grow past the edge).
+ * Both give back the tap highlight's own inset.
+ */
+internal fun lyricsLineInsets(alignment: LyricsAlignment): LyricsLineInsets {
+    val anchored = LyricsHeaderArtX - LyricsTapPadH
+    val zoom = LyricsLineHorizontalPadding - LyricsTapPadH
+    val (start, end) = when (alignment) {
+        LyricsAlignment.START -> anchored to zoom
+        LyricsAlignment.CENTER -> zoom to zoom
+        LyricsAlignment.END -> zoom to anchored
+    }
+    return LyricsLineInsets(start, end, top = 16.dp - LyricsTapPadV, padH = LyricsTapPadH, padV = LyricsTapPadV)
+}
 
 private const val ActiveUnsungAlpha = 0.58f
 
@@ -169,23 +230,22 @@ fun LyricsGlowLine(
      */
     translationLoading: Boolean = false,
 
-    /** Style 1 (words rise, held notes swell) or Style 2 (the original wave). */
+    // the translation goes over the line instead of under it, with the readings left below (the full video mode)
+    translationAbove: Boolean = false,
+
+    /** style 1 or boring (words rise, held notes swell), or style 2 or plain (the original wave) */
     motionStyle: dev.meowlabs.blossomtune.constants.LyricsMotionStyle =
         dev.meowlabs.blossomtune.constants.LyricsMotionStyle.MOTION,
+
+    /** Holding the line: the lyrics page opens sharing with it. */
+    onLongClick: (() -> Unit)? = null,
+
+    /** told where the words start across the row (px from its left edge), for the line the card grows into */
+    onTextStart: ((Float) -> Unit)? = null,
 ) {
-    val wordMotion = motionStyle == dev.meowlabs.blossomtune.constants.LyricsMotionStyle.MOTION
-    val targetAlpha = when (state) {
-        LyricsLineState.ACTIVE -> 1f
-        LyricsLineState.UPCOMING -> UpcomingAlpha
-        LyricsLineState.PAST -> PastAlpha
-        LyricsLineState.DEFAULT -> DefaultAlpha
-    }
-    val targetScale = when (state) {
-        LyricsLineState.ACTIVE -> 1.06f
-        LyricsLineState.UPCOMING -> 0.98f
-        LyricsLineState.PAST -> 0.93f
-        LyricsLineState.DEFAULT -> 0.95f
-    }
+    val wordMotion = motionStyle.risesWords
+    val targetAlpha = restingAlphaOf(state)
+    val targetScale = restingScaleOf(state)
 
     val animSpec = tween<Float>(durationMillis = 600)
     val alpha by animateFloatAsState(targetAlpha, animSpec, label = "lyricsLineAlpha")
@@ -209,18 +269,24 @@ fun LyricsGlowLine(
     )
 
     val baseColor = LocalContentColor.current
-    // Eased like the line's alpha and scale, so the line and the small text under it change
-    // colour together instead of snapping while everything else is still fading.
-    val textColor by androidx.compose.animation.animateColorAsState(
+    // eased with the alpha and scale, and read only while drawing so the fade doesn't recompose the line every frame
+    val lineColor = androidx.compose.animation.animateColorAsState(
         targetValue = if (state == LyricsLineState.ACTIVE) Color.White else baseColor,
         animationSpec = tween(durationMillis = 600),
         label = "lyricsLineColor",
     )
+    val textColor = remember(lineColor) { ColorProducer { lineColor.value } }
+    val unsungColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = ActiveUnsungAlpha) } }
+    val readingColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.4f) } }
+    val subLineColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.6f) } }
+    val translationColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.5f) } }
 
+    // the side on screen, not the text's own start: Start on an arabic line is its right edge
+    val onLeft = (alignment == LyricsAlignment.START) !=
+        (androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl)
     val textAlign = when (alignment) {
-        LyricsAlignment.START -> TextAlign.Start
         LyricsAlignment.CENTER -> TextAlign.Center
-        LyricsAlignment.END -> TextAlign.End
+        else -> if (onLeft) TextAlign.Left else TextAlign.Right
     }
     val columnAlign = when (alignment) {
         LyricsAlignment.START -> androidx.compose.ui.Alignment.Start
@@ -228,26 +294,43 @@ fun LyricsGlowLine(
         LyricsAlignment.END -> androidx.compose.ui.Alignment.End
     }
 
-    // The anchored side lines up with the artwork; the far side keeps room for the 1.06 zoom
-    // (padding is applied before the scale below, so a line that fills the width would otherwise
-    // grow past the edge). Both give back the tap highlight's own inset.
-    val anchoredInset = LyricsHeaderArtX - LyricsTapPadH
-    val zoomInset = LyricsLineHorizontalPadding - LyricsTapPadH
-    val (startInset, endInset) = when (alignment) {
-        LyricsAlignment.START -> anchoredInset to zoomInset
-        LyricsAlignment.CENTER -> zoomInset to zoomInset
-        LyricsAlignment.END -> zoomInset to anchoredInset
+    val insets = lyricsLineInsets(alignment)
+
+    // the pieces as the source timed them: this style sweeps along the line's own text,
+    // syllable by syllable, so it never shows the gaps other styles put between them
+    val parts = remember(entry.text, entry.words, entry.syllables) {
+        splitBackingVocal(entry.text, entry.syllables ?: entry.words)
     }
+    val leadText = parts.lead
+    val words = parts.leadWords
+    val hasRuby = !ruby.isNullOrEmpty()
+    val leadStyle = MaterialTheme.typography.headlineSmall.copy(
+        fontSize = LyricsFontSize,
+        lineHeight = if (hasRuby) (LyricsLineHeight.value + RubyHeadroomSp).sp else LyricsLineHeight,
+        lineHeightStyle = if (hasRuby) rubyLineHeightStyle(rubyPlacement) else null,
+        textAlign = textAlign,
+    ).withLetterMotionFeatures(wordMotion)
+    // kept above the sweep/plain switch, so the line already has its bold breaks the moment it goes plain again
+    val steadyWrap = rememberSteadyWrap(leadText, leadStyle.copy(fontWeight = FontWeight.Bold))
+
+    // the row's own frame, so a centred or right-aligned line can say where its words start inside it
+    val rowCoords = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
+    val tapPadPx = with(androidx.compose.ui.platform.LocalDensity.current) { LyricsTapPadH.toPx() }
 
     Column(
         horizontalAlignment = columnAlign,
         modifier = modifier
+            .then(if (onTextStart != null) Modifier.onPlaced { rowCoords[0] = it } else Modifier)
+            // a row repaints alone, so one moving line doesn't redraw every other row of the list
+            .layerBleed(DamageBleed)
+            .damageBoundary()
+            .padding(DamageBleed)
             .fillMaxWidth()
             .padding(
-                start = startInset,
-                end = endInset,
-                top = 16.dp - LyricsTapPadV,
-                bottom = 16.dp - LyricsTapPadV,
+                start = insets.start,
+                end = insets.end,
+                top = insets.top,
+                bottom = insets.top,
             )
             .graphicsLayer {
                 this.alpha = alpha
@@ -258,10 +341,10 @@ fun LyricsGlowLine(
                 // to origin 0 would make it swing left as it scaled up, away from the side it is
                 // aligned to.
                 transformOrigin = androidx.compose.ui.graphics.TransformOrigin(
-                    pivotFractionX = when (alignment) {
-                        LyricsAlignment.START -> 0f
-                        LyricsAlignment.CENTER -> 0.5f
-                        LyricsAlignment.END -> 1f
+                    pivotFractionX = when {
+                        alignment == LyricsAlignment.CENTER -> 0.5f
+                        onLeft -> 0f
+                        else -> 1f
                     },
                     pivotFractionY = 0.5f,
                 )
@@ -274,25 +357,29 @@ fun LyricsGlowLine(
     //
     // It sits BEHIND the text rather than around it. Clipping the line to the rounded highlight
     // also clipped the words: a letter that rose or swelled into a corner was sliced off.
-    Box {
+    Box(
+        modifier = if (onTextStart != null) {
+            Modifier.onPlaced { box ->
+                val row = rowCoords[0]
+                // measured inside the row, so the flight's own layer around it can't move the answer
+                if (row != null && row.isAttached) onTextStart(row.localPositionOf(box, Offset.Zero).x + tapPadPx)
+            }
+        } else {
+            Modifier
+        },
+    ) {
     Spacer(
         modifier = Modifier
             .matchParentSize()
             .clip(LyricsTapShape)
-            .clickable(onClick = onClick),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
     )
     Column(
         horizontalAlignment = columnAlign,
-        modifier = Modifier.padding(horizontal = LyricsTapPadH, vertical = LyricsTapPadV),
+        modifier = Modifier
+            .padding(horizontal = LyricsTapPadH, vertical = LyricsTapPadV)
+            .then(steadyWrap.modifier),
     ) {
-
-        // the pieces as the source timed them: this style sweeps along the line's own text,
-        // syllable by syllable, so it never shows the gaps other styles put between them
-        val parts = remember(entry.text, entry.words, entry.syllables) {
-            splitBackingVocal(entry.text, entry.syllables ?: entry.words)
-        }
-        val leadText = parts.lead
-        val words = parts.leadWords
 
         val waveAmplitude by animateFloatAsState(
             targetValue = if (state == LyricsLineState.ACTIVE) 1f else 0f,
@@ -300,8 +387,14 @@ fun LyricsGlowLine(
             label = "lyricsWaveAmplitude",
         )
 
+        if (translationAbove) {
+            TranslationSubText(translation, translationLoading, translationColor, textAlign, above = true)
+        }
+
+        // a derived flag, so the fade doesn't recompose the line on every frame
+        val waveLingers by remember { derivedStateOf { waveAmplitude > 0.01f } }
         val sweepActive = !words.isNullOrEmpty() &&
-            (state == LyricsLineState.ACTIVE || waveAmplitude > 0.01f)
+            (state == LyricsLineState.ACTIVE || waveLingers)
         val karaokeActive = sweepActive && leadText.isNotEmpty()
         if (karaokeActive) {
             KaraokeSweepText(
@@ -312,7 +405,7 @@ fun LyricsGlowLine(
                 // The rise is drawn, not shaded, so it runs with the shader setting off too.
                 riseAmplitudeProvider = { waveAmplitude },
                 motionStyle = motionStyle,
-                baseColor = textColor.copy(alpha = ActiveUnsungAlpha),
+                baseColor = unsungColor,
 
                 highlightColor = Color.White,
                 // The reading is drawn below, in one place for both paths. It used to move into
@@ -323,28 +416,20 @@ fun LyricsGlowLine(
                 textAlign = textAlign,
                 ruby = ruby,
                 rubyPlacement = rubyPlacement,
-                rubyColor = textColor.copy(alpha = 0.4f),
+                rubyColor = readingColor,
             )
         } else if (leadText.isNotEmpty()) {
             // Inactive lines carry their readings too, so the ruby doesn't pop in and out as the
             // active line moves. Needs its own layout capture — the karaoke path's holder only
             // exists while the sweep is running.
             val plainLayout = remember(leadText) { arrayOfNulls<TextLayoutResult>(1) }
-            val hasRuby = !ruby.isNullOrEmpty()
-            Text(
-                text = leadText,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontSize = LyricsFontSize,
-                    lineHeight = if (hasRuby) {
-                        (LyricsLineHeight.value + RubyHeadroomSp).sp
-                    } else {
-                        LyricsLineHeight
-                    },
-                    lineHeightStyle = if (hasRuby) rubyLineHeightStyle(rubyPlacement) else null,
-                ).withLetterMotionFeatures(wordMotion),
-                fontWeight = if (state == LyricsLineState.ACTIVE) FontWeight.Bold else FontWeight.SemiBold,
+            BasicText(
+                // same characters as the lead text, with a line break wherever the bold line wraps
+                text = steadyWrap.text,
+                style = leadStyle.copy(
+                    fontWeight = if (state == LyricsLineState.ACTIVE) FontWeight.Bold else FontWeight.SemiBold,
+                ),
                 color = textColor,
-                textAlign = textAlign,
                 // No maxLines cap. A capped line ellipsised into "..." and simply lost the rest of
                 // the words — a long line is meant to wrap, not to be truncated, and there is
                 // nowhere else the reader can go to see what was cut.
@@ -357,8 +442,8 @@ fun LyricsGlowLine(
                     ruby = ruby,
                     textLength = leadText.length,
                     placement = rubyPlacement,
-                    dimColor = textColor.copy(alpha = 0.4f),
-                    litColor = textColor.copy(alpha = 0.4f),
+                    dimColor = readingColor,
+                    litColor = readingColor,
                     headProvider = { 0f },
                 ),
             )
@@ -366,7 +451,7 @@ fun LyricsGlowLine(
 
         FadingSubText(
             text = subLine,
-            color = textColor.copy(alpha = 0.6f),
+            color = subLineColor,
             textAlign = textAlign,
         )
 
@@ -392,29 +477,41 @@ fun LyricsGlowLine(
         // The translation sits below both the line and its romanisation. It is written by
         // LyricsTranslationHelper, which until now had no reader in the live player at all — the
         // menu toggle wrote into flows nothing was collecting.
-        if (translationLoading && translation.isNullOrBlank()) {
-            TranslationLoadingDots(
-                color = textColor.copy(alpha = 0.5f),
-                modifier = Modifier.padding(top = 7.dp),
-            )
-        } else {
-            FadingSubText(
-                text = translation,
-                color = textColor.copy(alpha = 0.5f),
-                textAlign = textAlign,
-            )
+        if (!translationAbove) {
+            TranslationSubText(translation, translationLoading, translationColor, textAlign, above = false)
         }
     }
     }
     }
 }
 
-/**
- * A small line under the lyric (romanisation or translation) that fades and unfolds in when its
- * text arrives and folds away when it is cleared, instead of popping in and shoving the rows below.
- */
+// the line's translation, or three pulsing dots while it's on its way
 @Composable
-private fun FadingSubText(text: String?, color: Color, textAlign: TextAlign) {
+private fun TranslationSubText(
+    translation: String?,
+    loading: Boolean,
+    color: ColorProducer,
+    textAlign: TextAlign,
+    above: Boolean,
+) {
+    if (loading && translation.isNullOrBlank()) {
+        TranslationLoadingDots(
+            color = color,
+            modifier = Modifier.padding(top = if (above) 0.dp else 7.dp, bottom = if (above) 5.dp else 0.dp),
+        )
+    } else {
+        FadingSubText(
+            text = translation,
+            color = color,
+            textAlign = textAlign,
+            above = above,
+        )
+    }
+}
+
+// a small line under the lyric (reading or translation) that fades and unfolds in, instead of popping in and shoving the rows below
+@Composable
+private fun FadingSubText(text: String?, color: ColorProducer, textAlign: TextAlign, above: Boolean = false) {
     // Keep the last text while folding away, or the exit would animate an empty line.
     val shown = remember { arrayOfNulls<String>(1) }
     if (!text.isNullOrBlank()) shown[0] = text
@@ -425,13 +522,12 @@ private fun FadingSubText(text: String?, color: Color, textAlign: TextAlign) {
         exit = androidx.compose.animation.fadeOut(tween(SubTextFadeMs)) +
             androidx.compose.animation.shrinkVertically(tween(SubTextFadeMs)),
     ) {
-        Text(
+        BasicText(
             text = shown[0].orEmpty(),
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.copy(textAlign = textAlign),
             color = color,
-            textAlign = textAlign,
             overflow = TextOverflow.Clip,
-            modifier = Modifier.padding(top = 3.dp),
+            modifier = Modifier.padding(top = if (above) 0.dp else 3.dp, bottom = if (above) 2.dp else 0.dp),
         )
     }
 }
@@ -440,7 +536,7 @@ private const val SubTextFadeMs = 350
 
 /** Three dots pulsing in sequence, sized to sit in the translation's place. */
 @Composable
-private fun TranslationLoadingDots(color: Color, modifier: Modifier = Modifier) {
+private fun TranslationLoadingDots(color: ColorProducer, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "translating")
     Row(modifier = modifier) {
         repeat(3) { index ->
@@ -462,7 +558,7 @@ private fun TranslationLoadingDots(color: Color, modifier: Modifier = Modifier) 
                     .padding(end = 5.dp)
                     .size(5.dp)
                     .graphicsLayer { alpha = 0.25f + 0.75f * phase }
-                    .background(color, CircleShape)
+                    .drawBehind { drawCircle(color()) }
             )
         }
     }
@@ -513,8 +609,8 @@ private fun rememberRubyOverlay(
     ruby: List<dev.meowlabs.blossomtune.lyrics.RubyToken>?,
     textLength: Int,
     placement: RubyPlacement,
-    dimColor: Color,
-    litColor: Color,
+    dimColor: ColorProducer,
+    litColor: ColorProducer,
     headProvider: () -> Float,
 ): Modifier {
     if (ruby.isNullOrEmpty()) return Modifier
@@ -527,33 +623,36 @@ private fun rememberRubyOverlay(
         lineHeight = RubyLineHeight,
     )
 
+    // the measurer only keeps 8 layouts, so a line with more readings re-measured them every frame
+    val measuredTokens = remember(ruby, style, measurer) { arrayOfNulls<TextLayoutResult>(ruby.size) }
+
     return Modifier.drawWithContent {
         drawContent()
         val layout = layoutHolder[0] ?: return@drawWithContent
         val head = headProvider()
 
-        for (token in ruby) {
+        for (tokenIndex in ruby.indices) {
+            val token = ruby[tokenIndex]
             val start = token.start.coerceIn(0, textLength)
             val end = token.end.coerceIn(start, textLength)
             if (end <= start) continue
 
             val line = layout.getLineForOffset(start)
             val left = layout.getHorizontalPosition(start, true)
-            // A token can straddle a wrap. Clamp it to the line its first character is on rather
-            // than measuring to a coordinate that belongs to the line below.
-            val right = if (layout.getLineForOffset(end - 1) != line) {
+            // a word that reaches the wrap ends at its line's edge, since the offset after it already sits at the start of the next line and the reading got skipped
+            val right = if (end >= layout.getLineEnd(line)) {
                 layout.getLineRight(line)
             } else {
                 layout.getHorizontalPosition(end, true)
             }
             if (right <= left) continue
 
-            val measured = measurer.measure(
+            val measured = measuredTokens[tokenIndex] ?: measurer.measure(
                 text = androidx.compose.ui.text.AnnotatedString(token.text),
                 style = style,
                 maxLines = 1,
                 overflow = TextOverflow.Clip,
-            )
+            ).also { measuredTokens[tokenIndex] = it }
 
             // Centre the reading on its word, then keep it inside the line box so a long reading
             // over a short word doesn't run off the edge.
@@ -589,7 +688,7 @@ private fun rememberRubyOverlay(
 
             drawText(
                 textLayoutResult = measured,
-                color = lerpColor(dimColor, litColor, lit),
+                color = lerpColor(dimColor(), litColor(), lit),
                 topLeft = Offset(x, y),
             )
         }
@@ -612,6 +711,13 @@ private const val EdgeSoftChars = 1
 
 private const val EdgeSoftPx = 26f
 
+// about how wide a latin letter is, in ems; the sweep's soft edge and the glow's spans are no wider than this a character
+private const val LatinLetterEm = 0.55f
+
+// the text's own size in px, so a backing vocal's smaller letters are measured as themselves
+private fun androidx.compose.ui.unit.Density.fontPx(layout: TextLayoutResult): Float =
+    layout.layoutInput.style.fontSize.takeIf { it.isSp }?.toPx() ?: LyricsFontSize.toPx()
+
 private const val EdgeLeadPx = 6f
 
 private const val WaveCharsBehind = 4f
@@ -626,7 +732,7 @@ private const val LegacyWaveZoom = 0.09f
 // (which the old pixel-shifting shader did: the faint line under a rising word).
 
 /** How far an unsung letter waits below its place. It rises into place as it's sung. */
-private val WordWaitDrop = 3.dp
+internal val WordWaitDrop = 3.dp
 
 /**
  * A held word (a long note) lifts this much more and swells by [HeldZoom], in step with its glow.
@@ -681,6 +787,9 @@ private const val SwellReleaseFraction = 0.12f
  */
 private val MotionBleed = 10.dp
 
+/** Room around a row for its zoom, lift and glow, so the row's damage boundary never cuts them. */
+private val DamageBleed = 24.dp
+
 /** Transforms closer than this (px) are drawn as one piece. */
 private const val MergeEpsilonPx = 0.1f
 
@@ -691,7 +800,7 @@ private const val MergeEpsilonPx = 0.1f
  */
 private const val NoLigatures = "liga 0, clig 0"
 
-private fun androidx.compose.ui.text.TextStyle.withLetterMotionFeatures(letterMotion: Boolean) =
+internal fun androidx.compose.ui.text.TextStyle.withLetterMotionFeatures(letterMotion: Boolean) =
     if (letterMotion) copy(fontFeatureSettings = NoLigatures) else this
 
 /**
@@ -699,7 +808,7 @@ private fun androidx.compose.ui.text.TextStyle.withLetterMotionFeatures(letterMo
  * every side. Use as `layerBleed(b).graphicsLayer { ... }.padding(b)`: the layer grows, the content
  * inside it lands where it would have been anyway, and nothing around it moves.
  */
-private fun Modifier.layerBleed(bleed: androidx.compose.ui.unit.Dp): Modifier =
+internal fun Modifier.layerBleed(bleed: androidx.compose.ui.unit.Dp): Modifier =
     layout { measurable, constraints ->
         val px = bleed.roundToPx()
         val placeable = measurable.measure(constraints.offset(px * 2, px * 2))
@@ -742,11 +851,12 @@ uniform float2 layerSize;
 uniform float headX;
 uniform float lineTop;
 uniform float lineBottom;
-uniform float lineLeft;
+uniform float lineStart;
 uniform float prevTop;
 uniform float prevBottom;
-uniform float prevRight;
+uniform float prevEnd;
 uniform float hasPrev;
+uniform float flowDir;
 uniform float bloom;
 uniform float bloomR;
 uniform float bloomLag;
@@ -769,8 +879,9 @@ half4 main(float2 coord) {
     if (onLine <= 0.0) return c;
 
     // Distance from the head along the reading flow, wrapping onto the previous visual line.
-    float dxCur  = coord.x - headX;
-    float dxPrev = -((prevRight - coord.x) + (headX - lineLeft));
+    // flowDir is -1 on a right-to-left line, where the flow runs the other way across the screen.
+    float dxCur  = (coord.x - headX) * flowDir;
+    float dxPrev = -((prevEnd - coord.x) + (headX - lineStart)) * flowDir;
     float dx = onPrev > 0.5 ? dxPrev : dxCur;
 
     float bdx = dx + bloomLag;
@@ -817,10 +928,12 @@ uniform float highQuality;
 // mid-stride instead of easing out. See flowDx below.
 uniform float prevTop;
 uniform float prevBottom;
-uniform float prevRight;
+uniform float prevEnd;
 uniform float prevBaseY;
 uniform float hasPrev;
-uniform float lineLeft;
+uniform float lineStart;
+// -1 on a right-to-left line: the flow runs leftward, lines start at the right and end at the left
+uniform float flowDir;
 
 // Bounds-safe sampling (the only change from the original): outside the content, eval() returned
 // the edge pixels stretched out, which drew a hard line off the side of the active lyric.
@@ -838,11 +951,11 @@ half4 main(float2 coord) {
 
     // Distance from the head measured along the READING FLOW, not along screen x. On the head's
     // own line that is just the horizontal gap. On the previous line it continues around the
-    // wrap: how far the pixel sits from that line's right edge, plus how far the head has already
-    // travelled from this line's left edge. That makes the glow spill across the line break the
+    // wrap: how far the pixel sits from where that line ends, plus how far the head has already
+    // travelled from where this line starts. That makes the glow spill across the line break the
     // way it would if the text were one continuous strip.
-    float dxCur  = coord.x - headX;
-    float dxPrev = -((prevRight - coord.x) + (headX - lineLeft));
+    float dxCur  = (coord.x - headX) * flowDir;
+    float dxPrev = -((prevEnd - coord.x) + (headX - lineStart)) * flowDir;
     float dx = onPrev > 0.5 ? dxPrev : dxCur;
 
     float bY = onPrev > 0.5 ? prevBaseY : baseY;
@@ -908,7 +1021,8 @@ internal fun KaraokeSweepText(
     words: List<dev.meowlabs.blossomtune.lyrics.WordTimestamp>,
     positionProvider: () -> Long,
     waveAmplitudeProvider: () -> Float,
-    baseColor: Color,
+    // read while drawing, so a fading line doesn't recompose every frame
+    baseColor: ColorProducer,
     highlightColor: Color,
     subLine: String? = null,
     fontSize: androidx.compose.ui.unit.TextUnit = LyricsFontSize,
@@ -917,7 +1031,7 @@ internal fun KaraokeSweepText(
     textAlign: TextAlign = TextAlign.Start,
     ruby: List<dev.meowlabs.blossomtune.lyrics.RubyToken>? = null,
     rubyPlacement: RubyPlacement = RubyPlacement.BELOW,
-    rubyColor: Color = Color.White.copy(alpha = 0.4f),
+    rubyColor: ColorProducer = DefaultRubyColor,
     motionStyle: dev.meowlabs.blossomtune.constants.LyricsMotionStyle =
         dev.meowlabs.blossomtune.constants.LyricsMotionStyle.MOTION,
     /**
@@ -932,7 +1046,7 @@ internal fun KaraokeSweepText(
     motionScale: Float = 1f,
     probe: SweepProbe? = null,
 ) {
-    val wordMotion = motionStyle == dev.meowlabs.blossomtune.constants.LyricsMotionStyle.MOTION
+    val wordMotion = motionStyle.risesWords
     val head = rememberKaraokeHead(text, words, positionProvider, wordMotion)
 
     val hasRuby = !ruby.isNullOrEmpty()
@@ -945,6 +1059,8 @@ internal fun KaraokeSweepText(
     val layoutHolder = remember(text) { arrayOfNulls<TextLayoutResult>(1) }
 
     val sung = remember(text) { Path() }
+    // the sweep moves before composition each frame, so the lit copy joins on the very frame it starts; lines still to come skip its layout and layer, which made the lyrics page stall as it opened
+    val reached by remember(head) { derivedStateOf { head.offset.floatValue > 0f } }
 
     val effect: Modifier
     val motion: Modifier
@@ -973,7 +1089,7 @@ internal fun KaraokeSweepText(
         textLength = text.length,
         placement = rubyPlacement,
         dimColor = rubyColor,
-        litColor = Color.White,
+        litColor = LitRubyColor,
         headProvider = { head.offset.floatValue },
     )
 
@@ -993,12 +1109,10 @@ internal fun KaraokeSweepText(
             // first copy's TextLayoutResult and clipped over the second, lands in the wrong place.
             // That includes the line cap: capping at 3 lines also ellipsised long lines into
             // "..." and dropped the rest of the words outright.
-            Text(
+            BasicText(
                 text = text,
-                style = style,
+                style = style.copy(fontWeight = FontWeight.Bold, textAlign = textAlign),
                 color = baseColor,
-                fontWeight = FontWeight.Bold,
-                textAlign = textAlign,
                 overflow = TextOverflow.Clip,
                 softWrap = !singleLine,
                 maxLines = if (singleLine) 1 else Int.MAX_VALUE,
@@ -1008,107 +1122,129 @@ internal fun KaraokeSweepText(
                 },
             )
 
-            Text(
-                text = text,
-                style = style,
-                color = highlightColor,
-                fontWeight = FontWeight.Bold,
-                textAlign = textAlign,
-                overflow = TextOverflow.Clip,
-                softWrap = !singleLine,
-                maxLines = if (singleLine) 1 else Int.MAX_VALUE,
-                modifier = Modifier
-                    // Room around the text, as for the effect layer: an offscreen layer keeps only
-                    // what's inside it, and glyph ink that reaches past the line's ends (a "y"
-                    // tail, an "f" hook) was lit on the dim copy but cut on the lit one.
-                    .layerBleed(MotionBleed)
-                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                    .padding(MotionBleed)
-                    .drawWithContent {
-                        val layout = layoutHolder[0] ?: return@drawWithContent
-                        val h = head.offset.floatValue
-                        if (h <= 0f) return@drawWithContent
-                        val len = text.length
-                        if (len == 0) return@drawWithContent
-                        val reach = MotionBleed.toPx()
-                        val lastLine = layout.lineCount - 1
-                        // The sung area reaches into the room around the text on the outside edges
-                        // only - between lines it stops exactly at the boundary, so it never lights
-                        // the top of the line below.
-                        fun topOf(line: Int) = layout.getLineTop(line) - if (line == 0) reach else 0f
-                        fun bottomOf(line: Int) =
-                            layout.getLineBottom(line) + if (line == lastLine) reach else 0f
+            if (reached) {
+                Text(
+                    text = text,
+                    style = style,
+                    color = highlightColor,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = textAlign,
+                    overflow = TextOverflow.Clip,
+                    softWrap = !singleLine,
+                    maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                    modifier = Modifier
+                        // Room around the text, as for the effect layer: an offscreen layer keeps only
+                        // what's inside it, and glyph ink that reaches past the line's ends (a "y"
+                        // tail, an "f" hook) was lit on the dim copy but cut on the lit one.
+                        .layerBleed(MotionBleed)
+                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                        .padding(MotionBleed)
+                        .drawWithContent {
+                            val layout = layoutHolder[0] ?: return@drawWithContent
+                            val h = head.offset.floatValue
+                            if (h <= 0f) return@drawWithContent
+                            val len = text.length
+                            if (len == 0) return@drawWithContent
+                            val reach = MotionBleed.toPx()
+                            val lastLine = layout.lineCount - 1
+                            // The sung area reaches into the room around the text on the outside edges
+                            // only - between lines it stops exactly at the boundary, so it never lights
+                            // the top of the line below.
+                            fun topOf(line: Int) = layout.getLineTop(line) - if (line == 0) reach else 0f
+                            fun bottomOf(line: Int) =
+                                layout.getLineBottom(line) + if (line == lastLine) reach else 0f
 
-                        val headOffset = h.toInt().coerceIn(0, len)
+                            val headOffset = h.toInt().coerceIn(0, len)
+                            val headLine = layout.shownLineFor(headOffset.coerceAtMost(len - 1))
+                            val rtl = layout.isRtlLine(headLine)
+                            // the way the sweep travels on screen: right to left for arabic, hebrew...
+                            val flow = if (rtl) -1f else 1f
 
-                        val headX = if (headOffset >= len) {
-                            layout.getLineRight(layout.getLineForOffset(len - 1))
-                        } else {
-                            val x0 = layout.getHorizontalPosition(headOffset, true)
-                            val x1 = layout.getHorizontalPosition(
-                                (headOffset + 1).coerceAtMost(len),
+                            val headX = layout.sweepHeadX(h, headOffset, headLine, len, rtl)
+                            probe?.headX = headX
+                            val lineTop = topOf(headLine)
+                            val lineBottom = bottomOf(headLine)
+
+                            val softFrom = layout.getHorizontalPosition(
+                                (headOffset - EdgeSoftChars).coerceAtLeast(layout.getLineStart(headLine)),
                                 true,
                             )
-
-                            if (x1 >= x0) x0 + (x1 - x0) * (h - headOffset) else x0
-                        }
-                        probe?.headX = headX
-                        val headLine = layout.getLineForOffset(headOffset.coerceAtMost(len - 1))
-                        val lineTop = topOf(headLine)
-                        val lineBottom = bottomOf(headLine)
-
-                        val softFrom = layout.getHorizontalPosition(
-                            (headOffset - EdgeSoftChars).coerceAtLeast(layout.getLineStart(headLine)),
-                            true,
-                        )
-                        val fromX = if (softFrom < headX) softFrom else headX - EdgeSoftPx
-                        val toX = headX + EdgeLeadPx
-
-                        sung.rewind()
-                        for (line in 0..headLine) {
-                            val left = layout.getLineLeft(line) - reach
-                            val lineRight = layout.getLineRight(line) + reach
-                            val right = if (line < headLine || headOffset >= len) {
-                                lineRight
+                            // one character back, but no more than a latin letter: across a whole kanji the sung one and the one before it both sat half lit
+                            val softMax = fontPx(layout) * LatinLetterEm
+                            val fromX = if ((headX - softFrom) * flow > 0f) {
+                                headX - flow * minOf((headX - softFrom) * flow, softMax)
                             } else {
-                                minOf(toX, lineRight)
+                                headX - EdgeSoftPx * flow
                             }
-                            if (right > left) {
-                                sung.addRect(Rect(left, topOf(line), right, bottomOf(line)))
+                            val toX = headX + EdgeLeadPx * flow
+
+                            sung.rewind()
+                            for (line in 0..headLine) {
+                                var left = layout.getLineLeft(line) - reach
+                                var right = layout.getLineRight(line) + reach
+                                // the head's own line is lit from where it starts up to the head
+                                if (line == headLine && headOffset < len) {
+                                    if (rtl) left = maxOf(toX, left) else right = minOf(toX, right)
+                                }
+                                if (right > left) {
+                                    sung.addRect(Rect(left, topOf(line), right, bottomOf(line)))
+                                }
                             }
-                        }
 
-                        clipPath(sung) { this@drawWithContent.drawContent() }
+                            clipPath(sung) { this@drawWithContent.drawContent() }
 
-                        if (headOffset < len) {
-                            drawRect(
-                                brush = Brush.horizontalGradient(
-                                    0f to Color.Black,
-                                    1f to Color.Transparent,
-                                    startX = fromX,
-                                    endX = toX,
-                                ),
-                                topLeft = Offset(fromX, lineTop),
-                                size = Size(toX - fromX, lineBottom - lineTop),
-                                blendMode = BlendMode.DstIn,
-                            )
-                        }
-                    },
-            )
+                            if (headOffset < len) {
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        0f to Color.Black,
+                                        1f to Color.Transparent,
+                                        startX = fromX,
+                                        endX = toX,
+                                    ),
+                                    topLeft = Offset(minOf(fromX, toX), lineTop),
+                                    size = Size(kotlin.math.abs(toX - fromX), lineBottom - lineTop),
+                                    blendMode = BlendMode.DstIn,
+                                )
+                            }
+                        },
+                )
+            }
         }
 
         if (!subLine.isNullOrBlank()) {
-            Text(
+            BasicText(
                 text = subLine,
-                style = MaterialTheme.typography.bodyLarge,
-                color = baseColor.copy(alpha = 0.6f),
-                textAlign = textAlign,
+                style = MaterialTheme.typography.bodyLarge.copy(textAlign = textAlign),
+                color = { baseColor().copy(alpha = 0.6f) },
                 overflow = TextOverflow.Clip,
                 modifier = Modifier.padding(top = 3.dp),
             )
         }
     }
 }
+
+// the line an offset is on, kept to the lines the layout shows: when text is too wide for a maxLines = 1
+// layout (the bottom card's) it still wraps onto a hidden line 1, and asking that line anything crashed
+internal fun TextLayoutResult.shownLineFor(offset: Int): Int = getLineForOffset(offset).coerceAtMost(lineCount - 1)
+
+internal fun TextLayoutResult.isRtlLine(line: Int): Boolean =
+    getParagraphDirection(getLineStart(line)) == androidx.compose.ui.text.style.ResolvedTextDirection.Rtl
+
+// the head's x on screen. an rtl line starts at its right edge, so a finished one ends at its left
+internal fun TextLayoutResult.sweepHeadX(h: Float, headOffset: Int, headLine: Int, len: Int, rtl: Boolean): Float {
+    if (headOffset >= len) return if (rtl) getLineLeft(headLine) else getLineRight(headLine)
+    val x0 = getHorizontalPosition(headOffset, true)
+    val x1 = getHorizontalPosition((headOffset + 1).coerceAtMost(len), true)
+    val forward = if (rtl) x1 <= x0 else x1 >= x0
+    return if (forward) x0 + (x1 - x0) * (h - headOffset) else x0
+}
+
+// where reading starts and stops on a line, on screen
+internal fun TextLayoutResult.lineStartX(line: Int, rtl: Boolean): Float = if (rtl) getLineRight(line) else getLineLeft(line)
+internal fun TextLayoutResult.lineEndX(line: Int, rtl: Boolean): Float = if (rtl) getLineLeft(line) else getLineRight(line)
+
+private val DefaultRubyColor = ColorProducer { Color.White.copy(alpha = 0.4f) }
+private val LitRubyColor = ColorProducer { Color.White }
 
 internal class LyricLineParts(
     val lead: String,
@@ -1205,7 +1341,7 @@ private val WhitespaceRun = Regex("\\s{2,}")
 @Composable
 private fun BackingVocalLine(
     text: String,
-    color: Color,
+    color: ColorProducer,
     slide: Boolean,
     words: List<dev.meowlabs.blossomtune.lyrics.WordTimestamp>?,
     positionProvider: () -> Long,
@@ -1220,7 +1356,7 @@ private fun BackingVocalLine(
 ) {
 
     val expand = rememberBackingExpand(words, positionProvider, expandProvider)
-    val wordMotion = motionStyle == dev.meowlabs.blossomtune.constants.LyricsMotionStyle.MOTION
+    val wordMotion = motionStyle.risesWords
 
     // Keep the sweep for as long as the backing line is on screen. It used to drop back to the
     // plain copy the moment the main line finished, while a backing vocal that trails the line
@@ -1267,7 +1403,7 @@ private fun BackingVocalLine(
                 words = words!!,
                 positionProvider = positionProvider,
                 waveAmplitudeProvider = waveAmplitudeProvider,
-                baseColor = color.copy(alpha = ActiveUnsungAlpha),
+                baseColor = { color().copy(alpha = ActiveUnsungAlpha) },
                 highlightColor = Color.White,
                 fontSize = BackingVocalFontSize,
                 lineHeight = BackingVocalLineHeight,
@@ -1277,17 +1413,17 @@ private fun BackingVocalLine(
                 riseAmplitudeProvider = riseAmplitudeProvider,
             )
         } else {
-            Text(
+            BasicText(
                 text = text,
                 // Same font features as the karaoke copy, so the line keeps its width (and its
                 // wrapping) when it switches between the two.
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontSize = BackingVocalFontSize,
                     lineHeight = BackingVocalLineHeight,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = textAlign,
                 ).withLetterMotionFeatures(wordMotion),
-                fontWeight = FontWeight.Bold,
                 color = color,
-                textAlign = textAlign,
                 overflow = TextOverflow.Clip,
             )
         }
@@ -1345,7 +1481,12 @@ private fun smoothstep(t: Float): Float {
     return x * x * (3f - 2f * x)
 }
 
+// compiled once for every line: each line sets all its uniforms right before it builds its effect
+private var sharedBloomShader: Any? = null
+private var sharedLegacyShader: Any? = null
+
 /** Style 1: the bloom pass. Skipped (no render effect at all) whenever nothing is glowing. */
+@Suppress("NewApi")
 @Composable
 private fun rememberBloomModifier(
     layoutHolder: Array<TextLayoutResult?>,
@@ -1356,7 +1497,7 @@ private fun rememberBloomModifier(
 ): Modifier {
     val shader = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            createAgslShader(BloomAgsl)
+            sharedBloomShader ?: createAgslShader(BloomAgsl).also { sharedBloomShader = it }
         } else {
             null
         }
@@ -1377,18 +1518,15 @@ private fun rememberBloomModifier(
 
         val h = head.offset.floatValue
         val headOffset = h.toInt().coerceIn(0, textLength)
-        val headLine = layout.getLineForOffset(headOffset.coerceAtMost(textLength - 1))
-        val headX = if (headOffset >= textLength) {
-            layout.getLineRight(headLine)
-        } else {
-            val x0 = layout.getHorizontalPosition(headOffset, true)
-            val x1 = layout.getHorizontalPosition((headOffset + 1).coerceAtMost(textLength), true)
-            if (x1 >= x0) x0 + (x1 - x0) * (h - headOffset) else x0
-        }
+        val headLine = layout.shownLineFor(headOffset.coerceAtMost(textLength - 1))
+        val rtl = layout.isRtlLine(headLine)
+        val headX = layout.sweepHeadX(h, headOffset, headLine, textLength, rtl)
         val lineStart = layout.getLineStart(headLine)
         val lineEnd = layout.getLineEnd(headLine, visibleEnd = true)
+        // capped at a latin letter: a line of kanji averages a whole em a character, and its glow trailed twice as far as on latin
         val charWidth = if (lineEnd > lineStart) {
-            (layout.getLineRight(headLine) - layout.getLineLeft(headLine)) / (lineEnd - lineStart)
+            ((layout.getLineRight(headLine) - layout.getLineLeft(headLine)) / (lineEnd - lineStart))
+                .coerceAtMost(fontPx(layout) * LatinLetterEm)
         } else {
             LyricsFontSize.toPx() * 0.5f
         }
@@ -1399,7 +1537,8 @@ private fun rememberBloomModifier(
         shader.setAgslUniform("headX", headX + o)
         shader.setAgslUniform("lineTop", layout.getLineTop(headLine) + o)
         shader.setAgslUniform("lineBottom", layout.getLineBottom(headLine) + o)
-        shader.setAgslUniform("lineLeft", layout.getLineLeft(headLine) + o)
+        shader.setAgslUniform("lineStart", layout.lineStartX(headLine, rtl) + o)
+        shader.setAgslUniform("flowDir", if (rtl) -1f else 1f)
         shader.setAgslUniform("bloom", bloom)
         shader.setAgslUniform("bloomR", BloomRadiusPx)
         shader.setAgslUniform("bloomLag", charWidth * BloomLagChars)
@@ -1409,19 +1548,78 @@ private fun rememberBloomModifier(
             shader.setAgslUniform("hasPrev", 1f)
             shader.setAgslUniform("prevTop", layout.getLineTop(headLine - 1) + o)
             shader.setAgslUniform("prevBottom", layout.getLineBottom(headLine - 1) + o)
-            shader.setAgslUniform("prevRight", layout.getLineRight(headLine - 1) + o)
+            shader.setAgslUniform("prevEnd", layout.lineEndX(headLine - 1, rtl) + o)
         } else {
             shader.setAgslUniform("hasPrev", 0f)
             shader.setAgslUniform("prevTop", 0f)
             shader.setAgslUniform("prevBottom", 0f)
-            shader.setAgslUniform("prevRight", 0f)
+            shader.setAgslUniform("prevEnd", 0f)
         }
 
         renderEffect = cache.effectFor(shader, headX, amp, glow, headLine, size.width, size.height)
     }
 }
 
+// where a sweep's head is, in the layer's own pixels, for the bloom around it; glow is how strongly it shines, 0 to 1
+internal class SweepHeadGeometry(
+    val headX: Float,
+    val lineTop: Float,
+    val lineBottom: Float,
+    val lineStart: Float,
+    val charWidth: Float,
+    val glow: Float,
+)
+
+// the same bloom centred on a point instead of trailing a head, fading out spanPx either side, for things that aren't letters like the gap dots
+internal fun glowAround(centreX: Float, spanPx: Float, top: Float, bottom: Float, glow: Float) = SweepHeadGeometry(
+    headX = centreX + spanPx * BloomLagChars / BloomSpanChars,
+    lineTop = top,
+    lineBottom = bottom,
+    lineStart = 0f,
+    charWidth = spanPx / BloomSpanChars,
+    glow = glow,
+)
+
+// the page's bloom around a sweep head on any text that can say where its head is (the share's cinematic words); android 13+, nothing at all before that
+@Suppress("NewApi")
+@Composable
+internal fun Modifier.sweepBloom(highBloom: Boolean, head: androidx.compose.ui.unit.Density.() -> SweepHeadGeometry?): Modifier {
+    val shader = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            sharedBloomShader ?: createAgslShader(BloomAgsl).also { sharedBloomShader = it }
+        } else {
+            null
+        }
+    } ?: return this
+    val cache = remember { WaveEffectCache() }
+    return graphicsLayer {
+        val at = head()
+        val bloom = if (at == null) 0f else BloomStrength * at.glow.coerceIn(0f, 1f)
+        if (at == null || bloom <= BloomCutoff) {
+            renderEffect = null
+            return@graphicsLayer
+        }
+        shader.setAgslUniform("layerSize", size.width, size.height)
+        shader.setAgslUniform("headX", at.headX)
+        shader.setAgslUniform("lineTop", at.lineTop)
+        shader.setAgslUniform("lineBottom", at.lineBottom)
+        shader.setAgslUniform("lineStart", at.lineStart)
+        shader.setAgslUniform("flowDir", 1f)
+        shader.setAgslUniform("bloom", bloom)
+        shader.setAgslUniform("bloomR", BloomRadiusPx)
+        shader.setAgslUniform("bloomLag", at.charWidth * BloomLagChars)
+        shader.setAgslUniform("bloomSpan", at.charWidth * BloomSpanChars)
+        shader.setAgslUniform("highQuality", if (highBloom) 1f else 0f)
+        shader.setAgslUniform("hasPrev", 0f)
+        shader.setAgslUniform("prevTop", 0f)
+        shader.setAgslUniform("prevBottom", 0f)
+        shader.setAgslUniform("prevEnd", 0f)
+        renderEffect = cache.effectFor(shader, at.headX, 1f, at.glow, 0, size.width, size.height)
+    }
+}
+
 /** Style 2: the original wave - a lift-and-zoom bell that follows the head across the letters. */
+@Suppress("NewApi")
 @Composable
 private fun rememberLegacyWaveModifier(
     layoutHolder: Array<TextLayoutResult?>,
@@ -1435,7 +1633,7 @@ private fun rememberLegacyWaveModifier(
 
     val shader = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            createAgslShader(LegacyWaveAgsl)
+            sharedLegacyShader ?: createAgslShader(LegacyWaveAgsl).also { sharedLegacyShader = it }
         } else {
             null
         }
@@ -1456,19 +1654,16 @@ private fun rememberLegacyWaveModifier(
         }
 
         val headOffset = h.toInt().coerceIn(0, textLength)
-        val headLine = layout.getLineForOffset(headOffset.coerceAtMost(textLength - 1))
-        val headX = if (headOffset >= textLength) {
-            layout.getLineRight(headLine)
-        } else {
-            val x0 = layout.getHorizontalPosition(headOffset, true)
-            val x1 = layout.getHorizontalPosition((headOffset + 1).coerceAtMost(textLength), true)
-            if (x1 >= x0) x0 + (x1 - x0) * (h - headOffset) else x0
-        }
+        val headLine = layout.shownLineFor(headOffset.coerceAtMost(textLength - 1))
+        val rtl = layout.isRtlLine(headLine)
+        val headX = layout.sweepHeadX(h, headOffset, headLine, textLength, rtl)
 
         val lineStart = layout.getLineStart(headLine)
         val lineEnd = layout.getLineEnd(headLine, visibleEnd = true)
+        // capped at a latin letter: a line of kanji averages a whole em a character, and its glow trailed twice as far as on latin
         val charWidth = if (lineEnd > lineStart) {
-            (layout.getLineRight(headLine) - layout.getLineLeft(headLine)) / (lineEnd - lineStart)
+            ((layout.getLineRight(headLine) - layout.getLineLeft(headLine)) / (lineEnd - lineStart))
+                .coerceAtMost(fontPx(layout) * LatinLetterEm)
         } else {
             LyricsFontSize.toPx() * 0.5f
         }
@@ -1490,7 +1685,8 @@ private fun rememberLegacyWaveModifier(
         shader.setAgslUniform("bloomLag", charWidth * BloomLagChars)
         shader.setAgslUniform("bloomSpan", charWidth * BloomSpanChars)
         shader.setAgslUniform("highQuality", if (highBloom) 1f else 0f)
-        shader.setAgslUniform("lineLeft", layout.getLineLeft(headLine) + o)
+        shader.setAgslUniform("lineStart", layout.lineStartX(headLine, rtl) + o)
+        shader.setAgslUniform("flowDir", if (rtl) -1f else 1f)
 
         // Let the trailing glow continue onto the line the sweep just wrapped off, instead of
         // being clipped at the line break.
@@ -1498,13 +1694,13 @@ private fun rememberLegacyWaveModifier(
             shader.setAgslUniform("hasPrev", 1f)
             shader.setAgslUniform("prevTop", layout.getLineTop(headLine - 1) + o)
             shader.setAgslUniform("prevBottom", layout.getLineBottom(headLine - 1) + o)
-            shader.setAgslUniform("prevRight", layout.getLineRight(headLine - 1) + o)
+            shader.setAgslUniform("prevEnd", layout.lineEndX(headLine - 1, rtl) + o)
             shader.setAgslUniform("prevBaseY", layout.getLineBaseline(headLine - 1) + o)
         } else {
             shader.setAgslUniform("hasPrev", 0f)
             shader.setAgslUniform("prevTop", 0f)
             shader.setAgslUniform("prevBottom", 0f)
-            shader.setAgslUniform("prevRight", 0f)
+            shader.setAgslUniform("prevEnd", 0f)
             shader.setAgslUniform("prevBaseY", 0f)
         }
 
@@ -1526,6 +1722,7 @@ private class WaveEffectCache {
     private var lastHeight = Int.MIN_VALUE
     private var effect: androidx.compose.ui.graphics.RenderEffect? = null
 
+    @Suppress("NewApi")
     fun effectFor(
         shader: Any,
         headX: Float,
@@ -1647,7 +1844,7 @@ internal fun motionCells(text: String, wordStarts: IntArray, wordEnds: IntArray)
  * Scripts whose letters are separate shapes. Joined and shaped scripts (Arabic, Devanagari, Thai...)
  * would be torn apart mid-stroke by moving their letters separately, so their words move whole.
  */
-private fun splitsIntoLetters(text: String, start: Int, end: Int): Boolean {
+internal fun splitsIntoLetters(text: String, start: Int, end: Int): Boolean {
     var i = start
     while (i < end) {
         val cp = text.codePointAt(i)
@@ -1739,15 +1936,39 @@ private const val NoGapSec = 0.03
 private const val FastSecPerChar = 0.1f
 private const val SlowSecPerChar = 0.34f
 
+// a kanji, kana or hangul block is a whole syllable, about three latin letters' worth, so it's weighed as that much when telling a held note
+private const val SyllableGlyphWeight = 3
+
 private const val GlowAttackFraction = 0.35f
 private const val GlowReleaseFraction = 0.3f
 
-private class TimedRange(
+internal class TimedRange(
     val start: Int,
     val end: Int,
     val startTime: Double,
     val endTime: Double,
+    /** letters' worth of singing: a syllable glyph counts as [SyllableGlyphWeight], so one kanji sung at a normal pace isn't a held note */
+    val sungLength: Int,
 )
+
+internal fun sungLength(text: String, start: Int = 0, end: Int = text.length): Int {
+    var n = 0
+    var i = start
+    while (i < end) {
+        val cp = text.codePointAt(i)
+        n += if (isSyllableGlyph(cp)) SyllableGlyphWeight else 1
+        i += Character.charCount(cp)
+    }
+    return n.coerceAtLeast(1)
+}
+
+private fun isSyllableGlyph(codePoint: Int): Boolean = when (Character.UnicodeScript.of(codePoint)) {
+    Character.UnicodeScript.HAN,
+    Character.UnicodeScript.HIRAGANA,
+    Character.UnicodeScript.KATAKANA,
+    Character.UnicodeScript.HANGUL -> true
+    else -> false
+}
 
 internal fun karaokeFilledChars(
     text: String,
@@ -1802,157 +2023,170 @@ private fun rememberKaraokeHead(
     /** Style 1: sweep through spaces smoothly and drive the per-word rise/swell springs. */
     wordMotion: Boolean = false,
 ): KaraokeHead {
-
-    val timed = remember(text, words) {
-        var searchFrom = 0
-        words.mapNotNull { word ->
-            val trimmed = word.text.trim()
-            val start = if (trimmed.isEmpty()) -1 else text.indexOf(trimmed, searchFrom)
-            if (start < 0) return@mapNotNull null
-            searchFrom = start + trimmed.length
-            TimedRange(start, searchFrom, word.startTime, word.endTime)
-        }
-    }
-
-    val head = remember(text, words) {
-        val (starts, ends) = visualWords(text)
-        KaraokeHead(starts, ends, motionCells(text, starts, ends))
-    }
+    val timed = remember(text, words) { karaokeTimedRanges(text, words) }
+    val head = remember(text, words) { karaokeHeadFor(text) }
 
     LaunchedEffect(text, timed, positionProvider, wordMotion) {
-
-        var lastTick = -1L
-        var lastTickAtMs = 0L
-        var lastFrameMs = -1L
+        var lastFrameNanos = -1L
         while (true) {
-            withFrameMillis { frameMs ->
-                val tick = positionProvider()
-                if (tick != lastTick) {
-                    lastTick = tick
-                    lastTickAtMs = frameMs
-                }
-
-                val elapsed = (frameMs - lastTickAtMs).coerceIn(0L, 120L)
-                val positionSec = (tick + elapsed) / 1000.0
-
-                var next = 0f
-                var nextGlow = 0f
-                var nextSwell = 0f
-                for (index in timed.indices) {
-                    val word = timed[index]
-                    if (positionSec < word.startTime) break
-
-                    if (positionSec >= word.endTime) {
-                        next = word.end.toFloat()
-
-                        val following = timed.getOrNull(index + 1) ?: continue
-                        val gap = following.startTime - word.endTime
-                        if (gap > 0.0 && positionSec < following.startTime) {
-                            val through = ((positionSec - word.endTime) / gap).coerceIn(0.0, 1.0)
-                            next = word.end +
-                                (following.start - word.end) * smoothstep(through.toFloat())
-                        }
-                        continue
-                    }
-
-                    val span = word.endTime - word.startTime
-                    if (span <= 0.0) break
-                    val within = ((positionSec - word.startTime) / span).coerceIn(0.0, 1.0)
-                    val length = (word.end - word.start).coerceAtLeast(1)
-
-                    // When the next word starts the instant this one ends, the space between them
-                    // has no time of its own, and the head used to jump it in one frame - the
-                    // abrupt cut at every word boundary. Style 1 gives the space a small share of
-                    // this word's time instead, so the sweep glides across it.
-                    val following = timed.getOrNull(index + 1)
-                    val tail = if (
-                        wordMotion && following != null &&
-                        following.startTime - word.endTime <= NoGapSec &&
-                        following.start > word.end
-                    ) {
-                        following.start - word.end
-                    } else {
-                        0
-                    }
-                    next = if (tail > 0) {
-                        val letters = length.toFloat()
-                        val letterShare = letters / (letters + tail * SpaceTimeWeight)
-                        val w = within.toFloat()
-                        if (w <= letterShare) {
-                            word.start + letters * (w / letterShare)
-                        } else {
-                            word.end + tail * ((w - letterShare) / (1f - letterShare))
-                        }
-                    } else {
-                        word.start + (length * within).toFloat()
-                    }
-
-                    val secPerChar = (span / length).toFloat()
-                    val hold = smoothstep(
-                        (secPerChar - FastSecPerChar) / (SlowSecPerChar - FastSecPerChar)
-                    )
-                    val w = within.toFloat()
-                    nextGlow = hold *
-                        smoothstep(w / GlowAttackFraction) *
-                        smoothstep((1f - w) / GlowReleaseFraction)
-                    // The swell has its own, squarer envelope: it fills the letters one by one as
-                    // they're sung, so it has to still be there when the sweep reaches the last
-                    // letter. The glow's longer release had it gone by then.
-                    nextSwell = hold *
-                        smoothstep(w / SwellAttackFraction) *
-                        smoothstep((1f - w) / SwellReleaseFraction)
-                    break
-                }
-
-                if (next != head.offset.floatValue) head.offset.floatValue = next
-
-                val glowNow = head.glow.floatValue
-                val glowNext =
-                    if (nextGlow >= glowNow) nextGlow else glowNow + (nextGlow - glowNow) * 0.12f
-                if (glowNext != glowNow) head.glow.floatValue = glowNext
-
-                if (wordMotion && head.cellCount > 0) {
-                    val dt = if (lastFrameMs < 0L) 0.016f else ((frameMs - lastFrameMs) / 1000f).coerceIn(0f, 0.064f)
-                    val cells = head.cells
-                    var changed = false
-                    for (c in 0 until head.cellCount) {
-                        val w = cells.word[c]
-                        val wordStart = head.wordStarts[w]
-                        val wordEnd = head.wordEnds[w]
-                        val letterStart = cells.starts[c]
-
-                        // The word lifts as a whole as the sweep goes through it...
-                        val through = (next - wordStart) / (wordEnd - wordStart).coerceAtLeast(1)
-                        val wordRise = smoothstep(through / RiseCompleteAt)
-                        // ...and each letter lifts further as the sweep reaches it. Once the word
-                        // is over every letter is up, so the last word of a line (where the sweep
-                        // stops) doesn't leave its final letters hanging part-way.
-                        val letterRise = if (next >= wordEnd) {
-                            1f
-                        } else {
-                            smoothstep((next - letterStart + LetterRiseLeadChars) / LetterRiseSpanChars)
-                        }
-                        val riseTarget = wordRise + (letterRise - wordRise) * LetterRiseShare
-
-                        // A held note swells the word the sweep is in, letter by letter as each
-                        // is reached, then the whole word settles together once the sweep leaves.
-                        val swellTarget = if (next >= wordStart && next <= wordEnd) {
-                            nextSwell *
-                                smoothstep((next - letterStart + LetterSwellLeadChars) / LetterSwellSpanChars)
-                        } else {
-                            0f
-                        }
-                        changed = dampedStep(head.rise, head.riseVelocity, c, riseTarget, RiseFollowSec, dt) or changed
-                        changed = dampedStep(head.swell, head.swellVelocity, c, swellTarget, SwellFollowSec, dt) or changed
-                    }
-                    if (changed) head.motionTick.intValue++
-                }
-                lastFrameMs = frameMs
+            withFrameNanos { frameNanos ->
+                val dt = if (lastFrameNanos < 0L) 0.016f else ((frameNanos - lastFrameNanos) / 1_000_000_000f).coerceIn(0f, 0.064f)
+                // the provider is a playback clock that already moves on the frame's own time, so no guessing between polls
+                head.advance(timed, positionProvider() / 1000.0, dt, wordMotion)
+                lastFrameNanos = frameNanos
             }
         }
     }
 
     return head
+}
+
+// each timed word found in the line's own text, so the sweep knows which letters it covers
+internal fun karaokeTimedRanges(
+    text: String,
+    words: List<dev.meowlabs.blossomtune.lyrics.WordTimestamp>,
+): List<TimedRange> {
+    var searchFrom = 0
+    return words.mapNotNull { word ->
+        val trimmed = word.text.trim()
+        val start = if (trimmed.isEmpty()) -1 else text.indexOf(trimmed, searchFrom)
+        if (start < 0) return@mapNotNull null
+        searchFrom = start + trimmed.length
+        TimedRange(start, searchFrom, word.startTime, word.endTime, sungLength(text, start, searchFrom))
+    }
+}
+
+// a fresh sweep for one line, with the words and letters it moves as
+internal fun karaokeHeadFor(text: String): KaraokeHead {
+    val (starts, ends) = visualWords(text)
+    return KaraokeHead(starts, ends, motionCells(text, starts, ends))
+}
+
+// moves the sweep and every letter's rise and swell on to positionSec, true while the sweep or a letter still moved
+internal fun KaraokeHead.advance(
+    timed: List<TimedRange>,
+    positionSec: Double,
+    dt: Float,
+    wordMotion: Boolean,
+): Boolean {
+    var next = 0f
+    var nextGlow = 0f
+    var nextSwell = 0f
+    for (index in timed.indices) {
+        val word = timed[index]
+        if (positionSec < word.startTime) break
+
+        if (positionSec >= word.endTime) {
+            next = word.end.toFloat()
+
+            val following = timed.getOrNull(index + 1) ?: continue
+            val gap = following.startTime - word.endTime
+            if (gap > 0.0 && positionSec < following.startTime) {
+                val through = ((positionSec - word.endTime) / gap).coerceIn(0.0, 1.0)
+                next = word.end +
+                    (following.start - word.end) * smoothstep(through.toFloat())
+            }
+            continue
+        }
+
+        val span = word.endTime - word.startTime
+        if (span <= 0.0) break
+        val within = ((positionSec - word.startTime) / span).coerceIn(0.0, 1.0)
+        val length = (word.end - word.start).coerceAtLeast(1)
+
+        // When the next word starts the instant this one ends, the space between them
+        // has no time of its own, and the head used to jump it in one frame - the
+        // abrupt cut at every word boundary. Style 1 gives the space a small share of
+        // this word's time instead, so the sweep glides across it.
+        val following = timed.getOrNull(index + 1)
+        val tail = if (
+            wordMotion && following != null &&
+            following.startTime - word.endTime <= NoGapSec &&
+            following.start > word.end
+        ) {
+            following.start - word.end
+        } else {
+            0
+        }
+        next = if (tail > 0) {
+            val letters = length.toFloat()
+            val letterShare = letters / (letters + tail * SpaceTimeWeight)
+            val w = within.toFloat()
+            if (w <= letterShare) {
+                word.start + letters * (w / letterShare)
+            } else {
+                word.end + tail * ((w - letterShare) / (1f - letterShare))
+            }
+        } else {
+            word.start + (length * within).toFloat()
+        }
+
+        val secPerChar = (span / word.sungLength).toFloat()
+        val hold = smoothstep(
+            (secPerChar - FastSecPerChar) / (SlowSecPerChar - FastSecPerChar)
+        )
+        val w = within.toFloat()
+        nextGlow = hold *
+            smoothstep(w / GlowAttackFraction) *
+            smoothstep((1f - w) / GlowReleaseFraction)
+        // The swell has its own, squarer envelope: it fills the letters one by one as
+        // they're sung, so it has to still be there when the sweep reaches the last
+        // letter. The glow's longer release had it gone by then.
+        nextSwell = hold *
+            smoothstep(w / SwellAttackFraction) *
+            smoothstep((1f - w) / SwellReleaseFraction)
+        break
+    }
+
+    var moved = false
+    if (next != offset.floatValue) {
+        offset.floatValue = next
+        moved = true
+    }
+
+    val glowNow = glow.floatValue
+    val glowNext =
+        if (nextGlow >= glowNow) nextGlow else glowNow + (nextGlow - glowNow) * 0.12f
+    if (glowNext != glowNow) glow.floatValue = glowNext
+
+    if (wordMotion && cellCount > 0) {
+        var changed = false
+        for (c in 0 until cellCount) {
+            val w = cells.word[c]
+            val wordStart = wordStarts[w]
+            val wordEnd = wordEnds[w]
+            val letterStart = cells.starts[c]
+
+            // The word lifts as a whole as the sweep goes through it...
+            val through = (next - wordStart) / (wordEnd - wordStart).coerceAtLeast(1)
+            val wordRise = smoothstep(through / RiseCompleteAt)
+            // ...and each letter lifts further as the sweep reaches it. Once the word
+            // is over every letter is up, so the last word of a line (where the sweep
+            // stops) doesn't leave its final letters hanging part-way.
+            val letterRise = if (next >= wordEnd) {
+                1f
+            } else {
+                smoothstep((next - letterStart + LetterRiseLeadChars) / LetterRiseSpanChars)
+            }
+            val riseTarget = wordRise + (letterRise - wordRise) * LetterRiseShare
+
+            // A held note swells the word the sweep is in, letter by letter as each
+            // is reached, then the whole word settles together once the sweep leaves.
+            val swellTarget = if (next >= wordStart && next <= wordEnd) {
+                nextSwell *
+                    smoothstep((next - letterStart + LetterSwellLeadChars) / LetterSwellSpanChars)
+            } else {
+                0f
+            }
+            changed = dampedStep(rise, riseVelocity, c, riseTarget, RiseFollowSec, dt) or changed
+            changed = dampedStep(swell, swellVelocity, c, swellTarget, SwellFollowSec, dt) or changed
+        }
+        if (changed) {
+            motionTick.intValue++
+            moved = true
+        }
+    }
+    return moved
 }
 
 /**
@@ -2005,18 +2239,23 @@ private fun buildMotionLayout(
 ): MotionLayout {
     val text = layout.layoutInput.text.text
     val tiled = head.cells.tiled
-    val cells = ArrayList<Int>()
-    val lines = ArrayList<Int>()
-    val segStarts = ArrayList<Int>()
-    val segEnds = ArrayList<Int>()
-    val lefts = ArrayList<Float>()
-    val rights = ArrayList<Float>()
+    // only a whole word that wraps becomes more than one piece, at most one extra per line break
+    val capacity = head.cellCount + layout.lineCount
+    val cells = IntArray(capacity)
+    val lines = IntArray(capacity)
+    val segStarts = IntArray(capacity)
+    val segEnds = IntArray(capacity)
+    val lefts = FloatArray(capacity)
+    val rights = FloatArray(capacity)
+    var n = 0
     if (text.isNotEmpty() && layout.lineCount > 0) {
+        // every letter's box in one go: asking one letter at a time re-measured the line from its start for each, which hitched long lines
+        val boxes = layout.multiParagraph.fillBoundingBoxes(TextRange(0, text.length), FloatArray(text.length * 4), 0)
         for (c in 0 until head.cellCount) {
             val start = head.cells.starts[c].coerceIn(0, text.length)
             val end = head.cells.ends[c].coerceIn(start, text.length)
             if (end <= start) continue
-            for (line in layout.getLineForOffset(start)..layout.getLineForOffset(end - 1)) {
+            for (line in layout.shownLineFor(start)..layout.shownLineFor(end - 1)) {
                 val segStart = maxOf(start, layout.getLineStart(line))
                 val segEnd = minOf(end, layout.getLineEnd(line))
                 if (segEnd <= segStart) continue
@@ -2024,22 +2263,21 @@ private fun buildMotionLayout(
                 var right = Float.NEGATIVE_INFINITY
                 for (i in segStart until segEnd) {
                     if (text[i].isWhitespace()) continue
-                    val bounds = layout.getBoundingBox(i)
-                    left = minOf(left, bounds.left)
-                    right = maxOf(right, bounds.right)
+                    left = minOf(left, boxes[i * 4])
+                    right = maxOf(right, boxes[i * 4 + 2])
                 }
-                if (left > right) continue
-                cells += c
-                lines += line
-                segStarts += segStart
-                segEnds += segEnd
-                lefts += left
-                rights += right
+                if (left > right || n >= capacity) continue
+                cells[n] = c
+                lines[n] = line
+                segStarts[n] = segStart
+                segEnds[n] = segEnd
+                lefts[n] = left
+                rights[n] = right
+                n++
             }
         }
     }
 
-    val n = cells.size
     val lastLine = layout.lineCount - 1
     val clipLeft = FloatArray(n)
     val clipRight = FloatArray(n)
@@ -2088,11 +2326,11 @@ private fun buildMotionLayout(
     return MotionLayout(
         count = n,
         tiled = tiled,
-        cell = cells.toIntArray(),
+        cell = cells.copyOf(n),
         word = IntArray(n) { head.cells.word[cells[it]] },
-        line = lines.toIntArray(),
-        coreLeft = lefts.toFloatArray(),
-        coreRight = rights.toFloatArray(),
+        line = lines.copyOf(n),
+        coreLeft = lefts.copyOf(n),
+        coreRight = rights.copyOf(n),
         clipLeft = clipLeft,
         clipTop = clipTop,
         clipRight = clipRight,
@@ -2118,7 +2356,7 @@ private fun settledSwell(swell: Float): Float = if (swell < 0.002f) 0f else swel
  * draw, so the cost is a handful of draws around the sweep, not one per letter.
  */
 @Composable
-private fun rememberWordMotionModifier(
+internal fun rememberWordMotionModifier(
     layoutHolder: Array<TextLayoutResult?>,
     head: KaraokeHead,
     riseAmplitudeProvider: () -> Float,
@@ -2126,6 +2364,7 @@ private fun rememberWordMotionModifier(
     motionScale: Float = 1f,
 ): Modifier {
     val cache = remember(head) { MotionLayoutCache() }
+    val textLayer = rememberGraphicsLayer()
     return Modifier.drawWithContent {
         // Subscribes this draw to the per-letter springs.
         @Suppress("UNUSED_VARIABLE") val tick = head.motionTick.intValue
@@ -2196,6 +2435,11 @@ private fun rememberWordMotionModifier(
             return@drawWithContent
         }
 
+        // record the line's dim and lit text once, then draw slices of that layer for each moving letter
+        textLayer.record {
+            this@drawWithContent.drawContent()
+        }
+
         var k = 0
         while (k < n) {
             // Neighbouring slots that move together are one slot (tiled slots meet edge to edge).
@@ -2206,7 +2450,7 @@ private fun rememberWordMotionModifier(
                 ) e++
                 withTransform({ translate(0f, m.dy[k]) }) {
                     clipRect(m.clipLeft[k], m.clipTop[k], m.clipRight[e], m.clipBottom[k]) {
-                        this@drawWithContent.drawContent()
+                        drawLayer(textLayer)
                     }
                 }
                 k = e + 1
@@ -2221,7 +2465,7 @@ private fun rememberWordMotionModifier(
                 }
             }) {
                 clipRect(m.clipLeft[k], m.clipTop[k], m.clipRight[k], m.clipBottom[k]) {
-                    this@drawWithContent.drawContent()
+                    drawLayer(textLayer)
                 }
             }
             k++

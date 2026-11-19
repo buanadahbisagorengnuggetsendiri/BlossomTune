@@ -2,7 +2,7 @@
 
 package dev.meowlabs.blossomtune.ui.menu
 
-import dev.meowlabs.blossomtune.ui.component.SheetDivider
+import dev.meowlabs.blossomtune.ui.component.SheetHeaderGap
 import dev.meowlabs.blossomtune.ui.component.SheetHeaderButton
 import dev.meowlabs.blossomtune.ui.component.SheetHeader
 import android.annotation.SuppressLint
@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -81,7 +80,6 @@ import dev.meowlabs.blossomtune.utils.reportException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MutableCollectionMutableState")
@@ -95,8 +93,8 @@ fun YouTubeAlbumMenu(
     val database = LocalDatabase.current
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val album by database.albumWithSongs(albumItem.id).collectAsState(initial = null)
-    val isPinned by database.speedDialDao.isPinned(albumItem.id).collectAsState(initial = false)
+    val album by remember(database, albumItem.id) { database.albumWithSongs(albumItem.id) }.collectAsState(initial = null)
+    val isPinned by remember(database, albumItem.id) { database.speedDialDao.isPinned(albumItem.id) }.collectAsState(initial = false)
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -252,8 +250,7 @@ fun YouTubeAlbumMenu(
         trailing = {
             SheetHeaderButton(
                 icon = if (album?.album?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border,
-                active = album?.album?.bookmarkedAt != null,
-                tint = if (album?.album?.bookmarkedAt != null) MaterialTheme.colorScheme.error else BlossomInk.Primary,
+                tint = if (album?.album?.bookmarkedAt != null) MaterialTheme.colorScheme.error else Color.White,
                 onClick = {
                     database.query {
                         album?.album?.toggleLike()?.let(::update)
@@ -263,7 +260,7 @@ fun YouTubeAlbumMenu(
         },
     )
 
-    SheetDivider()
+    Spacer(Modifier.height(SheetHeaderGap))
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -289,6 +286,25 @@ fun YouTubeAlbumMenu(
                                 )
                             },
                             text = stringResource(R.string.play),
+                            onClick = {
+                                onDismiss()
+                                album?.songs?.let { songs ->
+                                    if (songs.isNotEmpty()) {
+                                        playerConnection.playQueue(YouTubeAlbumRadio(albumItem.playlistId))
+                                    }
+                                }
+                            }
+                        ),
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.shuffle),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.shuffle),
                             onClick = {
                                 onDismiss()
                                 album?.songs?.let { songs ->
@@ -350,25 +366,6 @@ fun YouTubeAlbumMenu(
                             }
                         )
                     },
-                        NewAction(
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.shuffle),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            text = stringResource(R.string.shuffle),
-                            onClick = {
-                                onDismiss()
-                                album?.songs?.let { songs ->
-                                    if (songs.isNotEmpty()) {
-                                        playerConnection.playQueue(YouTubeAlbumRadio(albumItem.playlistId))
-                                    }
-                                }
-                            }
-                        ),
                 ),
                 modifier = Modifier.padding(bottom = 12.dp),
                 columns = if (false) 1 else 3
@@ -431,7 +428,7 @@ fun YouTubeAlbumMenu(
                     Material3MenuItemData(
                         title = {
                             Text(
-                                text = if (isPinned) "Unpin from library" else "Pin to library"
+                                text = stringResource(if (isPinned) R.string.unpin_from_speed_dial else R.string.pin_to_speed_dial)
                             )
                         },
                         icon = {

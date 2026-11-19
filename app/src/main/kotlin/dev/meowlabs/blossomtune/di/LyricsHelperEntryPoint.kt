@@ -1,5 +1,3 @@
-// LyricsHelperEntryPoint.kt
-
 package dev.meowlabs.blossomtune.di
 
 import dev.meowlabs.blossomtune.lyrics.LyricsHelper

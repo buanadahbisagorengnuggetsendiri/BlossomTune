@@ -1,5 +1,3 @@
-// LrcLib.kt
-
 package com.music.lrclib
 
 import com.music.lrclib.models.Track
@@ -9,6 +7,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -33,6 +32,9 @@ object LrcLib {
             defaultRequest {
                 url("https://lrclib.net")
             }
+
+            // says who's asking so the server owner can reach us instead of blocking us
+            install(UserAgent) { agent = "BlossomTune (+https://github.com/realidkroo/BlossomTune-Music)" }
 
             expectSuccess = true
         }

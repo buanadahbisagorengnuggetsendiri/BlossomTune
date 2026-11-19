@@ -4,7 +4,6 @@ import android.graphics.RenderNode
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
-import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -19,6 +18,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.Box
@@ -139,6 +139,8 @@ fun Modifier.damageBoundary(): Modifier =
                 target.nativeCanvas.drawDamageNode(node)
             }
         }
+            // a plain layer inside, so content that draws itself repaints only this rectangle
+            .graphicsLayer()
     }
 
 fun Modifier.glassRoot(state: GlassState, isActive: () -> Boolean = { true }): Modifier = this
@@ -178,14 +180,12 @@ fun Modifier.glassRoot(state: GlassState, isActive: () -> Boolean = { true }): M
 /**
  * Backdrop colour for the floating glass chrome - the navigation pill and the mini player.
  *
- * Deliberately a fixed tone rather than `MaterialTheme.colorScheme.surfaceContainer`: the
+ * Deliberately a fixed dark tone rather than `MaterialTheme.colorScheme.surfaceContainer`: the
  * Material You colour follows the wallpaper accent and washes these surfaces out. They are drawn
- * with white icons over a white hairline border, so they are meant to read as dark glass.
- *
- * Nadanya ikut mode lewat [BlossomSurface] - kaca gelap di atas halaman putih jadi kotak hitam.
+ * with white icons over a white hairline border, so they are meant to read as dark glass. The
+ * shade is the Figma's.
  */
-val GlassChromeColor: Color
-    @Composable @ReadOnlyComposable get() = BlossomSurface.chrome
+val GlassChromeColor = Color(0xFF131313)
 
 /** Backdrop blur for that chrome, heavier than the 24f default so it reads as properly frosted. */
 const val GlassChromeBlurRadius = 48f
@@ -227,10 +227,41 @@ fun rememberChromeAccentWash(): () -> Color {
  * the first passes of the blur, every frame the glass or what's under it moves. Small radii keep
  * full resolution: there the detail still shows.
  */
-internal fun glassDownscale(effectiveRadius: Float): Int = when {
+internal fun glassDownscale(effectiveRadius: Float, low: Boolean = false): Int = when {
     effectiveRadius >= 64f -> 4
+    // low quality drops a step sooner: a little softer, a quarter of the pixels to draw and blur
+    low && effectiveRadius >= 32f -> 4
     effectiveRadius >= 16f -> 2
+    // the faint first steps of a low progressive bar are its biggest, and drawn at full size they cost the most for a blur you can hardly see
+    low && effectiveRadius >= 2f -> 2
     else -> 1
+}
+
+/** The blur quality chosen in Appearance, for every glass surface under it. */
+val LocalBlurQuality = androidx.compose.runtime.staticCompositionLocalOf { DefaultBlurQuality }
+
+// flagship chips that don't always declare a performance class; anything else waits for one
+private val StrongGlassChips = listOf(
+    "sm8350", "sm8450", "sm8475", "sm8550", "sm8635", "sm8650", "sm8750", // snapdragon 888 up to 8 elite
+    "mt6983", "mt6985", "mt6989", "mt6991", // dimensity 9000 up to 9400
+)
+
+/** the quality a phone starts on until someone picks one in Customisation */
+val DefaultBlurQuality: dev.meowlabs.blossomtune.constants.BlurQuality by lazy {
+    val soc = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.SOC_MODEL.lowercase(java.util.Locale.ROOT) else ""
+    // high's glass took 11 to 15 ms of gpu per scroll frame on a mid-range 120 hz phone, more than a frame has
+    val strong = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+        (Build.VERSION.MEDIA_PERFORMANCE_CLASS >= Build.VERSION_CODES.S || StrongGlassChips.any { soc.startsWith(it) })
+    if (strong) dev.meowlabs.blossomtune.constants.BlurQuality.HIGH else dev.meowlabs.blossomtune.constants.BlurQuality.LOW
+}
+
+/** Lays its content out [margin] px bigger on every side, centred over the space it takes. */
+internal fun Modifier.bleed(margin: () -> Int): Modifier = layout { measurable, constraints ->
+    val m = margin().coerceAtLeast(0)
+    val width = if (constraints.hasBoundedWidth) constraints.maxWidth else constraints.minWidth
+    val height = if (constraints.hasBoundedHeight) constraints.maxHeight else constraints.minHeight
+    val placeable = measurable.measure(Constraints.fixed(width + m * 2, height + m * 2))
+    layout(width, height) { placeable.place(-m, -m) }
 }
 
 /** The size a downscaled layout was given, before it was divided down. */
@@ -297,12 +328,22 @@ internal fun DownscaledBlur(
     modifier: Modifier = Modifier,
     /** Draw into a buffer of its own even without a blur, for a [draw] that erases with blend modes. */
     offscreen: (() -> Boolean)? = null,
+    // set to grow the blur from sharp to radius across the height (true: strongest at the bottom), android 13+ only
+    growDown: Boolean? = null,
+    // grows across the width instead (growDown true: strongest at the right), full strength ramp of the way along
+    growAcross: Boolean = false,
+    growRamp: Float = 1f,
     draw: DrawScope.(fullSize: Size) -> Unit,
 ) {
+    if (growDown != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ProgressiveBlurBands(radius, mask, modifier, offscreen, growDown, growAcross, growRamp, draw)
+        return
+    }
     val currentRadius by rememberUpdatedState(radius)
     val currentOffscreen by rememberUpdatedState(offscreen)
     // A radius that animates only re-lays this out when it crosses into another resolution step.
-    val downscale by remember { derivedStateOf { glassDownscale(currentRadius()) } }
+    val low = LocalBlurQuality.current == dev.meowlabs.blossomtune.constants.BlurQuality.LOW
+    val downscale by remember(low) { derivedStateOf { glassDownscale(currentRadius(), low) } }
     val maskCache = remember { MaskedEffectCache() }
     val full = remember { FullSize() }
 
@@ -391,6 +432,17 @@ fun GlassPillBackground(
     mask: Brush? = null,
     /** a colour laid over [tint], read only while drawing so it can animate without recomposing */
     accentWash: (() -> Color)? = null,
+    /**
+     * Also blur a margin of the backdrop as wide as the blur around the surface, so the edges are
+     * blurred from what's really past them. Without it the blur has to make that part up, and a
+     * clamped edge row smears anything bright touching it across the surface. The extra is drawn
+     * outside the bounds, so the parent has to clip.
+     */
+    bleed: Boolean = false,
+    // grows the blur from sharp at the start to blurRadius at the far end, in one pass (android 13+)
+    progressive: BlurDirection? = null,
+    // how far along the progressive blur reaches its full radius (1 is the far end), holding it from there on
+    progressiveRamp: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     var position by remember { mutableStateOf(Offset.Zero) }
@@ -400,17 +452,30 @@ fun GlassPillBackground(
 
     val currentBlurRadius by rememberUpdatedState(blurRadius)
 
+    // The blur actually applied, clamped the way BlurEffectCache clamps it.
+    val radius = {
+        if (disableBlur) 0f
+        else BlurEffectCache.effectiveRadius(currentBlurRadius() * (blurStrengthPx / 25f))
+    }
+
     DownscaledBlur(
-        // The blur actually applied, clamped the way BlurEffectCache clamps it.
-        radius = {
-            if (disableBlur) 0f
-            else BlurEffectCache.effectiveRadius(currentBlurRadius() * (blurStrengthPx / 25f))
-        },
+        radius = radius,
         tileMode = tileMode,
         mask = mask,
+        growDown = progressive?.let { it == BlurDirection.TopToBottom },
+        growRamp = progressiveRamp,
         modifier = modifier
-            .onGloballyPositioned { position = it.positionInWindow() }
-            .then(if (shape != null) Modifier.clip(shape) else Modifier),
+            .then(if (shape != null) Modifier.clip(shape) else Modifier)
+            .then(
+                // no blur below Android 12, so nothing to read past the edges; and low quality
+                // keeps to what's right under the glass, a much smaller area to blur
+                if (bleed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    LocalBlurQuality.current == dev.meowlabs.blossomtune.constants.BlurQuality.HIGH
+                ) {
+                    Modifier.bleed { kotlin.math.ceil(radius()).toInt() }
+                } else Modifier
+            )
+            .onGloballyPositioned { position = it.positionInWindow() },
     ) { fullSize ->
         if (foundationColor != null) {
             drawRect(color = foundationColor, size = fullSize)
@@ -437,6 +502,20 @@ fun GlassPillBackground(
 
 enum class BlurDirection { TopToBottom, BottomToTop }
 
+// the hairline where a flat bar's blur stops, when progressive blur is off
+private val FlatBarEdgeColor = Color.White.copy(alpha = 0.16f)
+private val FlatBarEdgeWidth = 1.dp
+
+// how dark the one even tint is that replaces a bar's fading scrim while progressive blur is off
+const val FlatBarScrimAlpha = 0.45f
+
+// whether bars blur progressively; off, they're flat with a hairline, and their own fading scrims turn into one tint
+@Composable
+fun rememberProgressiveBlur(): Boolean {
+    val (enabled) = rememberPreference(dev.meowlabs.blossomtune.constants.EnableProgressiveBlurKey, defaultValue = true)
+    return enabled
+}
+
 @Composable
 fun ProgressiveGlassBackground(
     state: GlassState,
@@ -447,6 +526,56 @@ fun ProgressiveGlassBackground(
     modifier: Modifier = Modifier,
     steps: Int = 5
 ) {
+    // off, the bar is one even blur that stops at a hard edge with a hairline, a classic frosted bar instead of a fade
+    if (!rememberProgressiveBlur()) {
+        Box(
+            modifier = modifier
+                .clipToBounds()
+                .drawWithContent {
+                    drawContent()
+                    val line = FlatBarEdgeWidth.toPx()
+                    val y = if (direction == BlurDirection.TopToBottom) 0f else size.height - line
+                    drawRect(FlatBarEdgeColor, topLeft = Offset(0f, y), size = Size(size.width, line))
+                },
+        ) {
+            GlassPillBackground(
+                state = state,
+                blurRadius = maxBlurRadius,
+                tint = tint,
+                foundationColor = foundationColor,
+                tileMode = android.graphics.Shader.TileMode.CLAMP,
+                // blurred from what's really past the edge, so the hard edge doesn't smear into a glow
+                bleed = true,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        return
+    }
+    val smooth = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        LocalBlurQuality.current == dev.meowlabs.blossomtune.constants.BlurQuality.HIGH
+    if (smooth) {
+        // high quality: one pass whose radius grows row by row, faded in where the first step used to fade in
+        val fade = 1f / steps.coerceAtLeast(1)
+        val mask = remember(direction, fade) {
+            if (direction == BlurDirection.TopToBottom) {
+                Brush.verticalGradient(0f to Color.Transparent, fade to Color.Black, 1f to Color.Black)
+            } else {
+                Brush.verticalGradient(0f to Color.Black, (1f - fade) to Color.Black, 1f to Color.Transparent)
+            }
+        }
+        Box(modifier = modifier) {
+            GlassPillBackground(
+                state = state,
+                blurRadius = maxBlurRadius,
+                tint = tint,
+                foundationColor = foundationColor,
+                mask = mask,
+                progressive = direction,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        return
+    }
     Box(modifier = modifier) {
         for (i in 1..steps) {
             val fraction = i.toFloat() / steps

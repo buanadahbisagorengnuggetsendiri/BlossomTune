@@ -1,5 +1,3 @@
-// ArtistVideo.kt
-
 package dev.meowlabs.blossomtune.artistvideo
 
 import android.view.TextureView

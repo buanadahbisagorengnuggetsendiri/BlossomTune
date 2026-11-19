@@ -37,8 +37,8 @@ sealed class Screens(
 
     object Settings : Screens(
         titleId = R.string.settings,
-        iconIdInactive = R.drawable.settings_outline,
-        iconIdActive = R.drawable.settings_filled,
+        iconIdInactive = R.drawable.nav_blossomtune_outline,
+        iconIdActive = R.drawable.nav_blossomtune_filled,
         route = "settings"
     )
 

@@ -25,7 +25,9 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
@@ -78,6 +80,7 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.resize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlin.math.ceil
 import kotlin.math.cos
@@ -108,13 +111,20 @@ internal class RecapTime {
     val sway: Float get() = (seconds % 3600.0).toFloat()
 }
 
-/** Ticks every frame while [running]. Read it only inside draw/graphicsLayer lambdas. */
+/**
+ * Ticks every frame while [running] and not [held]. Read it only inside draw/graphicsLayer lambdas.
+ * [held] is read as a lambda so flipping it never recomposes the caller.
+ */
 @Composable
-internal fun rememberRecapTime(running: Boolean = true): RecapTime {
+internal fun rememberRecapTime(running: Boolean = true, held: () -> Boolean = { false }): RecapTime {
     val time = remember { RecapTime() }
+    val isHeld by rememberUpdatedState(held)
     LaunchedEffect(running) {
         if (!running) return@LaunchedEffect
-        while (true) withInfiniteAnimationFrameNanos { time.frameNanos = it }
+        while (true) {
+            if (isHeld()) snapshotFlow { isHeld() }.first { !it }
+            withInfiniteAnimationFrameNanos { time.frameNanos = it }
+        }
     }
     return time
 }
@@ -230,7 +240,7 @@ internal class GiantTextState(word: String, val half: Int = 4, filledRows: IntRa
     val alpha = Animatable(1f)
 
     /** Read in draw, so a colour made of animated values follows them without recomposing. */
-    var color: () -> Color = { Color(0xFF1B2333) }
+    var color: () -> Color = { Color(0xFF272727) }
 
     companion object {
         const val PageColumnCenterX = 0.86f
@@ -339,7 +349,7 @@ internal fun Modifier.giantText(
 @Stable
 internal class RecapPalette(val c0: Color, val c1: Color, val c2: Color, val c3: Color) {
     companion object {
-        val Story = RecapPalette(Color(0xFF080B10), Color(0xFF080B10), Color(0xFF080B10), Color(0xFF080B10))
+        val Story = RecapPalette(Color(0xFF0C0C0C), Color(0xFF0C0C0C), Color(0xFF0C0C0C), Color(0xFF0C0C0C))
 
         /** The mock's red, for when a picture can't be read. */
         val Fallback = RecapPalette(Color(0xFF732C2A), Color(0xFF7A3B26), Color(0xFF4E1D1C), Color(0xFF6B3324))

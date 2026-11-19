@@ -1,11 +1,4 @@
-// UpdateNotifications.kt
-//
-// "There's an update" notifications, at most three per release: when the app first sees it, two
-// weeks later, and three months later (both counted from the first). Nothing runs in the
-// background for this - no WorkManager job, no alarm. The check rides on the release lookup the
-// app already does on launch (getLatestRelease, cached and shared with the version sheet), so it
-// costs one SharedPreferences read when there's nothing to say. If the app isn't opened for a
-// while, overdue reminders collapse into one, never back to back.
+// update notifications, at most three per release, riding the launch-time release check with no background job (see docs/notes/update.md)
 
 package dev.meowlabs.blossomtune.ui.screens.update
 
@@ -17,6 +10,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -25,10 +19,11 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.core.updater.GithubRelease
 import dev.meowlabs.blossomtune.core.updater.UpdateState
 import dev.meowlabs.blossomtune.core.updater.getLatestRelease
+import dev.meowlabs.blossomtune.core.updater.updateChannel
 import dev.meowlabs.blossomtune.core.updater.isNewerThanInstalled
 import dev.meowlabs.blossomtune.ui.component.LocalZoomOutOverlayState
 
-/** Intent action the notification opens MainActivity with; it then shows the version sheet. */
+/** intent action the notification opens MainActivity with, it then shows the version sheet */
 const val ActionOpenUpdate = "dev.meowlabs.blossomtune.action.OPEN_UPDATE"
 
 private const val PrefsName = "update_notifications"
@@ -38,22 +33,19 @@ private const val KeyPosted = "posted"
 
 private const val DayMs = 24L * 60 * 60 * 1000
 
-/** When each reminder is due, counted from the first time this release was seen. */
+/** when each reminder is due, counted from the first time this release was seen */
 private val ReminderOffsets = longArrayOf(0L, 14 * DayMs, 90 * DayMs)
 
-/** Same channel App.kt registers at startup. */
+/** the same channel App.kt registers at startup */
 private const val ChannelId = "updates"
 private const val NotificationId = 1001
 
-/**
- * Call after a launch-time check found [release] newer than what's installed. Posts a notification
- * if one of its three reminders is due, otherwise does nothing.
- */
+/** call after a launch-time check found release newer than what's installed, posts a notification if one of its three reminders is due */
 fun maybeNotifyUpdate(context: Context, release: GithubRelease, now: Long = System.currentTimeMillis()) {
     val prefs = context.getSharedPreferences(PrefsName, Context.MODE_PRIVATE)
     val releaseKey = release.tag.ifBlank { release.version }
 
-    // A newer release than the one being tracked starts its own three reminders.
+    // a newer release than the one being tracked starts its own three reminders
     val sameRelease = prefs.getString(KeyRelease, null) == releaseKey
     val firstSeenAt = if (sameRelease) prefs.getLong(KeyFirstSeenAt, now) else now
     val posted = if (sameRelease) prefs.getInt(KeyPosted, 0) else 0
@@ -66,13 +58,13 @@ fun maybeNotifyUpdate(context: Context, release: GithubRelease, now: Long = Syst
         return
     }
 
-    // Only count it as sent if it actually was (no permission = try again next launch).
+    // only count it as sent if it actually was (no permission = try again next launch)
     if (!postNotification(context, release)) return
 
     prefs.edit()
         .putString(KeyRelease, releaseKey)
         .putLong(KeyFirstSeenAt, firstSeenAt)
-        // Jump to however many are due, so missed reminders don't fire one per launch.
+        // jump to however many are due, so missed reminders don't fire one per launch
         .putInt(KeyPosted, due)
         .apply()
 }
@@ -108,21 +100,22 @@ private fun postNotification(context: Context, release: GithubRelease): Boolean 
     return runCatching { NotificationManagerCompat.from(context).notify(NotificationId, notification) }.isSuccess
 }
 
-/**
- * Opens the version sheet each time [requests] goes up (MainActivity bumps it when launched from
- * the notification). Place inside PopupSheetHost's content.
- */
+/** opens the version sheet each time requests goes up (MainActivity bumps it when launched from the notification), place inside PopupSheetHost's content */
 @Composable
-fun UpdateNotificationOpener(requests: Int) {
+fun UpdateNotificationOpener(requests: Int, onOpenDevSpace: (Int) -> Unit = {}) {
     val popup = LocalZoomOutOverlayState.current
+    val context = LocalContext.current
     LaunchedEffect(requests) {
         if (requests == 0) return@LaunchedEffect
-        val release = getLatestRelease().getOrNull()
+        val release = getLatestRelease(updateChannel(context)).getOrNull()
         val state = if (release != null && isNewerThanInstalled(release.version)) {
             UpdateState.Available(release)
         } else {
             UpdateState.UpToDate
         }
-        popup.showUpdateSheet(state)
+        popup.showUpdateSheet(state, onOpenDevSpace = { index ->
+            popup.dismissAll()
+            onOpenDevSpace(index)
+        })
     }
 }

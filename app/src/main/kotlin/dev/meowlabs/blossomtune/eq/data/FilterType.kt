@@ -1,5 +1,3 @@
-// FilterType.kt
-
 package dev.meowlabs.blossomtune.eq.data
 
 import kotlinx.serialization.Serializable

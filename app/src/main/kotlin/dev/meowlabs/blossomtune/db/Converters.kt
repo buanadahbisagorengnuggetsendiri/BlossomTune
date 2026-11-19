@@ -1,5 +1,3 @@
-// Converters.kt
-
 package dev.meowlabs.blossomtune.db
 
 import androidx.room.TypeConverter

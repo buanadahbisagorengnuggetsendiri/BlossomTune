@@ -1,5 +1,3 @@
-// TTMLParser.kt
-
 package dev.meowlabs.blossomtune.betterlyrics
 
 import org.w3c.dom.Element

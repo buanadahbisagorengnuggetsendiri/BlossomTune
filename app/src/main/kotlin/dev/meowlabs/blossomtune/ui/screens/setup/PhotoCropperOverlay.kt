@@ -9,8 +9,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -27,10 +25,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.meowlabs.blossomtune.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,6 +44,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalDensity
+import dev.meowlabs.blossomtune.ui.component.backdropClick
 
 private val IMAGE_INSET = 20.dp
 private val IMAGE_CORNER = 28.dp
@@ -144,10 +145,7 @@ fun PhotoCropperContainer(
                     .fillMaxSize()
                     .graphicsLayer { alpha = effectiveProgress.coerceIn(0f, 1f) }
                     .background(Color.Black.copy(alpha = 0.7f * effectiveProgress))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {  }
+                    .backdropClick()
             )
 
             Box(
@@ -165,7 +163,7 @@ fun PhotoCropperContainer(
                     .fillMaxSize()
                     .padding(top = 48.dp)
                     .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                    .background(Color(0xFF0D1017))
+                    .background(Color(0xFF121212))
             ) {
 
                 Box(
@@ -259,7 +257,7 @@ fun PhotoCropperContainer(
         }
 
         Text(
-            text = "Adjust your photo profile",
+            text = stringResource(R.string.onb_adjust_photo),
             color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
@@ -279,13 +277,13 @@ fun PhotoCropperContainer(
 
         Button(
             onClick = onSelectNewImage,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF181F2C)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF222222)),
             shape = RoundedCornerShape(24.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
         ) {
-            Text("Select new image", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(stringResource(R.string.onb_select_new_image), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
 
         Button(
@@ -327,13 +325,13 @@ fun PhotoCropperContainer(
                     }
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF242E42)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333)),
             shape = RoundedCornerShape(24.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
         ) {
-            Text("Done", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(stringResource(R.string.onb_done), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
         }
     }

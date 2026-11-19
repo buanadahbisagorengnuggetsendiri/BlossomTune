@@ -1,8 +1,7 @@
-// AppleMusicCanvasProvider.kt
-
 package dev.meowlabs.blossomtune.applecanvas
 
 import dev.meowlabs.blossomtune.canvas.CanvasArtwork
+import dev.meowlabs.blossomtune.canvas.CanvasMatch
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
@@ -179,16 +178,18 @@ object AppleMusicCanvasProvider {
         return result
     }
 
+    /** the motion cover of the song's album, a result more than a few seconds off the song's length is another recording and is skipped */
     suspend fun getBySongArtist(
         song: String,
         artist: String,
         album: String? = null,
         storefront: String = "us",
+        durationSec: Int? = null,
     ): CanvasArtwork? {
-        val key = cacheKey("song", song, artist, album ?: "", storefront)
+        val key = cacheKey("song", song, artist, album ?: "", storefront, durationSec?.toString() ?: "")
         cache[key]?.takeIf { it.expiresAtMs > System.currentTimeMillis() }?.let { return it.value }
 
-        val result = searchAndFetchMotion(song, artist, album, storefront, "songs")
+        val result = searchAndFetchMotion(song, artist, album, storefront, "songs", durationSec)
         if (result != null) {
             cache[key] = CacheEntry(result, System.currentTimeMillis() + CACHE_TTL_MS)
         }
@@ -213,6 +214,7 @@ object AppleMusicCanvasProvider {
         album: String?,
         storefront: String,
         type: String,
+        durationSec: Int? = null,
     ): CanvasArtwork? {
         return runCatching {
             AppleCanvasLogger.d("searching for $type: $term (album: $album) in $storefront")
@@ -266,6 +268,13 @@ object AppleMusicCanvasProvider {
                 val artistFuzzy = resultArtistName.contains(artist, ignoreCase = true) || artist.contains(resultArtistName, ignoreCase = true)
 
                 if (!artistFuzzy) return@mapNotNull null
+
+                // a song result has to be this song, a fuzzy name match once showed another song's album cover, no canvas is fine but the wrong one isn't
+                if (type == "songs") {
+                    if (!CanvasMatch.sameSong(resultName, term)) return@mapNotNull null
+                    val resultSeconds = attributes["durationInMillis"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull()?.div(1000)
+                    if (!CanvasMatch.closeDuration(resultSeconds, durationSec)) return@mapNotNull null
+                }
 
                 var score = 0
                 if (artistMatch) score += 10

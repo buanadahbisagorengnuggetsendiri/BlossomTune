@@ -4,8 +4,6 @@ package dev.meowlabs.blossomtune.ui.screens
 
 import android.app.Activity
 import android.content.Intent
-import android.media.MediaMetadataRetriever
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import dev.meowlabs.blossomtune.db.entities.FormatEntity
@@ -72,8 +70,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.composable
+import androidx.navigation.compose.composable as navigationComposable
 import androidx.navigation.compose.dialog
+import dev.meowlabs.blossomtune.ui.utils.motionEnter
+import dev.meowlabs.blossomtune.ui.utils.motionExit
 import androidx.navigation.navArgument
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.LocalDatabase
@@ -105,8 +105,6 @@ import dev.meowlabs.blossomtune.ui.screens.search.SearchScreen
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.screens.settings.ProfileScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.EditProfileRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.EditProfileScreen
 import dev.meowlabs.blossomtune.ui.screens.library.LibraryAlbumsScreen
 import dev.meowlabs.blossomtune.ui.screens.SectionDetailScreen
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -117,48 +115,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.util.UUID
-import dev.meowlabs.blossomtune.ui.screens.artist.ArtistSimilarScreen
-import dev.meowlabs.blossomtune.ui.screens.audiolab.AudioFxScreen
-import dev.meowlabs.blossomtune.ui.screens.audiolab.AudioLabScreen
-import dev.meowlabs.blossomtune.ui.screens.audiolab.AudioQualityScreen
-import dev.meowlabs.blossomtune.ui.screens.equalizer.EqualizerScreen
-import dev.meowlabs.blossomtune.ui.screens.library.LibraryHomeScreen
-import dev.meowlabs.blossomtune.ui.screens.library.LibraryImportedScreen
-import dev.meowlabs.blossomtune.ui.screens.library.LibraryLocalScreen
-import dev.meowlabs.blossomtune.ui.screens.library.LibraryPlaylistsScreen
-import dev.meowlabs.blossomtune.ui.screens.library.LibraryRecentlyAddedScreen
-import dev.meowlabs.blossomtune.ui.screens.library.LibrarySongsScreen
-import dev.meowlabs.blossomtune.ui.screens.recap.StatsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.AppearanceSettingsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.AudioSettingsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.BlossomTuneSettingsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.CipherSettingsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.CrossmixSettingsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.ExperimentalSettingsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.GeneralSettingsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.PlaybackDiagnosticsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.PlaybackSettingsScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.devspace.DeveloperSpaceScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.AccountImportRoutePattern
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.AccountImportScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportProgressRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportProgressScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportProvidersRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportProvidersScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportSyncRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportSyncScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportTuneMyMusicRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.TuneMyMusicImportScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeLoginRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeLoginScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeSyncRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeSyncScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleRoutePattern
-import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleSignInRoutePattern
-import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleSignInScreen
-import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulesRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulesScreen
 
 private val CoverRoutes = listOf("album/", "local_playlist/", "online_playlist/", "auto_playlist/")
 
@@ -215,6 +171,35 @@ private fun libraryReturnFrom(route: String?): androidx.compose.animation.EnterT
     } else {
         fadeIn(tween(150))
     }
+
+private typealias NavEnter =
+    androidx.compose.animation.AnimatedContentTransitionScope<androidx.navigation.NavBackStackEntry>.() -> androidx.compose.animation.EnterTransition?
+private typealias NavExit =
+    androidx.compose.animation.AnimatedContentTransitionScope<androidx.navigation.NavBackStackEntry>.() -> androidx.compose.animation.ExitTransition?
+
+/**
+ * Every page of this graph goes through here rather than straight to navigation's composable(), so
+ * its own transitions answer Settings > Appearance > Animation (#10): off, the page swaps in place.
+ * Same parameters and defaults as navigation's (a pop transition falls back to the push one, and a
+ * transition that isn't given, or gives null, falls back to the NavHost's).
+ */
+private fun NavGraphBuilder.composable(
+    route: String,
+    arguments: List<androidx.navigation.NamedNavArgument> = emptyList(),
+    enterTransition: NavEnter? = null,
+    exitTransition: NavExit? = null,
+    popEnterTransition: NavEnter? = enterTransition,
+    popExitTransition: NavExit? = exitTransition,
+    content: @Composable androidx.compose.animation.AnimatedContentScope.(androidx.navigation.NavBackStackEntry) -> Unit,
+) = navigationComposable(
+    route = route,
+    arguments = arguments,
+    enterTransition = { motionEnter { enterTransition?.invoke(this) } },
+    exitTransition = { motionExit { exitTransition?.invoke(this) } },
+    popEnterTransition = { motionEnter { popEnterTransition?.invoke(this) } },
+    popExitTransition = { motionExit { popExitTransition?.invoke(this) } },
+    content = content,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
@@ -303,7 +288,7 @@ fun NavGraphBuilder.navigationBuilder(
         val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
         val useDarkTheme = ForceDarkTheme
         CompositionLocalProvider(LocalNavAnimatedContentScope provides this) {
-            LibraryHomeScreen(
+            dev.meowlabs.blossomtune.ui.screens.library.LibraryHomeScreen(
                 navController = navController,
                 pureBlack = remember(pureBlackEnabled, useDarkTheme) { pureBlackEnabled && useDarkTheme },
             )
@@ -311,7 +296,7 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     coverSourceComposable("library/songs") {
-        LibrarySongsScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.library.LibrarySongsScreen(navController = navController)
     }
 
     composable(
@@ -321,38 +306,45 @@ fun NavGraphBuilder.navigationBuilder(
     ) {
         // the scope a playlist's cover needs to grow into its page, as on Home
         CompositionLocalProvider(LocalNavAnimatedContentScope provides this) {
-            LibraryPlaylistsScreen(navController = navController)
+            dev.meowlabs.blossomtune.ui.screens.library.LibraryPlaylistsScreen(navController = navController)
         }
     }
 
     coverSourceComposable("library/added") {
-        LibraryRecentlyAddedScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.library.LibraryRecentlyAddedScreen(navController = navController)
     }
 
-    // Local: downloads and imported files, and the same pages again counting only those
-    coverSourceComposable("library/local") {
-        LibraryLocalScreen(navController = navController)
-    }
-
-    coverSourceComposable("library/local/added") {
-        LibraryRecentlyAddedScreen(navController = navController, localOnly = true)
-    }
-
-    coverSourceComposable("library/local/albums") {
-        LibraryAlbumsScreen(navController = navController, localOnly = true)
-    }
-
-    coverSourceComposable("library/local/artists") {
-        LibraryArtistsScreen(navController = navController, localOnly = true)
-    }
-
-    composable(
-        route = "library/local/playlists",
-        exitTransition = { libraryExitTo(targetState.destination.route) },
-        popEnterTransition = { libraryReturnFrom(initialState.destination.route) },
+    // one genre from the Library's Genres tab: the songs on the phone tagged with it
+    coverSourceComposable(
+        route = "local_genre/{name}",
+        arguments = listOf(navArgument("name") { type = NavType.StringType }),
     ) {
-        CompositionLocalProvider(LocalNavAnimatedContentScope provides this) {
-            LibraryPlaylistsScreen(navController = navController, localOnly = true)
+        dev.meowlabs.blossomtune.ui.screens.library.LibraryGenreScreen(navController = navController)
+    }
+
+    // The Library's Local and Cached tabs open these: the same pages again, counting only that
+    // tab's songs. "library/local/albums", "library/cached/albums" and so on.
+    dev.meowlabs.blossomtune.viewmodels.LibraryShelfKind.entries.forEach { shelf ->
+        coverSourceComposable("library/${shelf.key}/added") {
+            dev.meowlabs.blossomtune.ui.screens.library.LibraryRecentlyAddedScreen(navController = navController, shelf = shelf)
+        }
+
+        coverSourceComposable("library/${shelf.key}/albums") {
+            dev.meowlabs.blossomtune.ui.screens.library.LibraryAlbumsScreen(navController = navController, shelf = shelf)
+        }
+
+        coverSourceComposable("library/${shelf.key}/artists") {
+            dev.meowlabs.blossomtune.ui.screens.library.LibraryArtistsScreen(navController = navController, shelf = shelf)
+        }
+
+        composable(
+            route = "library/${shelf.key}/playlists",
+            exitTransition = { libraryExitTo(targetState.destination.route) },
+            popEnterTransition = { libraryReturnFrom(initialState.destination.route) },
+        ) {
+            CompositionLocalProvider(LocalNavAnimatedContentScope provides this) {
+                dev.meowlabs.blossomtune.ui.screens.library.LibraryPlaylistsScreen(navController = navController, shelf = shelf)
+            }
         }
     }
 
@@ -361,7 +353,33 @@ fun NavGraphBuilder.navigationBuilder(
         route = "library/imported/{source}",
         arguments = listOf(navArgument("source") { type = NavType.StringType }),
     ) {
-        LibraryImportedScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.library.LibraryImportedScreen(navController = navController)
+    }
+
+    // The Imported tab's Playlists cards: the playlists one service brought in.
+    composable(
+        route = "library/imported/{source}/playlists",
+        arguments = listOf(navArgument("source") { type = NavType.StringType }),
+        exitTransition = { libraryExitTo(targetState.destination.route) },
+        popEnterTransition = { libraryReturnFrom(initialState.destination.route) },
+    ) { entry ->
+        CompositionLocalProvider(LocalNavAnimatedContentScope provides this) {
+            dev.meowlabs.blossomtune.ui.screens.library.LibraryPlaylistsScreen(
+                navController = navController,
+                source = dev.meowlabs.blossomtune.importer.ImportSource.fromKey(entry.arguments?.getString("source")),
+            )
+        }
+    }
+
+    // the Imported tab's Albums cards: the albums one service's songs come from
+    coverSourceComposable(
+        route = "library/imported/{source}/albums",
+        arguments = listOf(navArgument("source") { type = NavType.StringType }),
+    ) {
+        dev.meowlabs.blossomtune.ui.screens.library.LibraryAlbumsScreen(
+            navController = navController,
+            source = dev.meowlabs.blossomtune.importer.ImportSource.fromKey(it.arguments?.getString("source")),
+        )
     }
 
     composable(Screens.Settings.route) {
@@ -369,122 +387,193 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable("stats") {
-        StatsScreen(navController = navController)
-    }
-
-    composable(EditProfileRoute) {
-        EditProfileScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.recap.StatsScreen(navController = navController)
     }
 
     composable("cipher_settings") {
-        CipherSettingsScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.settings.CipherSettingsScreen(navController = navController)
     }
 
     composable("playback_diagnostics") {
-        PlaybackDiagnosticsScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.settings.PlaybackDiagnosticsScreen(navController = navController)
     }
 
-    composable("blossomtune_settings") {
-        BlossomTuneSettingsScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.SettingsListRoute) {
+        // on a wide screen the list itself stays at the left (MainActivity), so this side waits for a pick
+        if (dev.meowlabs.blossomtune.ui.utils.isWideLayout()) {
+            dev.meowlabs.blossomtune.ui.screens.settings.SettingsPanePlaceholder()
+        } else {
+            dev.meowlabs.blossomtune.ui.screens.settings.BlossomTuneSettingsScreen(navController = navController)
+        }
     }
 
+    // app behaviour kept general's route, so old links and search results still land on it
     composable("general_settings") {
-        GeneralSettingsScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.settings.AppBehaviourSettingsScreen(navController = navController)
     }
 
-    composable("audio_settings") {
-        AudioSettingsScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.PlaybackSettingsRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.PlaybackSettingsScreen(navController = navController)
     }
 
-
-    composable("appearance_settings") {
-        AppearanceSettingsScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.NowPlayingSettingsRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.NowPlayingSettingsScreen(navController = navController)
     }
 
-    composable("playback_settings") {
-        PlaybackSettingsScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.integrations.IntegrationsRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.integrations.IntegrationsScreen(navController = navController)
+    }
+
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.integrations.spotify.SpotifyRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.integrations.spotify.SpotifyScreen(navController = navController)
+    }
+
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.integrations.discord.DiscordRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.integrations.discord.DiscordScreen(navController = navController)
+    }
+
+    composable(
+        route = dev.meowlabs.blossomtune.ui.screens.settings.integrations.ScrobbleServiceRoute,
+        arguments = listOf(navArgument("site") { type = NavType.StringType }),
+    ) { entry ->
+        val site = dev.meowlabs.blossomtune.scrobble.ScrobbleSite.entries
+            .find { it.name == entry.arguments?.getString("site") }
+            ?: dev.meowlabs.blossomtune.scrobble.ScrobbleSite.LASTFM
+        dev.meowlabs.blossomtune.ui.screens.settings.integrations.ScrobbleServiceScreen(navController = navController, site = site)
+    }
+
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.ProxySettingsRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.ProxySettingsScreen(navController = navController)
     }
 
     composable("crossmix_settings") {
-        CrossmixSettingsScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.settings.CrossmixSettingsScreen(navController = navController)
     }
 
-    composable("developer_space") {
-        DeveloperSpaceScreen(navController = navController)
+    composable(
+        route = "developer_space?person={person}",
+        arguments = listOf(navArgument("person") { type = NavType.IntType; defaultValue = 0 }),
+    ) { entry ->
+        val person = entry.arguments?.getInt("person") ?: 0
+        dev.meowlabs.blossomtune.ui.screens.settings.devspace.DeveloperSpaceScreen(
+            navController = navController,
+            initialPage = person,
+        )
+    }
+
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.devspace.DevPlaygroundRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.devspace.DevPlaygroundScreen(navController = navController)
+    }
+
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.storage.StorageRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.storage.StorageScreen(navController = navController)
     }
 
     composable("experimental_settings") {
-        ExperimentalSettingsScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.settings.ExperimentalSettingsScreen(navController = navController)
     }
 
-    composable(ImportSyncRoute) {
-        ImportSyncScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportSyncRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportSyncScreen(navController = navController)
     }
 
-    composable(ImportProvidersRoute) {
-        ImportProvidersScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportProvidersRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportProvidersScreen(navController = navController)
     }
 
-    composable(ImportTuneMyMusicRoute) {
-        TuneMyMusicImportScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportTuneMyMusicRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.importsync.TuneMyMusicImportScreen(navController = navController)
     }
 
-    composable(ImportProgressRoute) {
-        ImportProgressScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportProgressRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportProgressScreen(navController = navController)
     }
 
-    composable(YouTubeSyncRoute) {
-        YouTubeSyncScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeSyncRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeSyncScreen(navController = navController)
     }
 
     composable(
-        route = AccountImportRoutePattern,
-        arguments = listOf(navArgument("service") { type = NavType.StringType }),
+        route = dev.meowlabs.blossomtune.ui.screens.settings.importsync.AccountImportRoutePattern,
+        arguments = listOf(
+            navArgument("service") { type = NavType.StringType },
+            // what a Re-sync opened the page for, and the services Re-sync all goes on to
+            navArgument("resync") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            },
+            navArgument("then") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            },
+        ),
     ) {
-        AccountImportScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.settings.importsync.AccountImportScreen(navController = navController)
     }
 
-    composable(YouTubeLoginRoute) {
-        YouTubeLoginScreen(navController = navController)
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeLoginRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeLoginScreen(navController = navController)
     }
 
     composable("equalizer") {
-        EqualizerScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.equalizer.EqualizerScreen(navController = navController)
+    }
+
+    composable("gesture_settings") {
+        dev.meowlabs.blossomtune.ui.screens.gesture.GestureScreen(navController = navController)
+    }
+
+    composable("customisation_settings") {
+        dev.meowlabs.blossomtune.ui.screens.gesture.CustomisationScreen(navController = navController)
     }
 
     composable("audio_lab") {
-        AudioLabScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.audiolab.AudioLabScreen(navController = navController)
     }
 
     composable("audio_fx") {
-        AudioFxScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.audiolab.AudioFxScreen(navController = navController)
+    }
+
+    composable("audio_stage") {
+        dev.meowlabs.blossomtune.ui.screens.audiolab.stage.StageScreen(navController = navController)
     }
 
     composable("audio_quality") {
-        AudioQualityScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.audiolab.AudioQualityScreen(navController = navController)
     }
 
-    composable(ModulesRoute) {
-        ModulesScreen(navController = navController)
+    composable("audio_pass") {
+        dev.meowlabs.blossomtune.ui.screens.audiolab.AudioPassScreen(navController = navController)
+    }
+
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulesRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulesScreen(navController = navController)
+    }
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleBrowserRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleBrowserScreen(navController = navController)
     }
 
     composable(
-        route = ModuleRoutePattern,
+        route = dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleRoutePattern,
         arguments = listOf(navArgument("id") { type = NavType.StringType }),
     ) { entry ->
-        ModuleScreen(
+        dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleScreen(
             navController = navController,
             id = entry.arguments?.getString("id").orEmpty(),
         )
     }
 
     composable(
-        route = ModuleSignInRoutePattern,
-        arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        route = dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulePageRoutePattern,
+        arguments = listOf(navArgument("id") { type = NavType.StringType }, navArgument("page") { type = NavType.StringType }),
     ) { entry ->
-        ModuleSignInScreen(
+        dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulePageScreen(
             navController = navController,
             id = entry.arguments?.getString("id").orEmpty(),
+            pageId = entry.arguments?.getString("page").orEmpty(),
         )
     }
 
@@ -603,7 +692,7 @@ fun NavGraphBuilder.navigationBuilder(
             },
         ),
     ) {
-        ArtistSimilarScreen(navController)
+        dev.meowlabs.blossomtune.ui.screens.artist.ArtistSimilarScreen(navController)
     }
 
     coverSourceComposable(
@@ -758,74 +847,10 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     coverSourceComposable("library/albums") {
-        LibraryAlbumsScreen(navController = navController)
+        dev.meowlabs.blossomtune.ui.screens.library.LibraryAlbumsScreen(navController = navController)
     }
 
     coverSourceComposable("library/artists") {
-        LibraryArtistsScreen(navController = navController)
-    }
-}
-
-internal data class LocalAudioMetadata(
-    val title: String,
-    val artist: String,
-    val album: String?,
-    val durationSeconds: Int,
-    val mimeType: String?,
-    val bitrate: Int?,
-    val sampleRate: Int?,
-    val embeddedArtwork: ByteArray?,
-)
-
-internal fun extractAudioMetadata(
-    context: android.content.Context,
-    uri: Uri,
-): LocalAudioMetadata {
-    val retriever = MediaMetadataRetriever()
-    return try {
-        retriever.setDataSource(context, uri)
-        val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-            ?: uri.lastPathSegment?.substringBeforeLast('.') ?: "Unknown"
-        val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-            ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
-            ?: "Unknown Artist"
-        val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-        val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-            ?.toLongOrNull() ?: 0L
-        val mimeType = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE)
-            ?: context.contentResolver.getType(uri)
-        val bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
-            ?.toIntOrNull()
-        val sampleRate = try {
-
-            if (android.os.Build.VERSION.SDK_INT >= 31) {
-                retriever.extractMetadata(38)?.toIntOrNull()
-            } else null
-        } catch (_: Exception) { null }
-        val embeddedArtwork = try { retriever.embeddedPicture } catch (_: Exception) { null }
-        LocalAudioMetadata(
-            title = title,
-            artist = artist,
-            album = album,
-            durationSeconds = (durationMs / 1000).toInt(),
-            mimeType = mimeType,
-            bitrate = bitrate,
-            sampleRate = sampleRate,
-            embeddedArtwork = embeddedArtwork,
-        )
-    } catch (e: Exception) {
-
-        LocalAudioMetadata(
-            title = uri.lastPathSegment?.substringBeforeLast('.') ?: "Unknown",
-            artist = "Unknown Artist",
-            album = null,
-            durationSeconds = 0,
-            mimeType = context.contentResolver.getType(uri),
-            bitrate = null,
-            sampleRate = null,
-            embeddedArtwork = null,
-        )
-    } finally {
-        retriever.release()
+        dev.meowlabs.blossomtune.ui.screens.library.LibraryArtistsScreen(navController = navController)
     }
 }

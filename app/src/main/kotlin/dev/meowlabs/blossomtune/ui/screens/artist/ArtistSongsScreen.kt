@@ -31,7 +31,7 @@ import dev.meowlabs.blossomtune.constants.ArtistSongSortTypeKey
 import dev.meowlabs.blossomtune.extensions.toMediaItem
 import dev.meowlabs.blossomtune.playback.queues.ListQueue
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
-import dev.meowlabs.blossomtune.ui.component.SwipeActionsBox
+import dev.meowlabs.blossomtune.ui.component.SongSwipeBox
 import dev.meowlabs.blossomtune.ui.component.detail.CreatorUi
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistDetailScaffold
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistEndOfLine
@@ -126,18 +126,19 @@ fun ArtistSongsScreen(
         }
 
         itemsIndexed(songs, key = { _, song -> song.id }, contentType = { _, _ -> "track" }) { index, song ->
-            SwipeActionsBox(
+            SongSwipeBox(
                 modifier = Modifier.animateItem(),
-                start = { librarySwipeAction(song.song) },
-                end = { queueSwipeAction { song.toMediaItem() } },
+                library = { librarySwipeAction(song.song) },
+                queue = { queueSwipeAction { song.toMediaItem() } },
             ) {
+                val active = song.id == mediaMetadata?.id
                 PlaylistTrackRow(
                     thumbnailUrl = song.song.thumbnailUrl,
                     songId = song.id,
                     title = song.song.title,
                     subtitle = listOfNotNull(song.album?.title, makeTimeString(song.song.duration * 1000L)).joinToString(" • "),
-                    isActive = song.id == mediaMetadata?.id,
-                    isPlaying = isPlaying,
+                    isActive = active,
+                    isPlaying = active && isPlaying,
                     modifier = Modifier.revealOnAppear(key = "song_${song.id}", seenState = revealSeen, delayMillis = minOf(index, 8) * 28),
                     onClick = {
                         if (song.id == mediaMetadata?.id) playerConnection.togglePlayPause() else play(startIndex = index)

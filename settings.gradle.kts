@@ -16,13 +16,12 @@ dependencyResolutionManagement {
 //     id("org.gradle.toolchains.foojay-resolver-convention") version("1.0.0")
 // }
 
-rootProject.name = "BlossomTune"
+rootProject.name = "blossomtune"
 include(":app")
 include(":providers:canvas")
 include(":providers:innertube")
 include(":providers:kugou")
 include(":providers:lrclib")
-include(":providers:kizzy")
 include(":providers:lastfm")
 include(":providers:betterlyrics")
 include(":providers:simpmusic")
@@ -31,11 +30,17 @@ include(":providers:shazamkit")
 include(":providers:artistvideo")
 include(":providers:applecanvas")
 include(":providers:paxsenixlyrics")
+include(":providers:directlyrics")
+include(":providers:musixmatch")
+include(":providers:genius")
+include(":providers:wikipedia")
 
-// source modules: built in today, written so each can ship as its own APK later
+// source modules built into blossomtune, the api every module is written against, and the bridge to a module that brings its own code in a zip
 include(":modules:api")
+include(":modules:bridge")
 include(":modules:applemusic")
 include(":modules:monochrome")
+include(":modules:jiosaavn")
 
 
 // local newpipe extractor

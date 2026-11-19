@@ -1,5 +1,3 @@
-// PlaylistSong.kt
-
 package dev.meowlabs.blossomtune.db.entities
 
 import androidx.room.Embedded

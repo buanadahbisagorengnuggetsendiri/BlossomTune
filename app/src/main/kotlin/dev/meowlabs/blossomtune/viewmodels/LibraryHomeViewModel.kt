@@ -2,24 +2,33 @@
 
 package dev.meowlabs.blossomtune.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.AlbumSortType
+import dev.meowlabs.blossomtune.constants.AlbumsFromLikedSongsKey
 import dev.meowlabs.blossomtune.constants.ArtistSortType
 import dev.meowlabs.blossomtune.constants.PlaylistSortType
 import dev.meowlabs.blossomtune.constants.SongSortType
 import dev.meowlabs.blossomtune.db.MusicDatabase
 import dev.meowlabs.blossomtune.db.entities.Artist
-import dev.meowlabs.blossomtune.db.entities.Playlist
 import dev.meowlabs.blossomtune.db.entities.Song
 import dev.meowlabs.blossomtune.db.entities.SpeedDialItem
 import dev.meowlabs.blossomtune.importer.ImportProgress
 import dev.meowlabs.blossomtune.importer.ImportSource
 import dev.meowlabs.blossomtune.importer.MusicImportService
+import dev.meowlabs.blossomtune.importer.LocalSongRepair
+import dev.meowlabs.blossomtune.importer.groupLocalAlbums
+import dev.meowlabs.blossomtune.importer.readLocalGenres
+import dev.meowlabs.blossomtune.playback.CachedSongs
+import dev.meowlabs.blossomtune.ui.component.TopToaster
 import dev.meowlabs.blossomtune.utils.ArtistImageResolver
+import dev.meowlabs.blossomtune.utils.dataStore
 import com.music.innertube.YouTube
 import com.music.innertube.models.YTItem
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -31,7 +40,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -53,8 +61,10 @@ import javax.inject.Inject
 class LibraryHomeViewModel
 @Inject
 constructor(
+    @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
     private val importService: MusicImportService,
+    private val cachedSongs: CachedSongs,
 ) : ViewModel() {
 
     val pinnedItems = database.speedDialDao.getAll()
@@ -67,7 +77,19 @@ constructor(
     val artists = database.artists(ArtistSortType.CREATE_DATE, true)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val albums = database.albums(AlbumSortType.CREATE_DATE, true)
+    // saved albums first, newest on top, then the ones your added songs come from, liked ones too when the old way is on
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val albums = context.dataStore.data
+        .map { it[AlbumsFromLikedSongsKey] ?: false }
+        .distinctUntilChanged()
+        .flatMapLatest { withLiked ->
+            combine(
+                database.albumsLiked(AlbumSortType.CREATE_DATE, true),
+                database.albumsFromLibrarySongs(withLiked),
+            ) { saved, library ->
+                (saved.sortedByDescending { it.album.bookmarkedAt } + library).distinctBy { it.id }
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val playlists = database.playlists(PlaylistSortType.CREATE_DATE, true)
@@ -105,65 +127,52 @@ constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    // how many albums each service's songs come from, with the newest few covers, for the imported tab
+    val importedAlbums: StateFlow<Map<ImportSource, ImportedAlbums>> = database.importedAlbumRows()
+        .map { rows ->
+            rows.groupBy { it.source }
+                .mapNotNull { (key, albums) ->
+                    ImportSource.fromKey(key)?.let { it to ImportedAlbums(albums.size, albums.take(4).map { album -> album.thumbnailUrl }) }
+                }
+                .toMap()
+        }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** The service each imported playlist came from, by playlist id, for the Imported tab's Playlists. */
+    val playlistSources: StateFlow<Map<String, ImportSource>> = database.importedPlaylists()
+        .map { rows -> rows.mapNotNull { row -> ImportSource.fromKey(row.source)?.let { row.playlistId to it } }.toMap() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     /**
      * Everything that plays from this device: songs downloaded for offline and audio files
-     * imported from storage, newest first. This is what "Local" means everywhere in the Library -
-     * the Local card on the home page and every card on the Local page count from this list and
-     * nothing else, so a song that is only in the library (or only liked) never shows up there.
+     * imported from storage, newest first. This is what "Local" means everywhere in the Library,
+     * so a song that is only in the library (or only liked) never shows up on the Local tab.
      */
-    val localSongs = database.onDeviceSongs(SongSortType.CREATE_DATE, true)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    /** The liked songs that are local - not every liked song, which is what Liked songs is for. */
-    val localLikedSongs = localSongs
-        .map { list -> list.filter { it.song.liked } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val local = LibraryShelf(
+        source = database.onDeviceSongs(SongSortType.CREATE_DATE, true),
+        libraryPlaylists = playlists,
+        database = database,
+        scope = viewModelScope,
+    )
 
     /**
-     * The albums local songs belong to, built from the songs themselves rather than the album
-     * table: a downloaded song that was never added to the library has no album in the Library's
-     * list, and an imported file only has its album as a tag. See [LocalAlbum].
+     * Songs the player kept whole from streaming, most recently played first. Their artists are
+     * often not in the library, so this shelf fetches their pictures itself - only while the
+     * Cached tab is open, since watching the cache means looking at it every couple of seconds.
      */
-    val localAlbums = localSongs
-        .map { groupLocalAlbums(it) }
-        .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val cached = LibraryShelf(
+        source = cachedSongs.songs,
+        libraryPlaylists = playlists,
+        database = database,
+        scope = viewModelScope,
+        refreshArtists = ::refreshArtistImages,
+    )
 
-    /**
-     * The artists of local songs, each with how many of its songs are local, the artist with the
-     * newest local song first. Same rule as the Library's own artist list: only artists that have a
-     * page to open (a YouTube channel, or one made for an imported file).
-     */
-    val localArtists = localSongs
-        .map { list ->
-            list.flatMap { it.artists }
-                .filter { it.isYouTubeArtist || it.isLocal }
-                .groupBy { it.id }
-                .map { (_, entries) -> Artist(artist = entries.first(), songCount = entries.size) }
-        }
-        .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    /**
-     * The library's playlists that have at least one local song in them. Re-checked whenever the
-     * local songs change, and whenever a playlist does - [playlists] re-emits when a song is added
-     * to or taken out of one.
-     */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val localPlaylists = combine(
-        playlists,
-        localSongs.map { list -> list.map { it.id } }.distinctUntilChanged(),
-    ) { lists, ids -> lists to ids }
-        .mapLatest { (lists, ids) ->
-            if (lists.isEmpty() || ids.isEmpty()) return@mapLatest emptyList<Playlist>()
-            // under the 999 bound parameters older SQLite builds allow in one statement
-            val containing = ids.chunked(900)
-                .flatMap { database.playlistIdsContainingSongs(it) }
-                .toSet()
-            lists.filter { it.id in containing }
-        }
-        .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    fun shelf(kind: LibraryShelfKind): LibraryShelf = when (kind) {
+        LibraryShelfKind.Local -> local
+        LibraryShelfKind.Cached -> cached
+    }
 
     init {
         // Imports made before library songs had their own place left them in a playlist, or out of
@@ -173,49 +182,77 @@ constructor(
                 .onFailure { timber.log.Timber.w(it, "Repairing earlier imports failed") }
         }
 
-        // Artist rows have no picture until something goes and fetches one: the artist table only
-        // stores a thumbnail once it has been resolved, and nothing resolves it as a side effect of
-        // reading the table. LibraryArtistsViewModel already did this, but the rebuilt Library
-        // screens read from here instead, so without this block every artist in the library
-        // rendered as a placeholder icon forever.
-        //
-        // Refreshes anything missing a picture, or whose picture is over ten days old — artists
-        // change their images and a permanently cached one goes stale.
-        //
-        // Local artists are included: a downloaded song that never went into the library has
-        // artists the Library's list doesn't know about, and the Local page shows them too.
+        // a song's album is only stored once opened, so this makes sure every library song's album has a row to show
         viewModelScope.launch(Dispatchers.IO) {
-            combine(artists, localArtists) { library, local -> (library + local).distinctBy { it.id } }.collect { list ->
-                list.map { it.artist }
-                    .filter {
-                        it.thumbnailUrl == null ||
-                            Duration.between(it.lastUpdateTime, LocalDateTime.now()) > Duration.ofDays(10)
-                    }
-                    .forEach { artist ->
-                        val preferred = ArtistImageResolver.resolveThumbnail(artist)
-                        YouTube.artist(artist.id)
-                            .onSuccess { page ->
-                                database.query { update(artist, page, preferred) }
-                            }
-                            .onFailure {
-                                // The lookup failing doesn't mean we have nothing — the resolver
-                                // may still have found an image locally, and dropping it here
-                                // would leave the row blank for another ten days.
-                                if (preferred != null) {
-                                    database.query {
-                                        update(
-                                            artist.copy(
-                                                thumbnailUrl = preferred,
-                                                lastUpdateTime = LocalDateTime.now(),
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-                    }
-            }
+            database.librarySongCount().distinctUntilChanged().collect { database.addMissingLibraryAlbums() }
+        }
+
+        // files imported before local albums existed get theirs here, after that it finds nothing to do
+        viewModelScope.launch(Dispatchers.IO) {
+            // songs titled by their link ("1234") get their real name first, and once after an update the covers and lyrics beside them
+            runCatching { LocalSongRepair.repairOnOpen(context, database) }
+                .onSuccess { fixed ->
+                    if (fixed > 0) TopToaster.show(context.resources.getQuantityString(R.plurals.lib_local_repaired, fixed, fixed), iconRes = R.drawable.library_music)
+                }
+                .onFailure { timber.log.Timber.w(it, "Repairing local song names failed") }
+            runCatching { groupLocalAlbums(context, database) }
+                .onFailure { timber.log.Timber.w(it, "Grouping local albums failed") }
+            runCatching { readLocalGenres(context, database) }
+                .onFailure { timber.log.Timber.w(it, "Reading local genres failed") }
+        }
+
+        // Local artists are included: a downloaded song that never went into the library has
+        // artists the Library's list doesn't know about, and the Local tab shows them too.
+        viewModelScope.launch(Dispatchers.IO) {
+            combine(artists, local.artists) { library, local -> (library + local).distinctBy { it.id } }
+                .collect { refreshArtistImages(it) }
         }
     }
+
+    /**
+     * Artist rows have no picture until something goes and fetches one: the artist table only
+     * stores a thumbnail once it has been resolved, and nothing resolves it as a side effect of
+     * reading the table. LibraryArtistsViewModel already did this, but the rebuilt Library
+     * screens read from here instead, so without this every artist in the library rendered as a
+     * placeholder icon forever.
+     *
+     * Refreshes anything missing a picture, or whose picture is over ten days old — artists
+     * change their images and a permanently cached one goes stale.
+     */
+    private suspend fun refreshArtistImages(list: List<Artist>) {
+        list.map { it.artist }
+            .filter {
+                it.thumbnailUrl == null ||
+                    Duration.between(it.lastUpdateTime, LocalDateTime.now()) > Duration.ofDays(10)
+            }
+            .forEach { artist ->
+                val preferred = ArtistImageResolver.resolveThumbnail(artist)
+                YouTube.artist(artist.id)
+                    .onSuccess { page ->
+                        database.query { update(artist, page, preferred) }
+                    }
+                    .onFailure {
+                        // The lookup failing doesn't mean we have nothing — the resolver
+                        // may still have found an image locally, and dropping it here
+                        // would leave the row blank for another ten days.
+                        if (preferred != null) {
+                            database.query {
+                                update(
+                                    artist.copy(
+                                        thumbnailUrl = preferred,
+                                        lastUpdateTime = LocalDateTime.now(),
+                                    )
+                                )
+                            }
+                        }
+                    }
+            }
+    }
+
+    /** Deletes these songs from the cache; they stream again the next time they play. */
+    fun removeFromCache(songIds: Collection<String>) = cachedSongs.remove(songIds)
+
+    fun clearCache() = cachedSongs.clear()
 
     fun unpin(id: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -230,6 +267,13 @@ constructor(
     }
 }
 
+// a service's albums card on the imported tab
+@androidx.compose.runtime.Immutable
+data class ImportedAlbums(
+    val count: Int,
+    val covers: List<String?>,
+)
+
 /** What a service's card in the Library shows. */
 @androidx.compose.runtime.Immutable
 data class ImportedSourceCard(
@@ -237,40 +281,6 @@ data class ImportedSourceCard(
     val songCount: Int,
     val covers: List<String>,
 )
-
-/**
- * An album on the Local page. [albumId] is null for an imported file whose album is only a tag -
- * there is no album page to open for it, so opening it plays its [songs] instead.
- */
-@androidx.compose.runtime.Immutable
-data class LocalAlbum(
-    val key: String,
-    val albumId: String?,
-    val title: String,
-    val artists: String?,
-    val thumbnailUrl: String?,
-    val songs: List<Song>,
-)
-
-private fun groupLocalAlbums(songs: List<Song>): List<LocalAlbum> =
-    songs
-        .groupBy { song ->
-            song.album?.id
-                ?: song.song.albumId
-                ?: song.song.albumName?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }?.let { "tag:$it" }
-        }
-        .mapNotNull { (key, group) ->
-            if (key == null) return@mapNotNull null
-            val first = group.first()
-            LocalAlbum(
-                key = key,
-                albumId = first.album?.id ?: first.song.albumId,
-                title = first.album?.title ?: first.song.albumName?.trim() ?: return@mapNotNull null,
-                artists = group.flatMap { it.artists }.map { it.name }.distinct().joinToString().ifBlank { null },
-                thumbnailUrl = first.album?.thumbnailUrl ?: group.firstNotNullOfOrNull { it.song.thumbnailUrl },
-                songs = group,
-            )
-        }
 
 /**
  * Downloads and imported files as one list, sorted as [sortType] says. They come from two queries
@@ -283,13 +293,26 @@ internal fun MusicDatabase.onDeviceSongs(sortType: SongSortType, descending: Boo
         downloadedSongs(SongSortType.CREATE_DATE, false),
         localSongs(SongSortType.CREATE_DATE, false),
     ) { downloaded, imported ->
-        val merged = (downloaded + imported).distinctBy { it.id }
-        val collator = Collator.getInstance(Locale.getDefault()).apply { strength = Collator.PRIMARY }
-        val sorted = when (sortType) {
-            SongSortType.CREATE_DATE -> merged.sortedBy { it.song.dateDownload ?: it.song.inLibrary }
-            SongSortType.NAME -> merged.sortedWith(compareBy(collator) { it.song.title })
-            SongSortType.ARTIST -> merged.sortedWith(compareBy(collator) { song -> song.artists.joinToString("") { it.name } })
-            SongSortType.PLAY_TIME -> merged.sortedBy { it.song.totalPlayTime }
-        }
-        if (descending) sorted.asReversed() else sorted
+        (downloaded + imported)
+            .distinctBy { it.id }
+            .sortedForSongSort(sortType, descending) { merged -> merged.sortedBy { it.song.dateDownload ?: it.song.inLibrary } }
     }.flowOn(Dispatchers.Default)
+
+/**
+ * A song list in the order the song sort asks for. What "date added" means depends on where the
+ * songs came from, so [oldestFirst] puts them in date order.
+ */
+internal fun List<Song>.sortedForSongSort(
+    sortType: SongSortType,
+    descending: Boolean,
+    oldestFirst: (List<Song>) -> List<Song>,
+): List<Song> {
+    val collator = Collator.getInstance(Locale.getDefault()).apply { strength = Collator.PRIMARY }
+    val sorted = when (sortType) {
+        SongSortType.CREATE_DATE -> oldestFirst(this)
+        SongSortType.NAME -> sortedWith(compareBy(collator) { it.song.title })
+        SongSortType.ARTIST -> sortedWith(compareBy(collator) { song -> song.artists.joinToString("") { it.name } })
+        SongSortType.PLAY_TIME -> sortedBy { it.song.totalPlayTime }
+    }
+    return if (descending) sorted.asReversed() else sorted
+}

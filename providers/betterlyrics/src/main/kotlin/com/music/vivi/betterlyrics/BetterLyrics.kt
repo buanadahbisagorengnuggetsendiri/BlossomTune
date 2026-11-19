@@ -1,5 +1,3 @@
-// BetterLyrics.kt
-
 package dev.meowlabs.blossomtune.betterlyrics
 
 import dev.meowlabs.blossomtune.betterlyrics.models.TTMLResponse
@@ -7,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
@@ -36,6 +35,9 @@ object BetterLyrics {
             defaultRequest {
                 url("https://lyrics-api.boidu.dev")
             }
+
+            // says who's asking so the server owner can reach us instead of blocking us
+            install(UserAgent) { agent = "BlossomTune (+https://github.com/realidkroo/BlossomTune-Music)" }
 
             expectSuccess = false
         }

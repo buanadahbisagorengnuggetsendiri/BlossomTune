@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -49,12 +48,14 @@ import dev.meowlabs.blossomtune.extensions.toMediaItem
 import dev.meowlabs.blossomtune.playback.queues.ListQueue
 import dev.meowlabs.blossomtune.ui.component.EmptyPlaceholder
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
-import dev.meowlabs.blossomtune.ui.component.SwipeActionsBox
+import dev.meowlabs.blossomtune.ui.component.SongSwipeBox
 import dev.meowlabs.blossomtune.ui.component.detail.FeaturedArtistsRow
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistEndOfLine
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistSortControl
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistModeBar
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistSelectTick
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistTrackRow
-import dev.meowlabs.blossomtune.ui.component.detail.featuredArtistsOf
+import dev.meowlabs.blossomtune.ui.component.detail.rememberFeaturedArtists
 import dev.meowlabs.blossomtune.ui.component.librarySwipeAction
 import dev.meowlabs.blossomtune.ui.component.queueSwipeAction
 import dev.meowlabs.blossomtune.ui.component.rememberRevealSeenState
@@ -130,9 +131,7 @@ fun CachePlaylistScreen(
     }
 
     val totalSeconds = remember(sortedSongs) { sortedSongs.sumOf { it.song.duration } }
-    val featuredArtists = remember(sortedSongs) {
-        featuredArtistsOf(sortedSongs.flatMap { it.artists }, id = { it.id }, name = { it.name })
-    }
+    val featuredArtists = rememberFeaturedArtists(sortedSongs, { sortedSongs.flatMap { it.artists } }, id = { it.id }, name = { it.name })
     val downloadState = rememberSongsDownloadState(remember(sortedSongs) { sortedSongs.map { it.song.id } })
     val isThisQueue = queueTitle == title
 
@@ -187,31 +186,26 @@ fun CachePlaylistScreen(
                 onToggleDirection = { onSortDescendingChange(!sortDescending) },
             )
         },
-        topBarOverride = if (inSelectMode) {
-            {
-                GeneratedSelectionBar(
-                    selectionCount = selection.size,
-                    allSelected = selection.size == filteredSongs.size && selection.isNotEmpty(),
-                    onToggleSelectAll = {
-                        if (selection.size == filteredSongs.size) {
-                            selection.clear()
-                        } else {
-                            selection.clear()
-                            selection.addAll(filteredSongs.map { it.id })
-                        }
-                    },
-                    onSelectionMenu = {
-                        menuState.show {
-                            SelectionSongMenu(
-                                songSelection = filteredSongs.filter { it.id in selection },
-                                onDismiss = menuState::dismiss,
-                                clearAction = onExitSelectionMode,
-                            )
-                        }
-                    },
-                    onClose = onExitSelectionMode,
-                )
-            }
+        modeBar = if (inSelectMode) {
+            PlaylistModeBar.Select(
+                count = selection.size,
+                allSelected = selection.size == filteredSongs.size && selection.isNotEmpty(),
+                onToggleAll = {
+                    val selectAll = selection.size != filteredSongs.size
+                    selection.clear()
+                    if (selectAll) selection.addAll(filteredSongs.map { it.id })
+                },
+                onMore = {
+                    menuState.show {
+                        SelectionSongMenu(
+                            songSelection = filteredSongs.filter { it.id in selection },
+                            onDismiss = menuState::dismiss,
+                            clearAction = onExitSelectionMode,
+                        )
+                    }
+                },
+                onClose = onExitSelectionMode,
+            )
         } else null,
     ) {
         if (sortedSongs.isEmpty()) {
@@ -226,19 +220,20 @@ fun CachePlaylistScreen(
             val onCheckedChange: (Boolean) -> Unit = {
                 if (it) selection.add(song.id) else selection.remove(song.id)
             }
-            SwipeActionsBox(
+            SongSwipeBox(
                 modifier = Modifier.animateItem(),
                 enabled = !inSelectMode,
-                start = { librarySwipeAction(song.song) },
-                end = { queueSwipeAction { song.toMediaItem() } },
+                library = { librarySwipeAction(song.song) },
+                queue = { queueSwipeAction { song.toMediaItem() } },
             ) {
+                val active = song.id == mediaMetadata?.id
                 PlaylistTrackRow(
                     thumbnailUrl = song.song.thumbnailUrl,
                     songId = song.id,
                     title = song.song.title,
                     subtitle = "${song.artists.joinToString { it.name }} • ${makeTimeString(song.song.duration * 1000L)}",
-                    isActive = song.id == mediaMetadata?.id,
-                    isPlaying = isPlaying,
+                    isActive = active,
+                    isPlaying = active && isPlaying,
                     modifier = Modifier.revealOnAppear(
                         key = "track_${song.id}",
                         seenState = revealSeen,
@@ -270,8 +265,9 @@ fun CachePlaylistScreen(
                             )
                         }
                     },
+                    selected = inSelectMode && song.id in selection,
                     trailing = if (inSelectMode) {
-                        { Checkbox(checked = song.id in selection, onCheckedChange = onCheckedChange) }
+                        { PlaylistSelectTick(checked = song.id in selection) }
                     } else null,
                 )
             }

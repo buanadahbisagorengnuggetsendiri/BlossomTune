@@ -1,5 +1,3 @@
-// CanvasArtwork.kt
-
 package dev.meowlabs.blossomtune.canvas
 
 import kotlinx.serialization.SerialName

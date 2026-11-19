@@ -1,5 +1,3 @@
-// AppModule.kt
-
 package dev.meowlabs.blossomtune.di
 
 import android.content.Context
@@ -47,7 +45,8 @@ object AppModule {
     fun provideInternalDatabase(
         @ApplicationContext context: Context,
     ): InternalDatabase = Room
-        .databaseBuilder(context, InternalDatabase::class.java, InternalDatabase.DB_NAME)
+        // on a tv each profile has its own library; everywhere else this is the one database
+        .databaseBuilder(context, InternalDatabase::class.java, dev.meowlabs.blossomtune.link.tv.TvProfiles.databaseName(context))
         // The one list in MusicDatabase.kt. This copy used to be its own, stopped at 35 -> 36, and
         // every later version reached the phone as "no migration path" -> all tables dropped.
         .addMigrations(*dev.meowlabs.blossomtune.db.AllMigrations)
@@ -91,7 +90,7 @@ object AppModule {
     ): SimpleCache {
         val cacheSize = context.dataStore[MaxSongCacheSizeKey] ?: 1024
         return SimpleCache(
-            context.filesDir.resolve("exoplayer"),
+            dev.meowlabs.blossomtune.playback.StoragePlaces.dir(context, dev.meowlabs.blossomtune.playback.StoredKind.SongCache),
             when (cacheSize) {
                 -1 -> NoOpCacheEvictor()
                 else -> LeastRecentlyUsedCacheEvictor(cacheSize * 1024 * 1024L)
@@ -108,7 +107,7 @@ object AppModule {
         databaseProvider: DatabaseProvider,
     ): SimpleCache {
         return SimpleCache(
-            context.filesDir.resolve("download"),
+            dev.meowlabs.blossomtune.playback.StoragePlaces.dir(context, dev.meowlabs.blossomtune.playback.StoredKind.Downloads),
             NoOpCacheEvictor(),
             databaseProvider
         )

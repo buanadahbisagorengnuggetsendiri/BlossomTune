@@ -1,14 +1,32 @@
-// UpdateSheet.kt
-
 package dev.meowlabs.blossomtune.ui.screens.update
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -41,58 +59,75 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import dev.meowlabs.blossomtune.BuildConfig
 import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.core.updater.GithubProfileUrl
 import dev.meowlabs.blossomtune.core.updater.GithubRelease
-import dev.meowlabs.blossomtune.core.updater.GithubRepoUrl
-import dev.meowlabs.blossomtune.core.updater.InstagramUrl
+import dev.meowlabs.blossomtune.core.updater.UpdateChannel
 import dev.meowlabs.blossomtune.core.updater.UpdateState
-import dev.meowlabs.blossomtune.core.updater.downloadApk
+import dev.meowlabs.blossomtune.core.updater.canLeaveNightly
+import dev.meowlabs.blossomtune.core.updater.installedIsNightly
+import dev.meowlabs.blossomtune.core.updater.saveUpdateChannel
+import dev.meowlabs.blossomtune.core.updater.updateChannel
 import dev.meowlabs.blossomtune.core.updater.apkFileFor
-import dev.meowlabs.blossomtune.core.updater.getLatestRelease
+import dev.meowlabs.blossomtune.core.updater.downloadApk
 import dev.meowlabs.blossomtune.core.updater.formatBytes
+import dev.meowlabs.blossomtune.core.updater.getLatestRelease
+import dev.meowlabs.blossomtune.core.updater.getPreviousRelease
 import dev.meowlabs.blossomtune.core.updater.installApk
 import dev.meowlabs.blossomtune.core.updater.isDownloaded
 import dev.meowlabs.blossomtune.core.updater.isNewerThanInstalled
+import dev.meowlabs.blossomtune.core.updater.parseFullVersion
+import dev.meowlabs.blossomtune.ui.component.BetaBadge
 import dev.meowlabs.blossomtune.ui.component.PopupSheetState
+import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.player.menu.MenuSurface
-import dev.meowlabs.blossomtune.ui.screens.donate.showDonateSheet
+import dev.meowlabs.blossomtune.ui.screens.donate.showSupportSheet
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
 @Composable
 fun rememberUpdateState(): androidx.compose.runtime.State<UpdateState> {
+    val context = LocalContext.current
     val state = remember { mutableStateOf<UpdateState>(UpdateState.Checking) }
-    LaunchedEffect(Unit) {
-        val result = getLatestRelease()
-        state.value = result.fold(
-            onSuccess = { release ->
-                when {
-                    release == null -> UpdateState.UpToDate
-                    isNewerThanInstalled(release.version) -> UpdateState.Available(release)
-                    else -> UpdateState.UpToDate
-                }
-            },
-            onFailure = { UpdateState.Failed(it.message ?: "Couldn't reach GitHub") },
-        )
-    }
+    LaunchedEffect(Unit) { state.value = checkUpdate(updateChannel(context), force = false) }
     return state
 }
 
-/** Shows the "app version" sheet as a PopupSheet - see docs/popup-sheet.skill.md. */
-fun PopupSheetState.showUpdateSheet(updateState: UpdateState) {
+/** asks github (or the shared copy, unless force is set) whether a newer release is out on the channel */
+private suspend fun checkUpdate(channel: UpdateChannel, force: Boolean): UpdateState =
+    getLatestRelease(channel, force).fold(
+        onSuccess = { release ->
+            when {
+                release == null -> UpdateState.UpToDate
+                isNewerThanInstalled(release.version) -> UpdateState.Available(release)
+                else -> UpdateState.UpToDate
+            }
+        },
+        onFailure = { UpdateState.Failed(it.message ?: "Couldn't reach GitHub") },
+    )
+
+/** shows the app version sheet as a PopupSheet, see docs/popup-sheet.skill.md */
+fun PopupSheetState.showUpdateSheet(updateState: UpdateState, onOpenDevSpace: (Int) -> Unit = {}) {
     val popup = this
-    show(buttonBar = { SheetPrimaryButton(text = "Got it!", onClick = popup::dismiss) }) {
-        UpdateSheetContent(updateState = updateState, popup = popup)
+    show(buttonBar = { SheetPrimaryButton(text = stringResource(R.string.done), onClick = popup::dismiss) }) {
+        UpdateSheetContent(initialState = updateState, popup = popup, onOpenDevSpace = onOpenDevSpace)
     }
 }
 
@@ -101,235 +136,376 @@ private fun PopupSheetState.showUpdateDetailSheet(release: GithubRelease) {
     popup.show {
         UpdateDetailContent(
             release = release,
-            // Pushed on top of the version sheet, so back just pops down to it again.
+            // pushed on top of the version sheet, so back just pops down to it again
             onBack = popup::dismiss,
-            // Locks this same sheet while a download is in flight. Re-showing the content locked
-            // instead would push a second copy of it with fresh, not-downloading state.
+            // locks this same sheet during a download, re-showing it locked would push a second copy with fresh state
             onLocked = popup::setLocked,
         )
     }
 }
 
 @Composable
-private fun SheetPrimaryButton(text: String, onClick: () -> Unit) {
+internal fun SheetPrimaryButton(text: String, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
+            .pressBounce(interaction, pressedScale = 0.97f)
             .fillMaxWidth()
-            .height(46.dp)
+            .height(50.dp)
             .clip(CircleShape)
-            .background(MenuRowSurface)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
+            .background(Color.White.copy(alpha = 0.26f))
+            .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(text = text, fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp)
     }
 }
 
+private val StableGreen = Color(0xFF9CF58A)
+private const val StableLabel = "STABLE"
+
+/** "8.1.0 build#1165" -> "8.1.0", "8.0.2 (1100)" -> "8.0.2" */
+internal fun shortVersion(version: String): String = version.substringBefore(' ')
+
+/** the app version sheet: the app, the version you're on and its channel, what's newer, and what you can do about it */
 @Composable
-private fun ColumnScope.UpdateSheetContent(updateState: UpdateState, popup: PopupSheetState) {
+private fun ColumnScope.UpdateSheetContent(
+    initialState: UpdateState,
+    popup: PopupSheetState,
+    onOpenDevSpace: (Int) -> Unit,
+) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var channel by remember { mutableStateOf(updateChannel(context)) }
+    var state by remember { mutableStateOf(initialState) }
+    // the newest plain release, which decides the badge and whether a nightly may switch back
+    var latestRelease by remember { mutableStateOf<GithubRelease?>(null) }
+    var previous by remember { mutableStateOf<GithubRelease?>(null) }
 
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-
-    Spacer(modifier = Modifier.height(4.dp))
-
-    Box(
-        modifier = Modifier
-            .size(56.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(MenuRowSurface),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_blossomtune_mark),
-            contentDescription = null,
-            modifier = Modifier.size(30.dp),
-        )
+    suspend fun refresh(force: Boolean) {
+        state = checkUpdate(channel, force)
+        // a failed check keeps what it knew, so the rows don't vanish when offline
+        getLatestRelease(UpdateChannel.Release).onSuccess { latestRelease = it }
+        getPreviousRelease(channel).onSuccess { previous = it }
+    }
+    // the shared copy answers instantly when the app already checked on launch, and again after a channel switch
+    LaunchedEffect(channel) { refresh(force = false) }
+    val checkAgain: () -> Unit = {
+        if (state !is UpdateState.Checking) {
+            state = UpdateState.Checking
+            scope.launch { refresh(force = true) }
+        }
+    }
+    fun switchTo(target: UpdateChannel) {
+        saveUpdateChannel(context, target)
+        state = UpdateState.Checking
+        channel = target
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Text(
-        text = "BlossomTune ${BuildConfig.VERSION_NAME} by buana",
-        fontSize = 17.sp,
-        fontWeight = FontWeight.Bold,
-    )
-    Text(
-        text = when (updateState) {
-            is UpdateState.Available -> UpdateHeadline
-            UpdateState.Checking -> "Checking for updates…"
-            is UpdateState.Failed -> "Couldn't check for updates"
-            UpdateState.UpToDate -> "Latest version"
-        },
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Medium,
-    )
-
-    if (updateState is UpdateState.Available) {
-        Spacer(modifier = Modifier.height(18.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+    val installed = shortVersion(BuildConfig.VERSION_NAME)
+    Box(Modifier.fillMaxWidth()) {
+        // centred just inside the sheet's top-right corner so its edge cuts the ring off, no size of its own so it never pushes content around
+        VersionRing(
+            text = "BLOSSOMTUNE $installed",
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(MenuRowSurface)
-                .padding(14.dp)
-        ) {
+                .align(Alignment.TopEnd)
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0, maxWidth = Constraints.Infinity, maxHeight = Constraints.Infinity))
+                    layout(0, 0) {
+                        placeable.place(x = (-195).dp.roundToPx(), y = (-134).dp.roundToPx())
+                    }
+                },
+        )
+
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+            Spacer(Modifier.height(6.dp))
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MenuSurface),
+                    .size(76.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(MenuRowSurface),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_blossomtune_mark),
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    tint = Color.White,
+                    modifier = Modifier.size(38.dp),
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = updateState.release.title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = remember(updateState.release.body) {
-                        changelogSummaryLine(updateState.release.body)
-                    }.ifBlank { "No description" },
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { popup.showUpdateDetailSheet(updateState.release) },
-                    )
-                    .padding(horizontal = 16.dp, vertical = 7.dp)
-            ) {
-                Text(
-                    text = "Update",
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
-    }
 
-    Spacer(modifier = Modifier.height(18.dp))
+            Spacer(Modifier.height(14.dp))
+            Text("BlossomTune", fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    installed,
+                    fontSize = 44.sp,
+                    lineHeight = 46.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-2).sp,
+                )
+                Spacer(Modifier.width(14.dp))
+                ChannelBadge(latestRelease)
+            }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(MenuRowSurface)
-            .padding(14.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(R.drawable.frame_51_3),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape),
+            Spacer(Modifier.height(16.dp))
+            UpdateStatusCard(
+                state = state,
+                onUpdate = { popup.showUpdateDetailSheet(it) },
+                onRetry = checkAgain,
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(text = "Hello", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    text = "BlossomTune · GPL-3.0",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp,
+
+            Spacer(Modifier.height(22.dp))
+            Text(stringResource(R.string.update_actions), fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
+            Spacer(Modifier.height(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ActionRow(
+                    icon = R.drawable.refresh,
+                    label = if (state is UpdateState.Checking) stringResource(
+                                R.string.update_checking,
+                            ) else stringResource(R.string.update_check_for_update),
+                    spinning = state is UpdateState.Checking,
+                    onClick = checkAgain,
+                )
+                AnimatedVisibility(
+                    visible = previous != null,
+                    enter = expandVertically(spring(dampingRatio = 0.85f, stiffness = 420f)) + fadeIn(),
+                    exit = shrinkVertically() + fadeOut(),
+                ) {
+                    previous?.let { older ->
+                        ActionRow(
+                            icon = R.drawable.history,
+                            label = stringResource(R.string.update_downgrade_to, shortVersion(older.version)),
+                            onClick = { popup.showUpdateDetailSheet(older) },
+                        )
+                    }
+                }
+                if (channel == UpdateChannel.Release) {
+                    ActionRow(
+                        icon = R.drawable.bedtime,
+                        label = stringResource(R.string.channel_switch_to_nightly),
+                        onClick = { popup.showPathChangeSheet(toNightly = true) { switchTo(UpdateChannel.Nightly) } },
+                    )
+                } else {
+                    val canLeave = canLeaveNightly(latestRelease)
+                    ActionRow(
+                        icon = R.drawable.update,
+                        label = stringResource(R.string.channel_switch_to_release),
+                        hint = if (canLeave) null else stringResource(R.string.channel_release_waits),
+                        enabled = canLeave,
+                        onClick = {
+                            // nothing nightly installed yet, so there's nothing to warn about
+                            if (installedIsNightly) {
+                                popup.showPathChangeSheet(toNightly = false) { switchTo(UpdateChannel.Release) }
+                            } else {
+                                switchTo(UpdateChannel.Release)
+                            }
+                        },
+                    )
+                }
+                ActionRow(
+                    icon = R.drawable.info,
+                    label = stringResource(R.string.about_app),
+                    onClick = { popup.showAboutSheet(onOpenDevSpace = onOpenDevSpace) },
+                )
+                ActionRow(
+                    icon = R.drawable.favorite,
+                    label = stringResource(R.string.update_help_us),
+                    onClick = { popup.showSupportSheet() },
                 )
             }
+            Spacer(Modifier.height(6.dp))
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        LinkRow(R.drawable.star, "Star the repo") { context.openUrl(GithubRepoUrl) }
-        Spacer(modifier = Modifier.height(8.dp))
-        LinkRow(R.drawable.github, "@buanadahbisagorengnuggetsendiri") { context.openUrl(GithubProfileUrl) }
-        Spacer(modifier = Modifier.height(8.dp))
-        LinkRow(R.drawable.instagram, "@buanabeneran") { context.openUrl(InstagramUrl) }
-        Spacer(modifier = Modifier.height(8.dp))
-
-        LinkRow(R.drawable.heart, "Support", enabled = true) {
-            // Same PopupSheetState, so this pushes Donate on top and this sheet recedes
-            // behind it instead of closing. See docs/popup-sheet.skill.md.
-            popup.showDonateSheet()
-        }
-    }
-
-    Spacer(modifier = Modifier.height(4.dp))
     }
 }
 
-const val UpdateHeadline = "Theres an update~!"
+/** which channel this build is: nightly says so, newer than any release is beta, the rest is stable */
+@Composable
+private fun ChannelBadge(latestRelease: GithubRelease?) {
+    val aheadOfReleases = latestRelease != null &&
+        parseFullVersion(latestRelease.version).copy(buildNumber = 0) < parseFullVersion(BuildConfig.VERSION_NAME).copy(buildNumber = 0)
+    val label = when {
+        installedIsNightly -> "NIGHTLY"
+        aheadOfReleases -> "BETA"
+        else -> StableLabel
+    }
+    AnimatedContent(
+        targetState = label,
+        transitionSpec = {
+            (scaleIn(spring(dampingRatio = 0.5f, stiffness = 500f), initialScale = 0.6f) + fadeIn())
+                .togetherWith(scaleOut(targetScale = 0.6f) + fadeOut())
+        },
+        label = "channelBadge",
+    ) { text ->
+        // the same outlined tag as every other beta mark in the app, green while this build is stable
+        if (text == StableLabel) BetaBadge(label = text, color = StableGreen) else BetaBadge(label = text)
+    }
+}
+
+/** the card under the version: what github said, and the one thing to do about it */
+@Composable
+private fun UpdateStatusCard(
+    state: UpdateState,
+    onUpdate: (GithubRelease) -> Unit,
+    onRetry: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(MenuRowSurface)
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+    ) {
+        AnimatedContent(
+            targetState = state,
+            contentKey = { it::class },
+            transitionSpec = {
+                (fadeIn(tween(220, delayMillis = 80)) + slideInVertically(spring(dampingRatio = 0.8f, stiffness = 400f)) { it / 4 })
+                    .togetherWith(fadeOut(tween(120)))
+                    .using(SizeTransform(clip = false))
+            },
+            label = "updateStatus",
+        ) { shown ->
+            when (shown) {
+                is UpdateState.Available -> StatusRow(
+                    title = stringResource(R.string.update_status_new_update),
+                    big = shortVersion(shown.release.version),
+                    action = stringResource(R.string.update_action_update_now),
+                    onAction = { onUpdate(shown.release) },
+                )
+                UpdateState.Checking -> StatusRow(title = stringResource(R.string.update_status_looking), big = "…", pulsing = true)
+                UpdateState.UpToDate -> StatusRow(title = stringResource(R.string.update_status_latest), big = stringResource(R.string.update_status_all_good))
+                is UpdateState.Failed -> StatusRow(
+                    title = stringResource(R.string.update_status_failed),
+                    big = stringResource(R.string.update_status_offline),
+                    action = stringResource(R.string.update_action_try_again),
+                    onAction = onRetry,
+                )
+            }
+        }
+    }
+}
 
 @Composable
-private fun LinkRow(
+private fun StatusRow(
+    title: String,
+    big: String,
+    action: String? = null,
+    onAction: () -> Unit = {},
+    pulsing: Boolean = false,
+) {
+    val pulse = if (pulsing) {
+        rememberInfiniteTransition(label = "statusPulse").animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
+            label = "statusPulseAlpha",
+        )
+    } else {
+        null
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
+            Text(
+                big,
+                fontSize = 40.sp,
+                lineHeight = 42.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-1.8).sp,
+                maxLines = 1,
+                modifier = Modifier.graphicsLayer { alpha = pulse?.value ?: 1f },
+            )
+        }
+        if (action != null) {
+            val interaction = remember { MutableInteractionSource() }
+            Text(
+                action,
+                fontSize = 13.sp,
+                fontFamily = FontFamily.Monospace,
+                letterSpacing = 0.6.sp,
+                modifier = Modifier
+                    .pressBounce(interaction)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.2f))
+                    .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape)
+                    .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onAction)
+                    .padding(horizontal = 16.dp, vertical = 7.dp),
+            )
+        }
+    }
+}
+
+/** a row under actions: a light disc with the icon, then the label, dimmed ones can't be tapped */
+@Composable
+private fun ActionRow(
     icon: Int,
     label: String,
-    enabled: Boolean = true,
     onClick: () -> Unit,
+    hint: String? = null,
+    enabled: Boolean = true,
+    spinning: Boolean = false,
 ) {
-    val alpha = if (enabled) 1f else 0.35f
+    val interaction = remember { MutableInteractionSource() }
+    val contentAlpha = if (enabled) 1f else 0.4f
+    val spin = remember { Animatable(0f) }
+    LaunchedEffect(spinning) {
+        if (spinning) {
+            while (true) {
+                spin.animateTo(spin.value + 360f, tween(900, easing = LinearEasing))
+            }
+        } else {
+            // finish the turn it's on instead of snapping back
+            val rest = (spin.value / 360f).let { kotlin.math.ceil(it) * 360f }
+            spin.animateTo(rest, spring(dampingRatio = 0.7f, stiffness = 300f))
+        }
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
+            .pressBounce(interaction, pressedScale = 0.97f)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MenuSurface.copy(alpha = 0.6f))
-            .clickable(
-                enabled = enabled,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .height(56.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(MenuRowSurface.copy(alpha = if (enabled) 1f else 0.6f))
+            .clickable(enabled = enabled, interactionSource = interaction, indication = RemoteFocus, onClick = onClick)
+            .padding(horizontal = 16.dp),
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(22.dp)
+                .graphicsLayer { alpha = contentAlpha }
+                .size(28.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.9f * alpha))
+                .background(Color(0xFFDADADA)),
         ) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = Color.Black.copy(alpha = 0.75f),
-                modifier = Modifier.size(13.dp),
+                tint = Color(0xFF1C1C1E),
+                modifier = Modifier
+                    .size(17.dp)
+                    .graphicsLayer { rotationZ = spin.value },
             )
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(Modifier.width(14.dp))
         Text(
-            text = label,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
+            label,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.5).sp,
+            color = Color.White.copy(alpha = contentAlpha),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
+        if (hint != null) {
+            Text(hint, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.4f))
+        }
     }
 }
+
+const val UpdateHeadline = "Theres an update~!"
 
 @Composable
 private fun ColumnScope.UpdateDetailContent(
@@ -344,9 +520,16 @@ private fun ColumnScope.UpdateDetailContent(
     var error by remember { mutableStateOf<String?>(null) }
     val progress = remember { mutableFloatStateOf(0f) }
 
+    // a tv remote starts on Install, the back row at the top would close this the moment OK is pressed
+    val installFocus = remember { FocusRequester() }
+    val remote = LocalInputModeManager.current.inputMode == InputMode.Keyboard
+    LaunchedEffect(Unit) {
+        if (remote && release.apkUrl != null) runCatching { installFocus.requestFocus() }
+    }
+
     val startInstall: (java.io.File) -> Unit = { file ->
         if (!installApk(context, file)) {
-            error = "Allow \"Install unknown apps\" for blossomtune, then tap Install here again."
+            error = context.getString(R.string.update_allow_unknown_apps)
         }
     }
 
@@ -359,14 +542,14 @@ private fun ColumnScope.UpdateDetailContent(
             .clickable(
                 enabled = !downloading,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = RemoteFocus,
                 onClick = onBack,
             )
             .padding(vertical = 4.dp),
     ) {
         Icon(
             painter = painterResource(R.drawable.arrow_back),
-            contentDescription = "Back",
+            contentDescription = stringResource(R.string.update_back_desc),
             modifier = Modifier.size(18.dp),
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -395,7 +578,7 @@ private fun ColumnScope.UpdateDetailContent(
             .padding(16.dp)
             .animateContentSize()
     ) {
-        Text(text = "Changelog", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(text = stringResource(R.string.update_changelog), fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         ChangelogMarkdown(
             markdown = release.body,
@@ -407,7 +590,7 @@ private fun ColumnScope.UpdateDetailContent(
     Spacer(modifier = Modifier.height(18.dp))
 
     Text(
-        text = "To Be Installed -",
+        text = stringResource(R.string.update_to_be_installed),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
@@ -461,11 +644,14 @@ private fun ColumnScope.UpdateDetailContent(
             .height(48.dp)
             .clip(RoundedCornerShape(50))
             .background(MenuRowSurface)
+            .focusRequester(installFocus)
             .clickable(
-                enabled = !downloading && release.apkUrl != null,
+                // stays pressable while downloading, so a tv remote resting on it isn't thrown off the sheet
+                enabled = release.apkUrl != null,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = RemoteFocus,
                 onClick = {
+                    if (downloading) return@clickable
                     error = null
                     if (isDownloaded(context, release)) {
                         startInstall(apkFileFor(context, release))
@@ -479,7 +665,7 @@ private fun ColumnScope.UpdateDetailContent(
                             onLocked(false)
                             result.fold(
                                 onSuccess = { startInstall(it) },
-                                onFailure = { error = it.message ?: "Download failed" },
+                                onFailure = { error = it.message ?: context.getString(R.string.update_download_failed) },
                             )
                         }
                     }
@@ -495,9 +681,9 @@ private fun ColumnScope.UpdateDetailContent(
         )
         Text(
             text = when {
-                downloading -> "Downloading… ${(animatedProgress * 100).toInt()}%"
-                release.apkUrl == null -> "No APK in this release"
-                else -> "Install here"
+                downloading -> stringResource(R.string.update_downloading_progress, (animatedProgress * 100).toInt())
+                release.apkUrl == null -> stringResource(R.string.update_no_apk)
+                else -> stringResource(R.string.update_install_here)
             },
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -516,16 +702,16 @@ private fun ColumnScope.UpdateDetailContent(
             .clickable(
                 enabled = !downloading,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = RemoteFocus,
                 onClick = { context.openUrl(release.htmlUrl) },
             )
     ) {
-        Text(text = "Open the web", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text = stringResource(R.string.update_open_web), fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
     }
 }
 
-private fun android.content.Context.openUrl(url: String) {
+internal fun android.content.Context.openUrl(url: String) {
     runCatching {
         startActivity(
             android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))

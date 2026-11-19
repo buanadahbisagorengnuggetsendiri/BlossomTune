@@ -38,7 +38,7 @@ import dev.meowlabs.blossomtune.extensions.toMediaItem
 import dev.meowlabs.blossomtune.models.toMediaMetadata
 import dev.meowlabs.blossomtune.playback.queues.ListQueue
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
-import dev.meowlabs.blossomtune.ui.component.SwipeActionsBox
+import dev.meowlabs.blossomtune.ui.component.SongSwipeBox
 import dev.meowlabs.blossomtune.ui.component.containerTransformSource
 import dev.meowlabs.blossomtune.ui.component.detail.FeaturedArtistUi
 import dev.meowlabs.blossomtune.ui.component.detail.FeaturedArtistsRow
@@ -202,7 +202,7 @@ fun SectionDetailScreen(
                 is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = menuState::dismiss)
                 is Album -> AlbumMenu(originalAlbum = item, navController = navController, onDismiss = menuState::dismiss)
                 is Artist -> ArtistMenu(originalArtist = item, coroutineScope = coroutineScope, onDismiss = menuState::dismiss)
-                is Playlist -> PlaylistMenu(playlist = item, coroutineScope = coroutineScope, onDismiss = menuState::dismiss)
+                is Playlist -> PlaylistMenu(playlist = item, coroutineScope = coroutineScope, onDismiss = menuState::dismiss, navController = navController)
                 is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                 is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                 is PlaylistItem -> YouTubePlaylistMenu(
@@ -245,13 +245,14 @@ fun SectionDetailScreen(
             val (name, sub) = rowText(item)
             val id = rowKey(item)
             val row: @Composable () -> Unit = {
+                val active = id == mediaMetadata?.id || (item is AlbumItem && item.id == mediaMetadata?.album?.id)
                 PlaylistTrackRow(
                     thumbnailUrl = rowThumbnail(item),
                     songId = id.takeIf { item is Song || item is SongItem },
                     title = name,
                     subtitle = sub,
-                    isActive = id == mediaMetadata?.id || (item is AlbumItem && item.id == mediaMetadata?.album?.id),
-                    isPlaying = isPlaying,
+                    isActive = active,
+                    isPlaying = active && isPlaying,
                     coverShape = if (item is ArtistItem || item is Artist) CircleShape else dev.meowlabs.blossomtune.ui.component.detail.TrackShape,
                     // albums and playlists open growing out of their cover, as from Home
                     coverModifier = Modifier.containerTransformSource(
@@ -278,17 +279,17 @@ fun SectionDetailScreen(
                     onMenuClick = { showMenu(item) },
                 )
             }
-            // songs slide like everywhere else: right into the library, left onto the queue
+            // songs slide like everywhere else: into the library or onto the queue, as set in Settings > Gesture
             when (item) {
-                is Song -> SwipeActionsBox(
+                is Song -> SongSwipeBox(
                     modifier = Modifier.animateItem(),
-                    start = { librarySwipeAction(item.song) },
-                    end = { queueSwipeAction { item.toMediaItem() } },
+                    library = { librarySwipeAction(item.song) },
+                    queue = { queueSwipeAction { item.toMediaItem() } },
                 ) { row() }
-                is SongItem -> SwipeActionsBox(
+                is SongItem -> SongSwipeBox(
                     modifier = Modifier.animateItem(),
-                    start = { librarySwipeAction(item) },
-                    end = { queueSwipeAction { item.toMediaMetadata().toMediaItem() } },
+                    library = { librarySwipeAction(item) },
+                    queue = { queueSwipeAction { item.toMediaMetadata().toMediaItem() } },
                 ) { row() }
                 else -> androidx.compose.foundation.layout.Box(modifier = Modifier.animateItem()) { row() }
             }

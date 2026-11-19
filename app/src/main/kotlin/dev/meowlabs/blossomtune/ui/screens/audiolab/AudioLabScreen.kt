@@ -1,9 +1,4 @@
-// AudioLabScreen.kt
-//
-// Audio Lab: the home of BlossomTune's sound, apart from the plain Audio settings. Big cards for the
-// equalizer and the effects, then quality, transitions and reverb. Each card's drawing shows its
-// state: the equalizer's knobs sit where your curve is, the FX lights when an effect is on, the
-// quality waveform is as fine as what's streaming.
+// audio lab home: big cards for the equalizer and effects, shorter ones for quality and transitions, each drawing shows its state
 
 package dev.meowlabs.blossomtune.ui.screens.audiolab
 
@@ -14,11 +9,19 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,18 +52,21 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.AudioQuality
 import dev.meowlabs.blossomtune.constants.AudioQualityKey
 import dev.meowlabs.blossomtune.constants.CrossmixMode
 import dev.meowlabs.blossomtune.constants.CrossmixModeKey
+import dev.meowlabs.blossomtune.constants.DefaultTransitionMode
 import dev.meowlabs.blossomtune.eq.EqPresets
 import dev.meowlabs.blossomtune.eq.EqSettings
-import dev.meowlabs.blossomtune.ui.component.SubSettingsScaffold
+import dev.meowlabs.blossomtune.playback.audio.AudioOutputs
 import dev.meowlabs.blossomtune.ui.component.damageBoundary
 import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
@@ -70,9 +76,8 @@ import dev.meowlabs.blossomtune.viewmodels.AudioLabViewModel
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-// Plain val, bukan getter @Composable: dipakai juga di dalam drawCircle (scope draw).
-private val HubCard = LabColors.Card
-private val Sketch = Color(0xFF556585)
+private val HubCard = Color(0xFF222225)
+private val Sketch = Color(0xFF6A6A70)
 
 @Composable
 fun AudioLabScreen(
@@ -89,133 +94,223 @@ fun AudioLabScreen(
     val (quality) = rememberEnumPreference(AudioQualityKey, defaultValue = AudioQuality.AUTO)
     val order by viewModel.sources.order.collectAsState()
     val modules by viewModel.sources.entries.collectAsState()
+    val youTubeOn by viewModel.sources.youTubeEnabled.collectAsState()
     androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.sources.refresh() }
     // whichever provider plays first sets what "quality" means
     val firstProvider = order.firstOrNull { id ->
-        id == dev.meowlabs.blossomtune.modules.SourceModules.YouTubeId ||
-            modules.any { it.module.info.id == id && it.enabled && it.account is dev.meowlabs.blossomtune.module.AccountState.SignedIn }
+        if (id == dev.meowlabs.blossomtune.modules.SourceModules.YouTubeId) youTubeOn
+        else modules.any { it.module.info.id == id && it.enabled && it.account is dev.meowlabs.blossomtune.module.AccountState.SignedIn }
     }
-    val (mode) = rememberEnumPreference(CrossmixModeKey, defaultValue = CrossmixMode.AUTO_CROSSFADE)
+    val (mode) = rememberEnumPreference(CrossmixModeKey, defaultValue = DefaultTransitionMode)
 
-    val activeFx = buildList {
-        if (reverb.enabled) add("Reverb")
-        if (loudness.enabled) add("Loudness")
-        if (spatial.enabled) add("Spatial")
-        if (!playback.isNormal) add(String.format("%.2f×", playback.speed))
-        if (volume.enabled) add("Volume curve")
-    }
+    val stage by viewModel.stage.collectAsState()
+    val effects = activeEffects(reverb, loudness, spatial, playback, volume, stage)
 
-    SubSettingsScaffold(
-        title = "Audio Lab",
+    AudioLabPage(
+        title = LabTitle("Audio", "Lab"),
         onBack = { navController.navigateUp() },
     ) {
-        Text(
-            "Let's customize your music experience!",
-            fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary,
-        )
-        Spacer(Modifier.height(18.dp))
-
-        HubTile(
-            title = "Equalizer",
-            status = equalizerStatus(eq, presets.associate { it.id to it.name }),
-            height = 112.dp,
-            big = true,
-            onClick = { navController.navigate("equalizer") },
-        ) { EqualizerSketch(eq) }
-        Spacer(Modifier.height(10.dp))
-        HubTile(
-            title = "Audio Effect",
-            status = if (activeFx.isEmpty()) "All off" else activeFx.joinToString(" · "),
-            height = 112.dp,
-            big = true,
-            onClick = { navController.navigate("audio_fx") },
-        ) { FxSketch(active = activeFx.isNotEmpty()) }
-        Spacer(Modifier.height(10.dp))
-        HubTile(
-            title = "Audio Quality",
-            status = qualityName(quality, firstProvider),
-            height = 58.dp,
-            onClick = { navController.navigate("audio_quality") },
-        ) { QualitySketch(quality, firstProvider) }
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            HubTile(
-                title = "Transition",
-                status = when (mode) {
-                    CrossmixMode.OFF -> "Off"
-                    CrossmixMode.AUTO_CROSSFADE -> "Auto"
-                    CrossmixMode.MANUAL_CROSSFADE -> "Manual"
-                    CrossmixMode.CROSSMIX -> "CrossMix"
-                },
-                height = 58.dp,
-                modifier = Modifier.weight(1f),
-                onClick = { navController.navigate("crossmix_settings") },
-            ) { TransitionSketch(active = mode != CrossmixMode.OFF) }
-            HubTile(
-                title = "Reverb",
-                status = if (reverb.enabled) "On" else "Off",
-                height = 58.dp,
-                modifier = Modifier.weight(1f),
-                onClick = { navController.navigate("audio_fx") },
-            ) { ReverbSketch(active = reverb.enabled) }
+        val equalizer: @Composable (Modifier) -> Unit = { modifier ->
+            BigHubCard(
+                title = stringResource(R.string.lab_equalizer),
+                status = equalizerStatus(eq, presets.associate { it.id to it.name }),
+                on = eq.enabled,
+                onClick = { navController.navigate("equalizer") },
+                modifier = modifier,
+            ) { EqualizerSketch(eq) }
         }
-        Spacer(Modifier.height(120.dp))
+        val effect: @Composable (Modifier) -> Unit = { modifier ->
+            BigHubCard(
+                title = stringResource(R.string.lab_audio_effect),
+                status = effectsStatus(effects),
+                on = effects.isNotEmpty(),
+                onClick = { navController.navigate("audio_fx") },
+                modifier = modifier,
+            ) { FxSketch(active = effects.isNotEmpty()) }
+        }
+        val qualityCard: @Composable (Modifier) -> Unit = { modifier ->
+            SmallHubCard(
+                title = stringResource(R.string.lab_audio_quality),
+                status = qualityName(quality, firstProvider),
+                onClick = { navController.navigate("audio_quality") },
+                modifier = modifier,
+            ) { QualitySketch(quality, firstProvider) }
+        }
+        val transition: @Composable (Modifier) -> Unit = { modifier ->
+            SmallHubCard(
+                title = stringResource(R.string.lab_transition),
+                status = when (mode) {
+                    CrossmixMode.OFF -> stringResource(R.string.lab_transition_off)
+                    CrossmixMode.AUTO_CROSSFADE -> stringResource(R.string.lab_transition_auto)
+                    CrossmixMode.MANUAL_CROSSFADE -> stringResource(R.string.lab_transition_manual)
+                    CrossmixMode.CROSSMIX -> stringResource(R.string.lab_transition_crossmix)
+                },
+                onClick = { navController.navigate("crossmix_settings") },
+                modifier = modifier,
+            ) { TransitionSketch(active = mode != CrossmixMode.OFF) }
+        }
+
+        val outputs = LocalPlayerConnection.current?.service?.audioOutputs
+        val devices by remember(outputs) { outputs?.devices ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList()) }.collectAsState()
+        val usbDac = devices.firstOrNull { it.kind == AudioOutputs.Kind.USB }
+        val pass: @Composable (Modifier) -> Unit = { modifier ->
+            SmallHubCard(
+                title = stringResource(R.string.audiopass_hub_title),
+                status = when {
+                    usbDac != null -> usbDac.name.ifBlank { stringResource(R.string.audiopass_kind_usb) }
+                    devices.any { it.isActive && it.kind == AudioOutputs.Kind.BLUETOOTH } -> stringResource(R.string.audiopass_status_bluetooth)
+                    else -> stringResource(R.string.audiopass_status_none)
+                },
+                onClick = { navController.navigate("audio_pass") },
+                modifier = modifier,
+            ) { PassSketch(plugged = usbDac != null) }
+        }
+
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth >= 560.dp) {
+                // a tablet: side by side, so the cards don't stretch into long thin bars
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
+                        equalizer(Modifier.weight(1f).fillMaxHeight())
+                        effect(Modifier.weight(1f).fillMaxHeight())
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
+                        qualityCard(Modifier.weight(1f).fillMaxHeight())
+                        transition(Modifier.weight(1f).fillMaxHeight())
+                        pass(Modifier.weight(1f).fillMaxHeight())
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    equalizer(Modifier)
+                    effect(Modifier)
+                    qualityCard(Modifier)
+                    transition(Modifier)
+                    pass(Modifier)
+                }
+            }
+        }
     }
 }
 
-private fun equalizerStatus(eq: EqSettings, userPresets: Map<String, String>): String {
-    if (!eq.enabled) return "Off"
-    val curve = eq.presetId?.let { id -> EqPresets.BuiltIn.firstOrNull { it.id == id }?.name ?: userPresets[id] } ?: "Custom"
-    val correction = eq.correction?.takeIf { eq.correctionEnabled }?.model
-    return if (correction != null) "$curve · $correction" else curve
-}
-
-private fun qualityName(q: AudioQuality, firstProvider: String?): String = when (firstProvider) {
-    dev.meowlabs.blossomtune.module.monochrome.MonochromeModule.Id -> "Monochrome · Lossless"
-    dev.meowlabs.blossomtune.module.applemusic.AppleMusicModule.Id -> "Apple Music · AAC"
-    else -> "YouTube · " + when (q) {
-        AudioQuality.LOW -> "Low"
-        AudioQuality.MEDIUM -> "Medium"
-        AudioQuality.HIGH -> "High"
-        else -> "Auto"
+/** the effects status line, first names then "and 2 more" as in the mock */
+@Composable
+private fun effectsStatus(effects: List<ActiveEffect>): String {
+    val names = effects.map { stringResource(effectLabelRes(it.key)).uppercase() }
+    return when {
+        names.isEmpty() -> stringResource(R.string.lab_status_all_off)
+        names.size <= 2 -> names.joinToString(", ")
+        else -> stringResource(R.string.lab_effects_and_more, names.take(2).joinToString(", "), names.size - 2)
     }
 }
 
 @Composable
-private fun HubTile(
+private fun equalizerStatus(eq: EqSettings, userPresets: Map<String, String>): String {
+    if (!eq.enabled) return stringResource(R.string.lab_status_off)
+    val custom = stringResource(R.string.lab_status_custom)
+    val curve = eq.presetId?.let { id -> EqPresets.BuiltIn.firstOrNull { it.id == id }?.name ?: userPresets[id] } ?: custom
+    val correction = eq.correction?.takeIf { eq.correctionEnabled }?.model
+    return (if (correction != null) "$curve · $correction" else curve).uppercase()
+}
+
+@Composable
+private fun qualityName(q: AudioQuality, firstProvider: String?): String = when (firstProvider) {
+    dev.meowlabs.blossomtune.module.monochrome.MonochromeModule.Id -> stringResource(R.string.lab_quality_monochrome)
+    dev.meowlabs.blossomtune.module.applemusic.AppleMusicModule.Id -> stringResource(R.string.lab_quality_apple_music)
+    else -> stringResource(
+        R.string.lab_quality_youtube,
+        stringResource(
+            when (q) {
+                AudioQuality.LOW -> R.string.lab_quality_low
+                AudioQuality.MEDIUM -> R.string.lab_quality_medium
+                AudioQuality.HIGH -> R.string.lab_quality_high
+                else -> R.string.lab_quality_auto
+            },
+        ),
+    )
+}
+
+/** the equalizer's and effects' card, a green dot and the state in small type with the name under it */
+@Composable
+private fun BigHubCard(
     title: String,
     status: String,
-    height: Dp,
+    on: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    big: Boolean = false,
     sketch: @Composable BoxScope.() -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            // at least the mock's height; a big system font makes it taller instead of cutting it
+            .heightIn(min = 128.dp)
             .pressBounce(interaction, pressedScale = 0.97f)
-            .clip(RoundedCornerShape(if (big) 24.dp else 18.dp))
+            .clip(RoundedCornerShape(26.dp))
             .background(HubCard)
             .clickable(interaction, null, onClick = onClick)
             .damageBoundary(),
     ) {
-        sketch()
-        Column(
-            modifier = Modifier
-                .align(if (big) Alignment.BottomStart else Alignment.CenterStart)
-                .padding(horizontal = if (big) 22.dp else 16.dp, vertical = if (big) 18.dp else 0.dp),
-        ) {
-            if (big) {
-                Text(status, fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Ink, maxLines = 1)
-                Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = LabColors.Primary)
-            } else {
-                Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = LabColors.Primary)
-                Text(status, fontFamily = InterFontFamily, fontSize = 11.sp, color = LabColors.Ink, maxLines = 1)
-            }
+        Box(Modifier.matchParentSize()) { sketch() }
+        Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 18.dp)) {
+            StatusLine(status, on, Modifier.fillMaxWidth(0.66f))
+            Spacer(Modifier.height(30.dp))
+            Text(
+                title,
+                fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 30.sp,
+                letterSpacing = (-0.03).em, color = Color.White,
+            )
         }
+    }
+}
+
+/** the shorter card for quality and transitions: the name, its state under it, the drawing at the right */
+@Composable
+private fun SmallHubCard(
+    title: String,
+    status: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    sketch: @Composable BoxScope.() -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 60.dp)
+            .pressBounce(interaction, pressedScale = 0.97f)
+            .clip(RoundedCornerShape(20.dp))
+            .background(HubCard)
+            .clickable(interaction, null, onClick = onClick)
+            .damageBoundary(),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(Modifier.matchParentSize()) { sketch() }
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp).fillMaxWidth(0.62f)) {
+            Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
+            Text(
+                status.uppercase(),
+                fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = Color(0xFF8A8A8E),
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusLine(status: String, on: Boolean, modifier: Modifier = Modifier) {
+    val dot by androidx.compose.animation.animateColorAsState(
+        if (on) Color(0xFF8BE07A) else Color(0xFF5C5C63), tween(300), label = "dot",
+    )
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(7.dp).clip(CircleShape).background(dot))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            status,
+            fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = Color(0xFF8A8A8E),
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -247,16 +342,16 @@ private fun BoxScope.EqualizerSketch(eq: EqSettings) {
         val panel = size.height * 1.05f
         val origin = Offset(size.width - panel * 0.78f, size.height * 0.05f)
         rotate(-14f, Offset(origin.x + panel / 2, origin.y + panel / 2)) {
-            drawRoundRect(Sketch, origin, Size(panel, panel), CornerRadius(panel * 0.2f), style = Stroke(2.dp.toPx()))
+            drawRoundRect(Sketch, origin, Size(panel, panel), CornerRadius(panel * 0.2f), style = Stroke(3.5.dp.toPx()))
             listOf(low, mid, high).forEachIndexed { i, gain ->
                 val x = origin.x + panel * (0.25f + i * 0.22f)
                 val top = origin.y + panel * 0.16f
                 val bottom = origin.y + panel * 0.84f
-                drawLine(Sketch, Offset(x, top), Offset(x, bottom), 2.5.dp.toPx(), StrokeCap.Round)
+                drawLine(Sketch, Offset(x, top), Offset(x, bottom), 4.dp.toPx(), StrokeCap.Round)
                 val bob = level.punch * 4.dp.toPx() * sin(t * 9f + i * 2f)
                 val y = (top + bottom) / 2 - (gain / 12f) * (bottom - top) / 2 + bob
-                drawCircle(HubCard, 9.dp.toPx(), Offset(x, y))
-                drawCircle(if (eq.enabled) Color(0xFF8796B3) else Sketch, 9.dp.toPx(), Offset(x, y), style = Stroke(2.5.dp.toPx()))
+                drawCircle(HubCard, 11.dp.toPx(), Offset(x, y))
+                drawCircle(if (eq.enabled) Color(0xFF9A9AA0) else Sketch, 11.dp.toPx(), Offset(x, y), style = Stroke(4.dp.toPx()))
             }
         }
     }
@@ -283,7 +378,7 @@ private fun BoxScope.FxSketch(active: Boolean) {
             drawText(
                 layout,
                 brush = Brush.horizontalGradient(
-                    listOf(Color.Transparent, LabColors.Primary.copy(alpha = 0.85f * glow), Color.Transparent),
+                    listOf(Color.Transparent, Color.White.copy(alpha = 0.85f * glow), Color.Transparent),
                     startX = x - 60.dp.toPx(), endX = x + 60.dp.toPx(),
                 ),
                 topLeft = topLeft,
@@ -318,6 +413,21 @@ private fun BoxScope.QualitySketch(quality: AudioQuality, firstProvider: String?
     }
 }
 
+/** a usb-c plug on its cable, brighter while a dac is plugged in */
+@Composable
+private fun BoxScope.PassSketch(plugged: Boolean) {
+    val on by animateFloatAsState(if (plugged) 1f else 0.4f, tween(400), label = "plug")
+    Canvas(Modifier.fillMaxHeight().width(72.dp).align(Alignment.CenterEnd).padding(end = 14.dp, top = 20.dp, bottom = 20.dp)) {
+        val mid = size.height / 2f
+        val color = Sketch.copy(alpha = on)
+        val head = Size(size.width * 0.18f, size.height * 0.36f)
+        drawRoundRect(color, Offset(0f, mid - head.height / 2f), head, CornerRadius(1.5.dp.toPx()), style = Stroke(1.6.dp.toPx()))
+        val body = Size(size.width * 0.42f, size.height * 0.62f)
+        drawRoundRect(color, Offset(head.width, mid - body.height / 2f), body, CornerRadius(4.dp.toPx()), style = Stroke(2.dp.toPx()))
+        drawLine(color, Offset(head.width + body.width, mid), Offset(size.width, mid), 2.dp.toPx(), StrokeCap.Round)
+    }
+}
+
 /** two songs' volumes crossing */
 @Composable
 private fun BoxScope.TransitionSketch(active: Boolean) {
@@ -329,28 +439,5 @@ private fun BoxScope.TransitionSketch(active: Boolean) {
         val inn = Path().apply { moveTo(0f, h); cubicTo(w * 0.5f, h, w * 0.5f, 0f, w, 0f) }
         drawPath(out, Sketch.copy(alpha = on), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
         drawPath(inn, Sketch.copy(alpha = on), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
-    }
-}
-
-/** echoes running into a wall */
-@Composable
-private fun BoxScope.ReverbSketch(active: Boolean) {
-    val time = sketchTime { active }
-    Canvas(Modifier.fillMaxHeight().width(44.dp).align(Alignment.CenterEnd).padding(end = 14.dp, top = 16.dp, bottom = 16.dp)) {
-        val w = size.width
-        val h = size.height
-        val wall = w - 3.dp.toPx()
-        drawLine(Sketch, Offset(wall, 0f), Offset(wall, h), 3.dp.toPx(), StrokeCap.Round)
-        for (k in 0 until 2) {
-            val drift = if (active) ((time.value * 0.8f + k * 0.5f) % 1f) else 0.5f
-            val x = w * (0.1f + 0.45f * drift) + k * 7.dp.toPx() * (1f - drift)
-            val alpha = if (active) 1f - drift * 0.7f else 0.7f
-            val chevron = Path().apply {
-                moveTo(x, h * 0.2f)
-                lineTo(x + h * 0.3f, h / 2)
-                lineTo(x, h * 0.8f)
-            }
-            drawPath(chevron, Sketch.copy(alpha = alpha), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
-        }
     }
 }

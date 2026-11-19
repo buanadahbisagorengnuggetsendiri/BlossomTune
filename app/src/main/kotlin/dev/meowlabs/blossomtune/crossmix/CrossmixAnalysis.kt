@@ -19,8 +19,10 @@ data class TrackAnalysis(
     /** how sure the tempo is, 0..1. below ~0.35 nothing is beat-matched to it */
     val bpmConfidence: Float,
     val beatsMs: LongArray,
-    /** index into [beatsMs] of the first beat that starts a bar */
-    val downbeatIndex: Int,
+    /** the beats that start a bar, as indices into beatsMs */
+    val barBeats: IntArray,
+    /** the bars a new section starts on, as indices into barStartsMs */
+    val sectionBars: IntArray,
     val key: String?,
     val keyConfidence: Float,
     val leadingSilenceEndMs: Long,
@@ -36,22 +38,42 @@ data class TrackAnalysis(
     val isBeatReliable: Boolean get() = bpm != null && bpmConfidence >= 0.35f && beatsMs.size >= 16
 
     /** the beats that start a bar, in order */
-    fun barStartsMs(): LongArray {
-        if (beatsMs.isEmpty()) return LongArray(0)
-        val first = downbeatIndex.coerceIn(0, 3)
-        return LongArray((beatsMs.size - first + 3) / 4) { beatsMs[first + it * 4] }
+    fun barStartsMs(): LongArray = LongArray(barBeats.size) { beatsMs[barBeats[it]] }
+
+    /** how big a phrase bar index starts (8, 4, 2 or 1 bars), counted from the section starts either side of it */
+    fun phraseLevel(index: Int): Int {
+        var previous = 0
+        var next = -1
+        for (bar in sectionBars) {
+            if (bar <= index) previous = bar else { next = bar; break }
+        }
+        val fromPrevious = phraseLevelOf(index - previous)
+        return if (next < 0) fromPrevious else max(fromPrevious, phraseLevelOf(next - index))
     }
 
-    /** the 0..1 loudness around [ms], averaged over [windowMs] */
+    private fun phraseLevelOf(bars: Int): Int = when {
+        bars % 8 == 0 -> 8
+        bars % 4 == 0 -> 4
+        bars % 2 == 0 -> 2
+        else -> 1
+    }
+
+    /** the 0..1 loudness around ms, averaged over windowMs */
     fun energyAround(ms: Long, windowMs: Long = 4_000L): Float = averageOver(energy, ms, windowMs)
 
     fun bassAround(ms: Long, windowMs: Long = 4_000L): Float = averageOver(bass, ms, windowMs)
 
-    /**
-     * the beat grid right around [ms], fitted to the nearby beats with least squares: the phase of
-     * the beat at or before [ms] and the local beat length. far steadier than any one detected beat,
-     * which is what lets two tracks lock without flamming.
-     */
+    /** seconds of real music between two points: a fading tail or silence costs nothing when a mix leaves it unplayed */
+    fun audibleSeconds(fromMs: Long, toMs: Long): Float {
+        if (toMs <= fromMs || energy.isEmpty()) return 0f
+        val from = (fromMs / 1_000L).toInt().coerceIn(0, energy.size)
+        val to = (toMs / 1_000L).toInt().coerceIn(from, energy.size)
+        var seconds = 0
+        for (s in from until to) if (energy[s] >= AudibleEnergy) seconds++
+        return seconds.toFloat()
+    }
+
+    /** beat grid near ms, least squares over nearby beats: far steadier than any one detected beat, so two tracks lock without flamming */
     fun localGrid(ms: Long, span: Int = 12): LocalGrid? {
         if (beatsMs.size < 4) return null
         val nearest = beatsMs.indices.minByOrNull { abs(beatsMs[it] - ms) } ?: return null
@@ -82,9 +104,12 @@ data class TrackAnalysis(
     }
 }
 
+// loudness above which a second counts as music: about 16 db under the song's loudest, on the 24 db scale of energy
+private const val AudibleEnergy = 0.35f
+
 /** a stretch of steady beats: beat n of the stretch falls at firstBeatMs + n * periodMs */
 data class LocalGrid(val firstBeatMs: Double, val periodMs: Double, val firstIndex: Int) {
-    /** the beat time nearest [ms] on this grid */
+    /** the beat time nearest ms on this grid */
     fun snap(ms: Long): Long {
         val n = ((ms - firstBeatMs) / periodMs).roundToInt()
         return (firstBeatMs + n * periodMs).roundToLong()
@@ -114,6 +139,7 @@ class StreamingTrackAnalyzer {
     private val previousLog = FloatArray(Bins)
     private val bandRise = FloatArray(BandWeights.size)
     private val chroma = FloatArray(12)
+    private val frameChroma = FloatArray(12)
 
     private val flux = GrowingFloats()
     private val rms = GrowingFloats()
@@ -122,8 +148,11 @@ class StreamingTrackAnalyzer {
     private val lead = GrowingFloats()
     private val leadShare = GrowingFloats()
     private val tonality = GrowingFloats()
+    private val kick = GrowingFloats()
+    private val snap = GrowingFloats()
+    private val harmony = GrowingFloats()
 
-    /** [samples] are mono at [SampleRate] */
+    /** samples are mono at SampleRate */
     fun feed(samples: FloatArray, count: Int) {
         for (i in 0 until count) {
             ring[writeIndex] = samples[i]
@@ -146,11 +175,19 @@ class StreamingTrackAnalyzer {
         val tempo = estimateTempo(onset)
         val beats = tempo?.let { trackBeats(onset, it.first) } ?: LongArray(0)
         val lowArray = low.toArray()
-        val downbeat = if (beats.size >= 8) pickDownbeat(beats, onset, lowArray) else 0
-        val key = estimateKey(chroma)
         val rmsArray = rms.toArray()
+        val centroidArray = centroid.toArray()
+        val bars = if (beats.size >= 8) {
+            CrossmixBars.find(
+                beatFrames = IntArray(beats.size) { msToFrame(beats[it]) },
+                frames = CrossmixBars.Frames(onset, kick.toArray(), snap.toArray(), harmony.toArray(), rmsArray, lowArray, centroidArray),
+            )
+        } else {
+            CrossmixBars.None
+        }
+        val key = estimateKey(chroma)
         val silence = silenceBounds(rmsArray)
-        val perSecond = perSecondCurves(rmsArray, lowArray, centroid.toArray())
+        val perSecond = perSecondCurves(rmsArray, lowArray, centroidArray)
         val vocal = vocalCurve(lead.toArray(), leadShare.toArray(), tonality.toArray(), rmsArray)
 
         val vibe = Vibe(
@@ -167,7 +204,8 @@ class StreamingTrackAnalyzer {
             bpm = tempo?.first,
             bpmConfidence = tempo?.second ?: 0f,
             beatsMs = beats,
-            downbeatIndex = downbeat,
+            barBeats = bars.bars,
+            sectionBars = bars.sections,
             key = key.first,
             keyConfidence = key.second,
             leadingSilenceEndMs = silence.first,
@@ -230,6 +268,7 @@ class StreamingTrackAnalyzer {
         fft(real, imaginary)
 
         bandRise.fill(0f)
+        frameChroma.fill(0f)
         var lowEnergy = 0f
         var totalEnergy = 0f
         var weighted = 0f
@@ -252,16 +291,20 @@ class StreamingTrackAnalyzer {
                 voiceLogSum += ln(power + 1e-10f)
                 voiceBins++
             }
-            val frequency = bin * SampleRate.toFloat() / FrameSize
-            if (frequency in 55f..5_000f) {
-                val midi = (69 + 12 * (ln(frequency / 440f) / ln(2f))).roundToInt()
-                chroma[(midi % 12 + 12) % 12] += magnitude
+            val pitchClass = PitchClassOf[bin]
+            if (pitchClass >= 0) {
+                chroma[pitchClass] += magnitude
+                if (bin >= HarmonyFromBin) frameChroma[pitchClass] += magnitude
             }
         }
-        
+
         var onset = 0f
         for (band in BandWeights.indices) onset += BandWeights[band] * bandRise[band] / BandBins[band]
         flux.add(onset)
+        // the kick's attack, and the snare, clap and hat attack, kept apart for finding the bar
+        kick.add(bandRise[0] / BandBins[0])
+        snap.add(0.5f * (bandRise[2] / BandBins[2] + bandRise[3] / BandBins[3]))
+        for (value in frameChroma) harmony.add(value)
         rms.add(sqrt(energy / FrameSize).toFloat())
         low.add(if (totalEnergy > 0f) lowEnergy / totalEnergy else 0f)
         centroid.add(if (totalEnergy > 0f) (weighted / totalEnergy) * SampleRate / FrameSize else 0f)
@@ -295,10 +338,7 @@ class StreamingTrackAnalyzer {
         return out
     }
 
-    /**
-     * the beat period from the onset curve's autocorrelation, weighted toward the tempos people
-     * dance at (centred on 120). returns the bpm and a 0..1 confidence.
-     */
+    /** beat period from the onset autocorrelation, biased toward tempos people dance at (around 120), gives bpm and a 0..1 confidence */
     private fun estimateTempo(onset: FloatArray): Pair<Float, Float>? {
         val minLag = (60f / 200f * FramesPerSecondF).roundToInt()
         val maxLag = min((60f / 60f * FramesPerSecondF).roundToInt(), onset.size / 3)
@@ -334,10 +374,7 @@ class StreamingTrackAnalyzer {
         return bpm to confidence
     }
 
-    /**
-     * Ellis' dynamic-programming beat tracker: the best chain of beats that both lands on onsets
-     * and keeps an even spacing. each beat is then nudged to its onset peak with sub-frame accuracy.
-     */
+    /** ellis dynamic-programming beat tracker: the best chain of beats that lands on onsets with even spacing, then each is nudged to its onset peak */
     private fun trackBeats(onset: FloatArray, bpm: Float): LongArray {
         val period = 60f * FramesPerSecondF / bpm
         val n = onset.size
@@ -381,27 +418,6 @@ class StreamingTrackAnalyzer {
         }
     }
 
-    /**
-     * which of every four beats starts the bar: the one with the most kick under it and the
-     * strongest attack. pop and dance music land their kick and their chord changes there.
-     */
-    private fun pickDownbeat(beats: LongArray, onset: FloatArray, lowShare: FloatArray): Int {
-        val scores = FloatArray(4)
-        val counts = IntArray(4)
-        for (i in beats.indices) {
-            val f = msToFrame(beats[i]).coerceIn(0, onset.lastIndex)
-            var kick = 0f
-            for (j in (f - 1).coerceAtLeast(0)..(f + 2).coerceAtMost(lowShare.lastIndex)) kick += lowShare[j]
-            scores[i % 4] += onset[f] * 0.6f + kick * 0.4f
-            counts[i % 4]++
-        }
-        var best = 0
-        for (k in 1 until 4) {
-            if (scores[k] / max(1, counts[k]) > scores[best] / max(1, counts[best])) best = k
-        }
-        return best
-    }
-
     private fun pulseStrength(beats: LongArray, onset: FloatArray): Float {
         if (beats.isEmpty()) return 0f
         var sum = 0f
@@ -436,7 +452,7 @@ class StreamingTrackAnalyzer {
         return if (xEnergy == 0f || yEnergy == 0f) 0f else numerator / sqrt(xEnergy * yEnergy)
     }
 
-    /** where sound starts and stops: 45 dB under the loudest frame */
+    /** where sound starts and stops: 45 db under the loudest frame */
     private fun silenceBounds(rms: FloatArray): Pair<Long, Long> {
         val threshold = (rms.maxOrNull() ?: 0f) * 0.0056f
         val first = rms.indexOfFirst { it > threshold }.coerceAtLeast(0)
@@ -481,8 +497,7 @@ class StreamingTrackAnalyzer {
         return if (count == 0) (if (isEmpty()) 0.5f else average().toFloat()) else sum / count
     }
 
-    // a hit shows up in the onset curve while it's still sliding into the analysis window: the
-    // flux peaks with the hit ~3/4 of the way along it, not at its centre. measured on clean kicks
+    // flux peaks when a hit is about 3/4 along the analysis window, not at its centre (measured on clean kicks)
     private val onsetLagSamples = FrameSize * 0.27f
 
     private fun frameToMs(frame: Float): Long = ((frame * HopSize + FrameSize / 2f + onsetLagSamples) * 1_000f / SampleRate).toLong()
@@ -537,11 +552,18 @@ class StreamingTrackAnalyzer {
         private const val HopSize = 256
         private const val Bins = FrameSize / 2 + 1
         private const val FramesPerSecondF = 22_050f / 256f
-        // bins up to ~150 Hz: the kick and the bass line
+        // bins up to ~150 hz: the kick and the bass line
         private val LowBins = (150f * FrameSize / SampleRate).roundToInt()
         /** where a singing voice's formants and consonants sit */
         private val VoiceFromBin = (1_000f * FrameSize / SampleRate).roundToInt()
         private val VoiceToBin = (4_000f * FrameSize / SampleRate).roundToInt()
+        // the pitch class of each bin between 55 hz and 5 khz (-1 outside), worked out once instead of a log per bin per frame
+        private val PitchClassOf = IntArray(Bins) { bin ->
+            val frequency = bin * SampleRate.toFloat() / FrameSize
+            if (bin == 0 || frequency !in 55f..5_000f) -1 else ((69 + 12 * (ln(frequency / 440f) / ln(2f))).roundToInt() % 12 + 12) % 12
+        }
+        // under ~300 hz the bins are wider than a semitone, so chord changes are only read from above it
+        private val HarmonyFromBin = (300f * FrameSize / SampleRate).roundToInt()
         // onset bands: kick and bass, low mids, mids (snare body, vocals), highs (hats, air)
         private val BandEdgesHz = floatArrayOf(160f, 600f, 3_000f)
         private val BandWeights = floatArrayOf(1f, 0.8f, 0.55f, 0.2f)
@@ -558,16 +580,13 @@ class StreamingTrackAnalyzer {
     }
 }
 
-/** key names to pitch classes and the distances DJs mix by */
+/** key names to pitch classes and the distances djs mix by */
 object Harmony {
     private val Names = listOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
 
     fun pitchClass(key: String?): Int? = key?.substringBefore(' ')?.let(Names::indexOf)?.takeIf { it >= 0 }
 
-    /**
-     * distance on the Camelot wheel: 0 same key, 1 a neighbour or the relative major/minor, more
-     * means the two clash when they play together
-     */
+    /** distance on the camelot wheel: 0 same key, 1 a neighbour or relative major/minor, more means they clash */
     fun camelotDistance(a: String?, b: String?): Int? {
         val ca = camelot(a) ?: return null
         val cb = camelot(b) ?: return null

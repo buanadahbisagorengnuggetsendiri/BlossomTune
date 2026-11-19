@@ -1,5 +1,3 @@
-// UpdateStorageUtils.kt
-
 package dev.meowlabs.blossomtune.core.updater
 
 import android.content.Context

@@ -6,10 +6,10 @@ plugins {
 
 android {
     namespace = "dev.meowlabs.blossomtune.artistvideo"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
-        minSdk = 26
+        minSdk = 24
     }
 
     compileOptions {

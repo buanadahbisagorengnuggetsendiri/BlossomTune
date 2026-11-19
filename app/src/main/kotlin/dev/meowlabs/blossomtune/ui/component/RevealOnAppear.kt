@@ -53,14 +53,8 @@ private const val BurstWindowMs = 120L
 private const val BurstStepMs = 60
 private const val BurstMaxSteps = 6
 
-/**
- * colour of a loading bone, before the wave modulates it.
- *
- * Tinta gelap, bukan putih: bone-nya duduk di atas halaman putih. Kalau
- * `ForceDarkTheme` suatu saat dinyalakan lagi, nilai ini harus ikut mode -
- * putih 22% di atas hitam, gelap 10% di atas putih.
- */
-val BoneColor = Color(0xFF1C2144).copy(alpha = 0.10f)
+/** colour of a loading bone, before the wave modulates it */
+val BoneColor = Color(0xFFD9D9D9).copy(alpha = 0.22f)
 
 /**
  * which keys already played their reveal. kept with rememberSaveable so coming back to a screen
@@ -189,6 +183,8 @@ fun BonesHost(
     Column(
         modifier = modifier
             .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            // the wave never stops, so keep its repaints to these bones instead of the whole window and its glass
+            .damageBoundary()
             .drawWithContent {
                 drawContent()
                 val h = size.height

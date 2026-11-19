@@ -1,5 +1,3 @@
-// PlayerBody.kt
-
 package com.music.innertube.models.body
 
 import com.music.innertube.models.Context
@@ -21,7 +19,9 @@ data class PlayerBody(
     ) {
         @Serializable
         data class ContentPlaybackContext(
-            val signatureTimestamp: Int
+            val signatureTimestamp: Int,
+            // the web and tv players ask for html5 streams, and the older tv app's answer can come without links otherwise
+            val html5Preference: String = "HTML5_PREF_WANTS",
         )
     }
 

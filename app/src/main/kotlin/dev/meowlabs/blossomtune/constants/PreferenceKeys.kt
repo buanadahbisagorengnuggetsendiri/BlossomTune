@@ -3,6 +3,7 @@
 package dev.meowlabs.blossomtune.constants
 
 import android.os.Build
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -14,7 +15,6 @@ import java.time.ZoneOffset
 import com.music.innertube.models.IpVersion
 
 val IsFirstRunKey = booleanPreferencesKey("isFirstRun")
-val EnableDynamicIconKey = booleanPreferencesKey("enableDynamicIcon")
 val EnableHighRefreshRateKey = booleanPreferencesKey("enableHighRefreshRate")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
 val SelectedThemeColorKey = intPreferencesKey("selectedThemeColor")
@@ -49,6 +49,27 @@ val SliderStyleKey = stringPreferencesKey("sliderStyle")
 val SquigglySliderKey = booleanPreferencesKey("squigglySlider")
 val SwipeToSongKey = booleanPreferencesKey("SwipeToSong")
 val SwipeToRemoveSongKey = booleanPreferencesKey("SwipeToRemoveSong")
+// what sliding a song does, per side (Settings > Customisation); the names are SongSwipeAction values
+val SwipeRightActionKey = stringPreferencesKey("swipeRightAction")
+val SwipeLeftActionKey = stringPreferencesKey("swipeLeftAction")
+
+// the top layout of the home tab, picked in customisation settings
+enum class HomeStyle(val displayName: String) {
+    BLOSSOMTUNEY("BlossomTuney"),
+    LISTEN_NOW("Listen now"),
+    HOP_IN("Hop in"),
+}
+
+val HomeStyleKey = stringPreferencesKey("homeStyle")
+
+// how playlist and album headers are laid out at the top of the page
+enum class PlaylistStyle(val displayName: String) {
+    FLOW("Flow"),
+    CLASSIC("Classic"),
+    MINIMAL("Minimal"),
+}
+
+val PlaylistStyleKey = stringPreferencesKey("playlistStyle")
 val UseNewPlayerDesignKey= booleanPreferencesKey("useNewPlayerDesign")
 val UseNewMiniPlayerDesignKey = booleanPreferencesKey("useNewMiniPlayerDesign")
 val AppleMusicDarkChromeKey = booleanPreferencesKey("appleMusicDarkChrome")
@@ -58,9 +79,18 @@ val ThumbnailCornerRadiusKey = floatPreferencesKey("thumbnailCornerRadius")
 val CropAlbumArtKey = booleanPreferencesKey("cropAlbumArt")
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val PauseOnMute = booleanPreferencesKey("pauseOnMute")
+// keep playing when another app makes sound, and don't pause that app either
+val MixWithOtherAppsKey = booleanPreferencesKey("mixWithOtherApps")
 val ResumeOnBluetoothConnectKey = booleanPreferencesKey("resumeOnBluetoothConnect")
 val StopPlaybackOnTaskRemovedKey = booleanPreferencesKey("stopPlaybackOnTaskRemoved")
 val KeepScreenOn = booleanPreferencesKey("keepScreenOn")
+// there's no limit to the larp
+val LarpModeKey = booleanPreferencesKey("larpMode")
+val LarpLevelKey = stringPreferencesKey("larpLevel")
+// a swipe down anywhere on the open player closes it, not only from its top and cover (#121)
+val PlayerSwipeDownAnywhereKey = booleanPreferencesKey("playerSwipeDownAnywhere")
+// pulling the mini player up carries the player on the finger and lets it go at the finger's speed; off, any pull up opens it on its own spring
+val PlayerSwipeUpFollowsKey = booleanPreferencesKey("playerSwipeUpFollows")
 val DeveloperModeKey = booleanPreferencesKey("developerMode")
 
 enum class SliderStyle {
@@ -68,7 +98,7 @@ enum class SliderStyle {
     WAVY,
     SLIM
 }
-
+// keep larping bud
 const val SYSTEM_DEFAULT = "SYSTEM_DEFAULT"
 val AppLanguageKey = stringPreferencesKey("appLanguage")
 val ContentLanguageKey = stringPreferencesKey("contentLanguage")
@@ -80,8 +110,13 @@ val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val EnableSimpMusicKey = booleanPreferencesKey("enableSimpMusic")
 val EnableYouLyPlusKey = booleanPreferencesKey("enableYouLyPlus")
 val EnablePaxsenixKey = booleanPreferencesKey("enablePaxsenix")
+val EnableNetEaseKey = booleanPreferencesKey("enableNetEase")
+val EnableQQMusicKey = booleanPreferencesKey("enableQQMusic")
+val EnableDeezerKey = booleanPreferencesKey("enableDeezer")
+val EnableLrcRedKey = booleanPreferencesKey("enableLrcRed")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val HideVideoSongsKey = booleanPreferencesKey("hideVideoSongs")
+// no switch for it in settings, so every reader defaults it to on and shorts stay out
 val HideYoutubeShortsKey = booleanPreferencesKey("hideYoutubeShorts")
 val ShowArtistDescriptionKey = booleanPreferencesKey("showArtistDescription")
 val ShowArtistSubscriberCountKey = booleanPreferencesKey("showArtistSubscriberCount")
@@ -107,13 +142,34 @@ val YtPullHistoryKey = booleanPreferencesKey("ytPullHistory")
 val YtHistoryLastSeenKey = stringPreferencesKey("ytHistoryLastSeen")
 /** Whether YouTube sync keeps Liked music in step (onboarding's "What to sync" can leave it out). */
 val YtSyncLikedSongsKey = booleanPreferencesKey("ytSyncLikedSongs")
+/**
+ * Set after the first full sync that marked what YouTube brought in. Syncs before that never
+ * marked anything, so that one sync marks everything YouTube has, not just what is new.
+ */
+val YtSyncSourcesTaggedKey = booleanPreferencesKey("ytSyncSourcesTagged")
+/** Songs and playlists that came from other services stay on this phone, nothing goes up to YouTube for them. */
+val YtExcludeImportsKey = booleanPreferencesKey("ytExcludeImports")
+/** Set by an undo: YouTube pulls wait until the user runs Sync now, so the undo isn't written back. */
+val YtSyncHoldKey = booleanPreferencesKey("ytSyncHold")
 
 /** The profile ID card's "USR#" number and join date (epoch day), fixed when onboarding finishes. */
 val ProfileCardNumberKey = stringPreferencesKey("profileCardNumber")
 val ProfileJoinedEpochDayKey = longPreferencesKey("profileJoinedEpochDay")
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
+
+// data saver: lighter streams and no canvas or video backgrounds, on mobile data only unless the second switch is off
+val DataSaverKey = booleanPreferencesKey("dataSaver")
+val DataSaverMobileOnlyKey = booleanPreferencesKey("dataSaverMobileOnly")
 val IpVersionKey = stringPreferencesKey("ipVersion")
+
+// who finds a youtube song's stream: innertubex first with blossomtune's own client walk behind it, or only the walk
+val StreamBackendKey = stringPreferencesKey("streamBackend")
+
+enum class StreamBackend {
+    INNERTUBEX,
+    CLASSIC,
+}
 
 enum class AudioQuality {
     /** Best available from whichever backend is active. */
@@ -134,14 +190,10 @@ enum class AudioQuality {
         get() = this == LOSSLESS || this == HI_RES_LOSSLESS || this == DOLBY_ATMOS
 }
 
-/**
- * What songs are downloaded as, apart from what they stream as. Lossless is Monochrome's FLAC, for
- * the songs Monochrome has; the rest come from YouTube at High.
- */
+// what a download from youtube is saved as; which provider a download comes from is the download order
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
 
 enum class DownloadQuality(val title: String, val description: String) {
-    LOSSLESS("Lossless", "FLAC from Monochrome, CD quality or better. Songs it doesn't have download at High"),
     HIGH("High", "The best YouTube has: ~160 kbps Opus"),
     MEDIUM("Medium", "Around 128 kbps, half the space"),
     LOW("Low", "The smallest files, ~50–70 kbps"),
@@ -149,8 +201,44 @@ enum class DownloadQuality(val title: String, val description: String) {
 
 val AudioOffload = booleanPreferencesKey("enableOffload")
 
+// where the sound goes: a plugged-in usb dac first, its own rate (or bit-perfect) on android 14+, 24-bit kept as float
+val PreferUsbDacKey = booleanPreferencesKey("preferUsbDac")
+val UsbPassthroughKey = booleanPreferencesKey("usbDacPassthrough")
+val HiResOutputKey = booleanPreferencesKey("hiResFloatOutput")
+val HiFiResamplerKey = booleanPreferencesKey("hiFiResampler")
+val AudioPassModeKey = stringPreferencesKey("audioPassMode")
+// lets the direct usb driver play a dac that has no volume of its own, at full scale
+val AudioPassFixedVolumeKey = booleanPreferencesKey("audioPassFixedVolume")
+// what "turn these off" on dac's stuff switched off, as json, until "turn these back on" puts it back
+val AudioPassRestoreKey = stringPreferencesKey("audioPassRestore")
+
+/** how the passthrough switch reaches the dac; minSdk is the android each one needs */
+enum class AudioPassMode(val minSdk: Int) {
+    SONG_RATE(34),
+    BIT_PERFECT(34),
+    DIRECT_USB(24),
+    EXCLUSIVE_USB(27),
+    EXCLUSIVE_DAC(27),
+    ;
+
+    /** whether songs go to an output only blossomtune plays to, instead of through android's mixer */
+    val exclusive: Boolean get() = this != SONG_RATE
+
+    companion object {
+        /** android 14 brought the dac's own mixer; before it only blossomtune's own driver reaches the dac */
+        val Default: AudioPassMode
+            get() = if (android.os.Build.VERSION.SDK_INT >= 34) SONG_RATE else DIRECT_USB
+    }
+}
+
+// which service the about sheet's "about" text comes from: "musixmatch" or "youtube"
+val AboutSongSourceKey = stringPreferencesKey("aboutSongSource")
+
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val PersistentShuffleAcrossQueuesKey = booleanPreferencesKey("persistentShuffleAcrossQueues")
+
+// playlists whose new songs download by themselves, as json: each id with where it started counting (see AutoDownloads)
+val AutoDownloadPlaylistsKey = stringPreferencesKey("autoDownloadPlaylists")
 val RememberShuffleAndRepeatKey = booleanPreferencesKey("rememberShuffleAndRepeat")
 val ShuffleModeKey = booleanPreferencesKey("shuffleMode")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
@@ -163,12 +251,6 @@ val InfiniteQueueKey = booleanPreferencesKey("infiniteQueue")
 val SetupCompletedKey = booleanPreferencesKey("setupCompleted")
 val UsernameKey = stringPreferencesKey("username")
 val ProfilePicUriKey = stringPreferencesKey("profilePicUri")
-/** Genre favorit di profil, dipisah koma (lihat ProfileTaste). */
-val FavoriteGenresKey = stringPreferencesKey("favoriteGenres")
-/** Artis favorit yang diketik sendiri di Edit profile. */
-val FavoriteArtistKey = stringPreferencesKey("favoriteArtist")
-/** Lagu favorit yang diketik sendiri di Edit profile. */
-val FavoriteSongKey = stringPreferencesKey("favoriteSong")
 val AutoDownloadOnLikeKey = booleanPreferencesKey("autoDownloadOnLike")
 val SimilarContent = booleanPreferencesKey("similarContent")
 val DontSkipOnFailureKey = booleanPreferencesKey("dontSkipOnFailure")
@@ -177,7 +259,6 @@ val StreamFailureTimeoutKey = intPreferencesKey("streamFailureTimeout")
 val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val ShufflePlaylistFirstKey = booleanPreferencesKey("shufflePlaylistFirst")
-val PreventDuplicateTracksInQueueKey = booleanPreferencesKey("preventDuplicateTracksInQueue")
 val CrossfadeEnabledKey = booleanPreferencesKey("crossfadeEnabled")
 val CrossfadeDurationKey = floatPreferencesKey("crossfadeDuration")
 val CrossfadeGaplessKey = booleanPreferencesKey("crossfadeGapless")
@@ -191,6 +272,73 @@ enum class CrossmixMode {
     CROSSMIX,
 }
 
+// crossmix unless someone picked otherwise: the old default was a plain 5 s crossfade that never mixed anything
+val DefaultTransitionMode = CrossmixMode.CROSSMIX
+
+// the transition that really plays: the saved pick, then the old crossfade switch for those who set it before modes existed, then crossmix
+fun transitionModeOf(prefs: Preferences): CrossmixMode =
+    prefs[CrossmixModeKey]?.let { saved -> runCatching { CrossmixMode.valueOf(saved) }.getOrNull() }
+        ?: if (prefs[CrossfadeEnabledKey] == true) CrossmixMode.MANUAL_CROSSFADE else DefaultTransitionMode
+
+// set once the old plain-crossfade default has been moved over to crossmix, so it never happens twice
+val CrossmixDefaultMovedKey = booleanPreferencesKey("crossmixDefaultMoved")
+
+// how crossmix mixes: how long the two songs overlap, how far tempos may be stretched to meet, one style or the planner's pick, and whether the stunts are in the pool
+val CrossmixLengthKey = stringPreferencesKey("crossmixLength")
+val CrossmixTempoMatchKey = stringPreferencesKey("crossmixTempoMatch")
+/** a CrossmixStyle name, or CrossmixStyleAuto for the planner's own pick */
+val CrossmixStyleKey = stringPreferencesKey("crossmixStyle")
+const val CrossmixStyleAuto = "AUTO"
+val CrossmixStuntsKey = booleanPreferencesKey("crossmixStunts")
+// every hand-over a real blend of both songs, never a drop right at the end and never a plain fade
+val CrossmixAlwaysMixKey = booleanPreferencesKey("crossmixAlwaysMix")
+/** how long play() takes to be heard on this phone, learnt from each mix's first beat-lock reading */
+val CrossmixStartLatencyKey = floatPreferencesKey("crossmixStartLatencyMs")
+
+/** how long a crossmix overlap may run: scales the planner's overlap caps */
+enum class CrossmixLength(val scale: Float) {
+    SHORT(0.6f),
+    MEDIUM(1f),
+    LONG(1.5f),
+}
+
+/** how far the slower song may be sped up to meet the other; off still locks two songs already at one tempo */
+enum class CrossmixTempoMatch(val maxSpeedUp: Float) {
+    OFF(0.006f),
+    GENTLE(0.04f),
+    FULL(0.10f),
+}
+
+// pause, play and skip fades: on by default, 2 s long, no layered effect until one is picked
+val TransportFadeEnabledKey = booleanPreferencesKey("transportFadeEnabled")
+val TransportFadeSecondsKey = floatPreferencesKey("transportFadeSeconds")
+val TransportEffectKey = stringPreferencesKey("transportEffect")
+
+// skips and backs cross over on two players, the songs either side fetched ahead so they start at once
+val SkipBlendKey = booleanPreferencesKey("skipBlend")
+
+// how many songs coming up get their start fetched for blend skips, 1 to 4; data saver keeps it at 1
+val SkipBlendAheadKey = intPreferencesKey("skipBlendAhead")
+const val SkipBlendAheadMax = 4
+
+// a music video plays its song's studio upload when there is one, without the video's skits and sound effects
+val StudioForVideosKey = booleanPreferencesKey("studioForVideos")
+
+const val TransportFadeDefaultSeconds = 2f
+const val TransportFadeMinSeconds = 0.5f
+const val TransportFadeMaxSeconds = 10f
+
+// the crossmix effect layered over a pause, play or skip fade
+enum class TransportEffect(val label: String) {
+    OFF("None"),
+    ECHO("Echo"),
+    REWIND("Rewind"),
+    TAPE_STOP("Tape stop"),
+    FAR_AWAY("Fade to far"),
+    REVERB("Reverb wash"),
+    FILTER("Filter sweep"),
+}
+
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
 
@@ -198,29 +346,51 @@ val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")
 val PauseSearchHistoryKey = booleanPreferencesKey("pauseSearchHistory")
 val DisableScreenshotKey = booleanPreferencesKey("disableScreenshot")
 
-val DiscordTokenKey = stringPreferencesKey("discordToken")
-val DiscordInfoDismissedKey = booleanPreferencesKey("discordInfoDismissed")
-val DiscordUsernameKey = stringPreferencesKey("discordUsername")
-val DiscordNameKey = stringPreferencesKey("discordName")
+// Discord: signed in on Discord's own page in the browser (OAuth), so BlossomTune only ever holds a
+// token Discord gave it for this, never the account's password or login token
+val DiscordAccessTokenKey = stringPreferencesKey("discordAccessToken")
+val DiscordRefreshTokenKey = stringPreferencesKey("discordRefreshToken")
+val DiscordTokenExpiresAtKey = longPreferencesKey("discordTokenExpiresAt")
+/** the signed-in account's name, picture, banner and bio, as JSON, for the profile preview */
+val DiscordProfileKey = stringPreferencesKey("discordProfile")
+/** a login started in the browser, kept on disk in case Android closes BlossomTune meanwhile */
+val DiscordLoginStateKey = stringPreferencesKey("discordLoginState")
+val DiscordLoginVerifierKey = stringPreferencesKey("discordLoginVerifier")
+
 val EnableDiscordRPCKey = booleanPreferencesKey("discordRPCEnable")
-val DiscordUseDetailsKey = booleanPreferencesKey("discordUseDetails")
-val DiscordAvatarKey = stringPreferencesKey("discordAvatar")
-val DiscordStatusKey = stringPreferencesKey("discordStatus")
-val DiscordButton1TextKey = stringPreferencesKey("discordButton1Text")
-val DiscordButton1VisibleKey = booleanPreferencesKey("discordButton1Visible")
-val DiscordButton2TextKey = stringPreferencesKey("discordButton2Text")
-val DiscordButton2VisibleKey = booleanPreferencesKey("discordButton2Visible")
 val DiscordActivityTypeKey = stringPreferencesKey("discordActivityType")
-val DiscordActivityNameKey = stringPreferencesKey("discordActivityName")
-val DiscordAdvancedModeKey = booleanPreferencesKey("discordAdvancedMode")
+val DiscordRefreshSecondsKey = intPreferencesKey("discordPresenceRefreshSeconds")
+val DiscordActivityNameKey = stringPreferencesKey("discordPresenceName")
+val DiscordDetailsKey = stringPreferencesKey("discordPresenceDetails")
+val DiscordStateKey = stringPreferencesKey("discordPresenceState")
+val DiscordLargeTextKey = stringPreferencesKey("discordPresenceLargeText")
+val DiscordSmallTextKey = stringPreferencesKey("discordPresenceSmallText")
+val DiscordLargeImageKey = stringPreferencesKey("discordPresenceLargeImage")
+val DiscordSmallImageKey = stringPreferencesKey("discordPresenceSmallImage")
+// the pictures picked for "your own picture", kept as files in blossomtune's own folder
+val DiscordLargeCustomImageKey = stringPreferencesKey("discordPresenceLargeCustomImage")
+val DiscordSmallCustomImageKey = stringPreferencesKey("discordPresenceSmallCustomImage")
+val DiscordSpinSecondsKey = intPreferencesKey("discordPresenceSpinSeconds")
+val DiscordSpinFpsKey = intPreferencesKey("discordPresenceSpinFps")
+val DiscordButton1TextKey = stringPreferencesKey("discordPresenceButton1Text")
+val DiscordButton1TargetKey = stringPreferencesKey("discordPresenceButton1Target")
+val DiscordButton2TextKey = stringPreferencesKey("discordPresenceButton2Text")
+val DiscordButton2TargetKey = stringPreferencesKey("discordPresenceButton2Target")
+// the status comes down the moment the music pauses, instead of staying up frozen for ten minutes
+val DiscordClearOnPauseKey = booleanPreferencesKey("discordPresenceClearOnPause")
 
 val EnableGoogleCastKey = booleanPreferencesKey("enableGoogleCast")
 
 val LastFMSessionKey = stringPreferencesKey("lastfmSession")
 val LastFMUsernameKey = stringPreferencesKey("lastfmUsername")
 val EnableLastFMScrobblingKey = booleanPreferencesKey("lastfmScrobblingEnable")
-val LastFMUseNowPlaying = booleanPreferencesKey("lastfmUseNowPlaying")
 
+val LibreFmSessionKey = stringPreferencesKey("librefmSession")
+val LibreFmUsernameKey = stringPreferencesKey("librefmUsername")
+val EnableLibreFmScrobblingKey = booleanPreferencesKey("librefmScrobblingEnable")
+
+/** Now Playing and loves go to every signed-in scrobbling service, not only Last.fm. */
+val LastFMUseNowPlaying = booleanPreferencesKey("lastfmUseNowPlaying")
 val LastFMUseSendLikes = booleanPreferencesKey("lastfmUseSendLikes")
 
 val ScrobbleDelayPercentKey = floatPreferencesKey("scrobbleDelayPercent")
@@ -252,6 +422,8 @@ val MixSortDescendingKey = booleanPreferencesKey("albumSortDescending")
 val SongFilterKey = stringPreferencesKey("songFilter")
 val ArtistFilterKey = stringPreferencesKey("artistFilter")
 val AlbumFilterKey = stringPreferencesKey("albumFilter")
+// the old way: a song in the library only because you liked it still brings its album into Albums
+val AlbumsFromLikedSongsKey = booleanPreferencesKey("albumsFromLikedSongs")
 
 val LastLikeSongSyncKey = longPreferencesKey("last_like_song_sync")
 val LastLibSongSyncKey = longPreferencesKey("last_library_song_sync")
@@ -294,6 +466,29 @@ val ShowPlayerBottomCardKey = booleanPreferencesKey("showPlayerBottomCard")
 val PlayVideoBackgroundKey = booleanPreferencesKey("playVideoBackground")
 // a track that is a YouTube video (from a video row or the Videos search tab) shows that video in the player
 val DisableVideoAutoplayKey = booleanPreferencesKey("disableVideoAutoplay")
+
+// how sharp youtube videos play; auto drops to a lower picture when the connection slows down instead of freezing
+enum class VideoQuality(val shortSide: Int) {
+    AUTO(0),
+    // past 1080p youtube only has vp9 or av1, played only where the phone decodes it in hardware
+    Q2160(2160),
+    Q1440(1440),
+    Q1080(1080),
+    Q720(720),
+    Q480(480),
+    Q360(360),
+    Q240(240),
+    Q144(144),
+}
+
+val VideoQualityKey = stringPreferencesKey("videoQuality")
+
+// the style the player goes back to when the full video mode is left
+val VideoModeReturnStyleKey = stringPreferencesKey("videoModeReturnStyle")
+
+// the full video mode shows the whole picture with room round it, instead of zooming it to fill the screen
+val VideoModeWholeVideoKey = booleanPreferencesKey("videoModeWholeVideo")
+
 val LocalSongAutoMetadataKey = booleanPreferencesKey("local_song_auto_metadata")
 
 enum class LibraryViewType {
@@ -469,6 +664,9 @@ enum class PlayerBackgroundStyle {
     DARK_GRADIENT,
 
     APPLE_MUSIC,
+
+    // the cover's colours drifting slowly, following a playing video or animated cover as it changes
+    AMBIENT,
 }
 
 enum class PlayerCoverStyle {
@@ -486,37 +684,132 @@ enum class PlayerCoverStyle {
 /**
  * Whole-player presets, picked in the player selector (hold the player, or "edit player").
  *
- * The flagship [DEFAULT] can be edited, and [TURNTABLE] (the flagship around a record player) has
- * its disc label; the other three are complete designs of their own, each of which can be turned
- * sideways from its menu.
+ * The flagship [DEFAULT] can be edited, [TURNTABLE] (the flagship around a record player) has
+ * its disc label and [POSTER] its visualizer; the others are complete designs of their own,
+ * each of which can be turned sideways from its menu.
  */
 enum class PlayerStyle(val displayName: String, val selectorName: String) {
-    DEFAULT("Flagship", "Default"),
+    // the flagship as it is now: frosted cover fade, moving cover colours, the new buttons and bottom bar
+    FLAGSHIP("Flagship", "Flagship"),
+    // the flagship before its layout refresh, kept as a variant under it in the selector
+    CLASSIC("Classic", "Classic"),
     /** the flagship with a record player for its cover, whose arm is the seek bar */
     TURNTABLE("Turntable", "Turntable"),
+    // the song's youtube video across the whole screen, turned sideways, with its lyrics in a pane
+    VIDEO("Full video", "Full video"),
+    // the ipod classic, click wheel and all, browsing the library from inside the player
+    IPOD("iPod", "iPod"),
     POSTER("Poster", "Poster"),
     TIMELINE("Timeline", "Timeline"),
-    LYRICS("Lyrics", "Lyrics stage");
+    LYRICS("Lyrics", "Lyrics stage"),
+    // a big quiet clock for the nightstand, with the song a swipe away, that can stay up over the lock screen
+    BEDSIDE("Bedside clock", "Big clock"),
+    // the nightstand as two tiles side by side, the music on one and the lyrics or a clock on the other, each scrolled on its own
+    BEDSIDE_TILES("Bedside", "Bedside"),
+    // a look module's own player, drawn from its layout; kept last so the others keep their places, and only offered while such a module is on
+    MODULE("Module", "Module");
 
-    val editable: Boolean get() = this == DEFAULT || this == TURNTABLE
+    val editable: Boolean get() = this == FLAGSHIP || this == CLASSIC || this == TURNTABLE || this == POSTER || this == IPOD || isBedside
+
+    // the two nightstand styles share their sheet, their night look and their lock screen rules
+    val isBedside: Boolean get() = this == BEDSIDE || this == BEDSIDE_TILES
 
     /** drawn by the flagship's own player (cover, controls, card), not a design of its own */
-    val flagshipFamily: Boolean get() = this == DEFAULT || this == TURNTABLE
+    val flagshipFamily: Boolean get() = this == FLAGSHIP || this == CLASSIC || this == TURNTABLE
+
+    // the two flagships the full editor works on: cover, middle part, controls and bottom bar
+    val hasFullEditor: Boolean get() = this == FLAGSHIP || this == CLASSIC
+
+    // the styles whose menu has a rotate button, each with a landscape layout of its own to turn into
+    val turnable: Boolean get() = this == TURNTABLE || this == POSTER || this == TIMELINE || this == LYRICS || this == MODULE || isBedside
+
+    // laid out sideways until someone turns it upright, the way a phone stands on a nightstand
+    val startsSideways: Boolean get() = this == BEDSIDE_TILES
+
+    // the looks that read well across a room and stay smooth on a tv's gpu; the rest stay on phones
+    val availableOnTv: Boolean get() = this == FLAGSHIP || this == POSTER || this == VIDEO || this == TIMELINE || isBedside
 
     companion object {
         /** the styles these replaced, so a stored choice lands on its nearest successor */
         fun fromStored(name: String?): PlayerStyle? = when (name) {
             "SIMPLE", "SIMPLE_COMPACT" -> TIMELINE
             "LYRICS_ABSTRACT" -> LYRICS
+            // everyone on the old flagship moves to the new one once; picking classic later sticks
+            "DEFAULT" -> FLAGSHIP
             else -> null
         }
+
+        // the selector's columns, each look with its variants stacked under it, a swipe down away
+        val selectorColumns: List<List<PlayerStyle>> = listOf(
+            listOf(FLAGSHIP, CLASSIC),
+            listOf(TURNTABLE),
+            listOf(VIDEO),
+            listOf(IPOD),
+            // the tiles first, the single big clock a swipe down under them
+            listOf(BEDSIDE_TILES, BEDSIDE),
+            listOf(POSTER),
+            // the lyrics stage sits under the timeline, the way the classic sits under the flagship
+            listOf(TIMELINE, LYRICS),
+        )
     }
 }
 
 val PlayerStyleKey = stringPreferencesKey("playerStyle")
 
-/** whether [style] is shown turned sideways (its content rotated a quarter turn) */
+// the tv's "flagship square": the flagship with its whole cover as a rounded square
+val TvFlagshipSquareKey = booleanPreferencesKey("tvFlagshipSquare")
+// a phone on its side: the flagship's cover fills the left and melts into the controls, instead of a rounded square beside them
+val LandscapeFullCoverKey = booleanPreferencesKey("landscapeFullCover")
+// Experimental: the app may turn sideways into its wide layout; off (the default) it stays upright
+val LandscapeUnlockedKey = booleanPreferencesKey("landscapeUnlocked")
+
+// the ipod player's body colours, ipod.js's three plus a pitch black one with a dark screen
+enum class IpodTheme { SILVER, BLACK, U2, TRUE_DARK }
+
+val IpodThemeKey = stringPreferencesKey("ipodTheme")
+
+// the click wheel's own colour, or whatever the body's theme comes with
+enum class IpodWheelColor { THEME, WHITE, BLACK, RED }
+
+val IpodWheelColorKey = stringPreferencesKey("ipodWheelColor")
+
+// the screen grows down to the wheel on tall phones instead of keeping the classic's shape
+val IpodTallScreenKey = booleanPreferencesKey("ipodTallScreen")
+
+// the soft shading round the edges of the body
+val IpodShadowKey = booleanPreferencesKey("ipodShadow")
+
+/** the Poster's bars round its cover, moving with the music; off until turned on in its editor */
+val PosterVisualizerKey = booleanPreferencesKey("posterVisualizer")
+
+// the bedside's clock faces, swiped through sideways on the clock or picked in its sheet
+enum class BedsideClockFace { BIG, STACKED, ANALOG, COVER }
+
+val BedsideClockFaceKey = stringPreferencesKey("bedsideClockFace")
+
+// the colour the bedside settles into once it's left alone: none, a warm orange, or the cover's own hue
+enum class BedsideNightTint { OFF, ORANGE, COVER }
+
+val BedsideNightTintKey = stringPreferencesKey("bedsideNightTint")
+
+// left alone, the bedside dims and drifts a few pixels now and then so an oled screen doesn't burn in overnight
+val BedsideScreenSaverKey = booleanPreferencesKey("bedsideScreenSaver")
+
+// the phone doesn't sleep while the bedside is open, on out of the box
+val BedsideKeepAwakeKey = booleanPreferencesKey("bedsideKeepAwake")
+
+// lock the phone with the bedside open and it's still there over the lock screen when the screen wakes
+val BedsideLockScreenKey = booleanPreferencesKey("bedsideLockScreen")
+
+// "not now" on the bedside's lock screen prompt, so it asks once and then leaves it to the sheet
+val BedsideLockPromptDismissedKey = booleanPreferencesKey("bedsideLockPromptDismissed")
+
+// whether a style's rotate button turned it sideways; the same key as before, so a style someone had turned comes back turned
 fun playerStyleRotatedKey(style: PlayerStyle) = booleanPreferencesKey("playerStyleRotated_${style.name}")
+
+// the page each bedside tile was left on, so it opens where it was
+val BedsideMusicTilePageKey = intPreferencesKey("bedsideMusicTilePage")
+val BedsideInfoTilePageKey = intPreferencesKey("bedsideInfoTilePage")
 
 /** what the timestamp at the right of the seek bar shows */
 enum class PlayerEndTimestamp { END_TIME, TIME_LEFT }
@@ -528,6 +821,40 @@ val PlayerMenuSlotsKey = stringPreferencesKey("playerMenuSlots")
 
 /** the action of the round button beside the chevron (a like, out of the box) */
 val PlayerSideButtonKey = stringPreferencesKey("playerSideButton")
+
+/** what sits at the bottom of the player, under the play buttons */
+enum class PlayerBottomBarStyle(val displayName: String) {
+    /** the lyrics and queue cards, one behind the other */
+    STACK("Stack"),
+    /** the phone's volume, with the lyrics and queue buttons under it */
+    VOLUME("Volume"),
+}
+
+val PlayerBottomBarStyleKey = stringPreferencesKey("playerBottomBarStyle")
+
+// the new flagship keeps its own bottom bar, so it shows the volume bar it was designed with even where classic has the cards
+val FlagshipBottomBarStyleKey = stringPreferencesKey("flagshipBottomBarStyle")
+
+// the new flagship's own background, the moving cover colours out of the box
+val FlagshipBackgroundStyleKey = stringPreferencesKey("flagshipBackgroundStyle")
+
+// how the new flagship lays out its play buttons
+enum class FlagshipTransportLayout {
+    // back, play and next, wide apart with nothing round them
+    THREE,
+    // ten seconds back and forward on the outside, play in a white circle
+    TEN_SECONDS,
+    // queue and repeat on the outside, play in a white circle
+    QUEUE_REPEAT,
+}
+
+val FlagshipTransportLayoutKey = stringPreferencesKey("flagshipTransportLayout")
+
+/** how far the player's controls were held and dragged from their usual place in the editor, in dp (down is positive) */
+val PlayerControlsShiftKey = floatPreferencesKey("playerControlsShift")
+
+/** how much taller the player's card was pulled in the editor, in dp: room for readings and the next line */
+val PlayerCardGrowthKey = floatPreferencesKey("playerCardGrowth")
 
 /** what the disc's label shows */
 enum class DiscLabelContent { CUSTOM, MUSIC_NAME, ARTIST_NAME, ALBUM_NAME, MUSIC_AND_ARTIST, NONE }
@@ -581,10 +908,18 @@ val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
 val MiniPlayerBackgroundStyleKey = stringPreferencesKey("miniPlayerBackgroundStyle")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val SwipeLyricsKey = booleanPreferencesKey("swipeLyrics")
+// the line being sung shown as the title and cover on android auto's player while a car is connected, on unless turned off
+val CarLyricsKey = booleanPreferencesKey("carLyrics")
+// the line being sung floating over other apps in a little pill, off until turned on and allowed to draw over them
+val FloatingLyricsKey = booleanPreferencesKey("floatingLyrics")
+// where the floating lyrics pill was left on screen, in px from the top left; missing until it's first moved
+val FloatingLyricsXKey = intPreferencesKey("floatingLyricsX")
+val FloatingLyricsYKey = intPreferencesKey("floatingLyricsY")
 val EnableLyricsThumbnailPlayPauseKey = booleanPreferencesKey("enableLyricsThumbnailPlayPause")
 val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
 val LyricsClickKey = booleanPreferencesKey("lyricsClick")
 
+// the old lyrics shader switch, only read once to move people onto the shaderless lyric styles
 val LyricsWaveAnimationKey = booleanPreferencesKey("lyricsWaveAnimation")
 
 val LyricsHighBloomKey = booleanPreferencesKey("lyricsHighBloom")
@@ -612,6 +947,10 @@ val TranslateModeKey = stringPreferencesKey("translateMode")
 val TranslateLanguageKey = stringPreferencesKey("translateLanguage")
 /** Language the lyrics are translated FROM; "auto" lets the translator detect it. */
 val TranslateSourceLanguageKey = stringPreferencesKey("translateSourceLanguage")
+// a video's own uploaded translation is used as the lyrics translation when it has one (settings > general)
+val YouTubeCaptionTranslationKey = booleanPreferencesKey("youtubeCaptionTranslation")
+// a music video's lyrics are moved onto the video's own timing, found from its auto captions (settings > general)
+val SyncLyricsToVideoKey = booleanPreferencesKey("syncLyricsToVideo")
 val DeeplApiKey = stringPreferencesKey("deeplApiKey")
 val DeeplFormalityKey = stringPreferencesKey("deeplFormality")
 val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
@@ -624,12 +963,27 @@ val LyricsStandardBlurKey = booleanPreferencesKey("lyricsStandardBlur")
  */
 val LyricsMotionStyleKey = stringPreferencesKey("lyricsMotionStyle")
 
-enum class LyricsMotionStyle(val displayName: String, val description: String) {
+// risesWords: words rise and lines cascade (style 1's motion), shaded: the agsl glow and wave run on top
+enum class LyricsMotionStyle(
+    val displayName: String,
+    val description: String,
+    val risesWords: Boolean,
+    val shaded: Boolean,
+) {
     /** Style 1: words rise into place as they're sung, held notes swell and glow, lines cascade. */
-    MOTION("Style 1", "Words rise as they're sung, long notes swell, lines cascade"),
+    MOTION("Style 1", "Words rise as they're sung, long notes swell, lines cascade", risesWords = true, shaded = true),
 
     /** Style 2: the original - a wave across the sung letters, the list scrolls as one piece. */
-    LEGACY("Style 2", "The original wave across the sung letters"),
+    LEGACY("Style 2", "The original wave across the sung letters", risesWords = false, shaded = true),
+
+    // style 1 without the shader, for phones that struggle with it
+    BORING("Boring", "Style 1's rise, without the glow", risesWords = true, shaded = false),
+
+    // style 2 without the shader, just the colour sweeping along
+    PLAIN("Plain", "Style 2's sweep, without the glow or the wave", risesWords = false, shaded = false);
+
+    // the same motion with the shader switched off, used when moving people off the old shader switch
+    val withoutShader: LyricsMotionStyle get() = if (risesWords) BORING else PLAIN
 }
 
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
@@ -657,6 +1011,22 @@ val SwipeThumbnailKey = booleanPreferencesKey("swipeThumbnail")
 val RotatingThumbnailKey = booleanPreferencesKey("rotatingThumbnail")
 val CanvasThumbnailAnimationKey = booleanPreferencesKey("canvasThumbnailAnimation")
 val CanvasWifiOnlyKey = booleanPreferencesKey("canvasWifiOnly")
+// animated covers play the sharpest version there is (apple's go up to 4k); off, or with data saver on, they play a lighter one
+val CanvasBestQualityKey = booleanPreferencesKey("canvasBestQuality")
+// which canvas sources get asked first; spotify only joins once it's turned on and signed in on its own page
+val CanvasOrderKey = stringPreferencesKey("canvasOrder")
+val SpotifyCanvasKey = booleanPreferencesKey("spotifyCanvas")
+
+enum class CanvasSource { APPLE_MUSIC, TIDAL, SPOTIFY }
+
+enum class CanvasOrder(val sources: List<CanvasSource>) {
+    APPLE_TIDAL_SPOTIFY(listOf(CanvasSource.APPLE_MUSIC, CanvasSource.TIDAL, CanvasSource.SPOTIFY)),
+    APPLE_SPOTIFY_TIDAL(listOf(CanvasSource.APPLE_MUSIC, CanvasSource.SPOTIFY, CanvasSource.TIDAL)),
+    TIDAL_APPLE_SPOTIFY(listOf(CanvasSource.TIDAL, CanvasSource.APPLE_MUSIC, CanvasSource.SPOTIFY)),
+    TIDAL_SPOTIFY_APPLE(listOf(CanvasSource.TIDAL, CanvasSource.SPOTIFY, CanvasSource.APPLE_MUSIC)),
+    SPOTIFY_APPLE_TIDAL(listOf(CanvasSource.SPOTIFY, CanvasSource.APPLE_MUSIC, CanvasSource.TIDAL)),
+    SPOTIFY_TIDAL_APPLE(listOf(CanvasSource.SPOTIFY, CanvasSource.TIDAL, CanvasSource.APPLE_MUSIC)),
+}
 /** The player's format badge beside the title (OPUS, AAC, FLAC...) */
 val ShowFormatBadgeKey = booleanPreferencesKey("showFormatBadge")
 /** The badge also says the stream's sample rate */
@@ -963,9 +1333,43 @@ val HapticFocusKey = stringPreferencesKey("hapticFocus")
 val HideAudioQualityBadgeKey = booleanPreferencesKey("hideAudioQualityBadge")
 
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
+
+/**
+ * How much work the glass blur does. Low is the lighter glass from before 8.1: the bottom bar
+ * blurs only what's right under it with no grain on top, and glass draws its backdrop at a lower
+ * resolution. High is the newer frosted glass.
+ */
+val BlurQualityKey = stringPreferencesKey("blurQuality")
+
+enum class BlurQuality { LOW, HIGH }
+
+// the glass of the nav bar and the mini player; a look module can swap blossomtune's frost for a glass shader it brings itself
+val ChromeGlassStyleKey = stringPreferencesKey("chromeGlassStyle")
+
+enum class ChromeGlassStyle {
+    FROSTED,
+    // the agsl glass the look that's on brings in its zip
+    MODULE,
+}
 val EnableProgressiveBlurKey = booleanPreferencesKey("enableProgressiveBlur")
+// the animation switch in customize: off, nothing in the app moves (the old key name stayed so nobody's choice is lost)
 val EnableElementBlurAnimatorKey = booleanPreferencesKey("enableElementBlurAnimator")
 val BlurStrengthPxKey = floatPreferencesKey("blurStrengthPx")
+// blur on things themselves (lyric lines, title morphs, menus, page wipes), apart from the glass blur
+val ElementBlurKey = booleanPreferencesKey("elementBlur")
+// how fast animations run on top of android's own animation speed, 1 means just follow android
+val AnimationSpeedKey = floatPreferencesKey("animationSpeed")
+// the phone's status bar over the open player, off hides it on every player style, the ipod too
+val PlayerStatusBarKey = booleanPreferencesKey("playerStatusBar")
+// out of the box the open player runs to the top of the screen with the status bar hidden
+const val PlayerStatusBarDefault = false
+// the phone's navigation bar under the open player, off hides it like the player always has
+val PlayerNavBarKey = booleanPreferencesKey("playerNavBar")
+const val PlayerNavBarDefault = false
+// settings rows show only their titles, holding a row still shows what it does
+val HideSettingsDescriptionsKey = booleanPreferencesKey("hideSettingsDescriptions")
+// no update popup on home and no update notification, the updater page still shows what's new when opened
+val HideUpdateNoticeKey = booleanPreferencesKey("hideUpdateNotice")
 val AudioQualityBadgeDevKey = booleanPreferencesKey("audioQualityBadgeDev")
 val YtVideoBackgroundLyricsSyncKey = booleanPreferencesKey("ytVideoBackgroundLyricsSync")
 val ForceYtBackdropBlur1500Key = booleanPreferencesKey("forceYtBackdropBlur1500")
@@ -973,15 +1377,17 @@ val ForceYtBackdropBlur1500Key = booleanPreferencesKey("forceYtBackdropBlur1500"
 val OfflineModeKey = booleanPreferencesKey("offlineMode")
 val DisableAiFilterKey = booleanPreferencesKey("disableAiFilter")
 val SetupImportCompletedKey = booleanPreferencesKey("setupImportCompleted")
+val HideLibraryImportBannerKey = booleanPreferencesKey("hideLibraryImportBanner")
 
 val LastKnownVersionNameKey = stringPreferencesKey("lastKnownVersionName")
 val LastDonateShownTimeKey = longPreferencesKey("lastDonateShownTime")
 
 // Donate auto-prompt (ui/screens/donate/DonatePrompt.kt)
-val DonateSongsPlayedKey = intPreferencesKey("donateSongsPlayed")
+val DonatePlaytimeMsKey = longPreferencesKey("donatePlaytimeMs")
 val DonateFirstPromptShownKey = booleanPreferencesKey("donateFirstPromptShown")
 val DonatePromptWindowStartKey = longPreferencesKey("donatePromptWindowStart")
 val DonatePromptSlotsKey = stringPreferencesKey("donatePromptSlots")
+val DonateOpenPromptAtKey = longPreferencesKey("donateOpenPromptAt")
 
 // one-off lyrics cache clears (App.kt). raise LyricsCacheWipeGeneration to clear it again in a later release
 val LyricsCacheWipeKey = intPreferencesKey("lyricsCacheWipe")

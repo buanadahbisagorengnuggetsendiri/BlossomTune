@@ -1,5 +1,3 @@
-// commiitem.kt
-
 package dev.meowlabs.blossomtune.core.commitscreen
 
 import androidx.compose.foundation.background

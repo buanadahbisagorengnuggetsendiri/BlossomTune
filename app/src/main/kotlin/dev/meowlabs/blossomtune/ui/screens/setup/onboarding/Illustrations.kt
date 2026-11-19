@@ -1,6 +1,4 @@
-// Illustrations.kt
-//
-// The crossfade banner on the "Last one" page.
+// the crossfade banner on the last one page
 
 package dev.meowlabs.blossomtune.ui.screens.setup.onboarding
 
@@ -27,10 +25,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlin.math.sin
 
-/**
- * Two tracks trading places: the outgoing one's waveform shrinks as the incoming one's grows,
- * under the two gain curves crossing in the middle.
- */
+/** two tracks trading places, the outgoing waveform shrinks as the incoming one grows under crossing gain curves */
 @Composable
 internal fun CrossfadeBanner(modifier: Modifier = Modifier) {
     // a still picture: fixed waveform shapes, nothing animating
@@ -39,7 +34,7 @@ internal fun CrossfadeBanner(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .height(124.dp)
-            .border(1.dp, Color(0xFF46536E), RoundedCornerShape(14.dp)),
+            .border(1.dp, Color(0xFF5A5A5A), RoundedCornerShape(14.dp)),
     ) {
         Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 26.dp, vertical = 30.dp)) {
             val w = size.width
@@ -72,8 +67,8 @@ internal fun CrossfadeBanner(modifier: Modifier = Modifier) {
                 moveTo(0f, h)
                 cubicTo(w * 0.45f, h, w * 0.55f, 0f, w, 0f)
             }
-            drawPath(fadeOut, Color(0xFF8493B0), style = curveStroke)
-            drawPath(fadeIn, Color(0xFF8493B0), style = curveStroke)
+            drawPath(fadeOut, Color(0xFF9A9A9A), style = curveStroke)
+            drawPath(fadeIn, Color(0xFF9A9A9A), style = curveStroke)
         }
         Text(
             "ei i i eii",
@@ -84,7 +79,7 @@ internal fun CrossfadeBanner(modifier: Modifier = Modifier) {
         )
         Text(
             "i miss you",
-            color = Color(0xFF8493B0),
+            color = Color(0xFF9A9A9A),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 8.dp, start = 40.dp),

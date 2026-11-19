@@ -1,5 +1,3 @@
-// YouTube.kt
-
 package com.music.innertube
 
 import com.music.innertube.models.AccountInfo
@@ -67,6 +65,7 @@ import com.music.innertube.pages.SearchSummary
 import com.music.innertube.pages.SearchSummaryPage
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.Url
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -116,7 +115,7 @@ object YouTube {
             innerTube.useLoginForBrowse = value
         }
 
-    /** Offline mode: every YouTube request fails at once with [OfflineModeException]. */
+    /** offline mode: every youtube request fails at once with OfflineModeException */
     var offline: Boolean
         get() = innerTube.offline
         set(value) {
@@ -132,6 +131,9 @@ object YouTube {
     suspend fun refreshVisitorData(): Result<String> = visitorData().onSuccess {
         visitorData = it
     }
+
+    // a fresh visitor id for a client that mints its own, after youtube's bot check burned the old one
+    suspend fun refreshVisitorData(client: YouTubeClient): Result<String> = innerTube.mintVisitorId(client)
 
     fun clearGuestSession() {
         visitorData = null
@@ -770,7 +772,7 @@ object YouTube {
                     content.musicCarouselShelfRenderer != null -> {
                         BrowseResult.Item(
                             title = content.musicCarouselShelfRenderer.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.firstOrNull()?.text,
-                            // genre pages list their "Songs" shelf as rows, not cards
+                            // genre pages list their "songs" shelf as rows, not cards
                             items = content.musicCarouselShelfRenderer.contents.mapNotNull { item ->
                                 item.musicTwoRowItemRenderer?.let(RelatedPage.Companion::fromMusicTwoRowItemRenderer)
                                     ?: item.musicResponsiveListItemRenderer?.let(RelatedPage.Companion::fromMusicResponsiveListItemRenderer)
@@ -1116,23 +1118,65 @@ object YouTube {
         }
     }
 
-    suspend fun musicHistory(hlOverride: String? = null) = runCatching {
-        val response = innerTube.browse(
+    // the history, read [maxRequests] pages deep: the first page only holds the latest few buckets, older ones (and the rest of a long bucket) come as continuations
+    suspend fun musicHistory(hlOverride: String? = null, maxRequests: Int = 1) = runCatching {
+        suspend fun page(browseId: String?, continuation: String?) = innerTube.browse(
             client = WEB_REMIX,
-            browseId = "FEmusic_history",
+            browseId = browseId,
+            continuation = continuation,
             setLogin = true,
             hlOverride = hlOverride,
         ).body<BrowseResponse>()
 
-        HistoryPage(
-            sections = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
-                ?.tabRenderer?.content?.sectionListRenderer?.contents
-                ?.mapNotNull {
-                    it.musicShelfRenderer?.let { musicShelfRenderer ->
-                        HistoryPage.fromMusicShelfRenderer(musicShelfRenderer)
-                    }
-                }
-        )
+        val sections = mutableListOf<Pair<String, MutableList<SongItem>>>()
+        // more of a shelf already read, as (shelf, token), read before going further back
+        val shelfContinuations = ArrayDeque<Pair<Int, String>>()
+
+        fun addShelf(shelf: MusicShelfRenderer) {
+            val section = HistoryPage.fromMusicShelfRenderer(shelf) ?: return
+            // a bucket cut across two pages comes back as two shelves with the same title
+            val index = if (sections.lastOrNull()?.first == section.title) {
+                sections.last().second += section.songs
+                sections.lastIndex
+            } else {
+                sections += section.title to section.songs.toMutableList()
+                sections.lastIndex
+            }
+            (shelf.continuations?.getContinuation() ?: shelf.contents?.getContinuation())?.let { shelfContinuations.addLast(index to it) }
+        }
+
+        val first = page("FEmusic_history", null)
+        val list = first.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer
+        list?.contents?.forEach { content -> content.musicShelfRenderer?.let(::addShelf) }
+        var listContinuation = list?.continuations?.getContinuation()
+        val seen = HashSet<String>()
+
+        var requests = 1
+        while (requests < maxRequests) {
+            val shelf = shelfContinuations.removeFirstOrNull()
+            if (shelf != null) {
+                if (!seen.add(shelf.second)) continue
+                val response = page(null, shelf.second)
+                requests++
+                val shelfContinuation = response.continuationContents?.musicShelfContinuation
+                val items = shelfContinuation?.contents
+                    ?: response.onResponseReceivedActions?.firstOrNull()?.appendContinuationItemsAction?.continuationItems
+                    ?: emptyList()
+                sections[shelf.first].second += HistoryPage.songsOf(items)
+                (shelfContinuation?.continuations?.getContinuation() ?: items.getContinuation())
+                    ?.let { shelfContinuations.addFirst(shelf.first to it) }
+                continue
+            }
+            val token = listContinuation ?: break
+            if (!seen.add(token)) break
+            val response = page(null, token)
+            requests++
+            val more = response.continuationContents?.sectionListContinuation
+            more?.contents?.forEach { content -> content.musicShelfRenderer?.let(::addShelf) }
+            listContinuation = more?.continuations?.getContinuation()
+        }
+
+        HistoryPage(sections = sections.map { (title, songs) -> HistoryPage.HistorySection(title, songs) })
     }
 
     suspend fun likeVideo(videoId: String, like: Boolean) = runCatching {
@@ -1167,7 +1211,7 @@ object YouTube {
         innerTube.addToPlaylist(WEB_REMIX, playlistId, videoId)
     }
 
-    /** Adds [videoIds] in batches of [batchSize] — one edit_playlist call each instead of one per song. */
+    /** adds the videos in batches of batchSize, one edit_playlist call each instead of one per song */
     suspend fun addVideosToPlaylist(playlistId: String, videoIds: List<String>, batchSize: Int = 50) = runCatching {
         videoIds.chunked(batchSize).forEach { batch ->
             val response = innerTube.addVideosToPlaylist(WEB_REMIX, playlistId, batch)
@@ -1218,25 +1262,42 @@ object YouTube {
         innerTube.player(client, videoId, playlistId, signatureTimestamp, poToken).body<PlayerResponse>()
     }
 
-    suspend fun registerPlayback(playlistId: String? = null, playbackTracking: String) = runCatching {
-        val cpn = (1..16).map {
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"[Random.Default.nextInt(
-                0,
-                64
-            )]
-        }.joinToString("")
+    // a fresh id for one listen, youtube ties a song's play and its watch time together by it
+    fun newPlaybackNonce(): String = (1..16).map {
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"[Random.Default.nextInt(0, 64)]
+    }.joinToString("")
 
-        val playbackUrl = playbackTracking.replace(
-            "https://s.youtube.com",
-            "https://music.youtube.com",
-        )
-
+    suspend fun registerPlayback(
+        playlistId: String? = null,
+        playbackTracking: String,
+        cpn: String = newPlaybackNonce(),
+    ) = runCatching {
         innerTube.registerPlayback(
-            url = playbackUrl,
+            url = musicStatsUrl(playbackTracking),
             playlistId = playlistId,
             cpn = cpn
         )
     }
+
+    // says which stretches of a song were heard, fields the link already carries (like len) aren't sent twice
+    suspend fun reportWatchtime(
+        watchtimeTracking: String,
+        cpn: String,
+        params: Map<String, String>,
+        playlistId: String? = null,
+    ) = runCatching {
+        val url = musicStatsUrl(watchtimeTracking)
+        val alreadyInUrl = Url(url).parameters.names()
+        innerTube.registerPlayback(
+            url = url,
+            playlistId = playlistId,
+            cpn = cpn,
+            extraParams = params.filterKeys { it !in alreadyInUrl },
+        )
+    }
+
+    // the player hands out s.youtube.com links, the music site takes the same ones for its own plays
+    private fun musicStatsUrl(url: String) = url.replace("https://s.youtube.com", "https://music.youtube.com")
 
     suspend fun next(endpoint: WatchEndpoint, continuation: String? = null): Result<NextResult> = runCatching {
         val response = innerTube.next(
@@ -1249,10 +1310,11 @@ object YouTube {
             continuation).body<NextResponse>()
         val playlistPanelRenderer = response.continuationContents?.playlistPanelContinuation
             ?: response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer
-                ?.watchNextTabbedResultsRenderer?.tabs?.get(0)?.tabRenderer?.content?.musicQueueRenderer
-                ?.content?.playlistPanelRenderer!!
+                ?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(0)?.tabRenderer?.content?.musicQueueRenderer
+                ?.content?.playlistPanelRenderer
+            ?: error("Missing playlistPanelRenderer")
         val title = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer
-            ?.watchNextTabbedResultsRenderer?.tabs?.get(0)?.tabRenderer?.content?.musicQueueRenderer
+            ?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(0)?.tabRenderer?.content?.musicQueueRenderer
             ?.header?.musicQueueHeaderRenderer?.subtitle?.runs?.firstOrNull()?.text
         val items = playlistPanelRenderer.contents.mapNotNull { content ->
             content.playlistPanelVideoRenderer
@@ -1262,11 +1324,12 @@ object YouTube {
         val songs = items.map { it.first }
         val currentIndex = items.indexOfFirst { it.second }.takeIf { it != -1 }
 
+        // some hindi songs have an empty automix preview, so fall back to the song and its related tab instead of failing the whole queue
         playlistPanelRenderer.contents.lastOrNull()?.automixPreviewVideoRenderer?.content?.automixPlaylistVideoRenderer?.navigationEndpoint?.watchPlaylistEndpoint?.let { watchPlaylistEndpoint ->
-            return@runCatching next(watchPlaylistEndpoint).getOrThrow().let { result ->
-                result.copy(
+            next(watchPlaylistEndpoint).getOrNull()?.takeIf { it.items.isNotEmpty() || songs.isEmpty() }?.let { result ->
+                return@runCatching result.copy(
                     title = title,
-                    // The automix usually opens with the song it was made from, which is already in songs.
+                    // the automix usually opens with the song it was made from, which is already in songs
                     items = songs + result.items.filter { item -> songs.none { it.id == item.id } },
                     lyricsEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(1)?.tabRenderer?.endpoint?.browseEndpoint,
                     relatedEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(2)?.tabRenderer?.endpoint?.browseEndpoint,
@@ -1369,26 +1432,36 @@ object YouTube {
         }!!
     }
 
-    /**
-     * The video's captions as line-synced lyrics: YouTube's auto-generated ones, or a track
-     * uploaded for the video in the same language when there is one (written by a person, so
-     * likelier to have the words right). See [pickCaptionTrack].
-     *
-     * Asked as clients whose caption links work as they are: a web client's need a PoToken and
-     * come back empty without one.
-     */
+    /** the video's captions as line-synced lyrics: youtube's auto-generated ones or an uploaded track in the same language, asked as clients whose caption links work without a PoToken */
     suspend fun captions(videoId: String): Result<String> = runCatching {
         CAPTION_CLIENTS.firstNotNullOfOrNull { client ->
             runCatching { captionsAs(videoId, client) }.getOrNull()?.takeIf { it.isNotBlank() }
         } ?: throw IllegalStateException("No captions for $videoId")
     }
 
-    /** Null when the video has no track worth using for [client]; throws when asking fails. */
+    /** null when the video has no track worth using for client, throws when asking fails */
     private suspend fun captionsAs(videoId: String, client: YouTubeClient): String? {
         val tracks = player(videoId, client = client).getOrThrow()
             .captions?.playerCaptionsTracklistRenderer?.captionTracks.orEmpty()
         val track = pickCaptionTrack(tracks) ?: return null
         return timedTextToLrc(innerTube.timedText(track.baseUrl, client).bodyAsText())
+    }
+
+    /** every caption track the video has, uploaded and auto-generated, from the first client that lists any */
+    suspend fun videoCaptions(videoId: String): Result<VideoCaptions> = runCatching {
+        CAPTION_CLIENTS.firstNotNullOfOrNull { client ->
+            runCatching {
+                player(videoId, client = client).getOrThrow()
+                    .captions?.playerCaptionsTracklistRenderer?.captionTracks
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { VideoCaptions(videoId, it, client) }
+            }.getOrNull()
+        } ?: throw IllegalStateException("No captions for $videoId")
+    }
+
+    /** one of [captions]' tracks as timed cues */
+    suspend fun captionCues(captions: VideoCaptions, track: PlayerResponse.Captions.CaptionTrack): Result<List<CaptionCue>> = runCatching {
+        timedTextToCues(innerTube.timedText(track.baseUrl, captions.client).bodyAsText())
     }
 
     private val CAPTION_CLIENTS = listOf(

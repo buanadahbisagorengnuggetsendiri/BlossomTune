@@ -1,13 +1,10 @@
-// OnboardingPages.kt
-//
-// Every page after the welcome screen, as plain stateless composables. OnboardingFlow decides which
-// one shows and wires them to the view model.
+// every page after the welcome screen as stateless composables, OnboardingFlow picks the page and wires the view model
 
 package dev.meowlabs.blossomtune.ui.screens.setup.onboarding
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import dev.meowlabs.blossomtune.ui.component.rememberDeviceTilt
-import androidx.compose.ui.unit.em
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.WindowInsets
@@ -42,8 +39,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -54,13 +49,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,50 +61,58 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.importer.account.AccountImportState
 import dev.meowlabs.blossomtune.importer.account.AccountService
 import dev.meowlabs.blossomtune.importer.account.RemotePlaylist
+import dev.meowlabs.blossomtune.importer.transfer.TransferManifest
+import dev.meowlabs.blossomtune.viewmodels.TransferStep
 import dev.meowlabs.blossomtune.viewmodels.YouTubeSyncChoices
-import com.music.innertube.models.ArtistItem
 
-private const val GoBack = "hell nah, go back"
-
-/** "Let's build your home" needs this many artists to have something to build from. */
-internal const val MinArtists = 3
-
-// ---- 1. Import? ----
+// ---- 1. import? ----
 
 @Composable
 internal fun ImportAskPage(onYes: () -> Unit, onSkip: () -> Unit) {
     OnboardingPage(
         badge = { PageBadge(painterResource(R.drawable.download)) },
-        title = "Importing music",
-        subtitle = "Do you want to import music from other platforms like Spotify, Apple Music, Tidal or SoundCloud, or sync your data with YouTube Music?",
+        title = stringResource(R.string.onb_import_title),
+        subtitle = stringResource(R.string.onb_import_ask_subtitle),
         footer = {
-            OnbButton("Yes!", onClick = onYes)
-            OnbButton("Skip", onClick = onSkip, style = OnbButtonStyle.Secondary)
+            OnbButton(stringResource(R.string.onb_yes), onClick = onYes)
+            OnbButton(stringResource(R.string.onb_skip), onClick = onSkip, style = OnbButtonStyle.Secondary)
         },
     )
 }
 
-// ---- 2. Which kind ----
+// ---- 2. which kind ----
 
 @Composable
-internal fun ImportModePage(onImport: () -> Unit, onBackup: () -> Unit, onBack: () -> Unit, backupError: String?) {
+internal fun ImportModePage(
+    onPreviousData: () -> Unit,
+    onImport: () -> Unit,
+    onBackup: () -> Unit,
+    onBack: () -> Unit,
+    backupError: String?,
+) {
     OnboardingPage(
         badge = { PageBadge(painterResource(R.drawable.download)) },
-        title = "Importing music",
-        subtitle = "what do you want?",
-        footer = { OnbButton(GoBack, onClick = onBack, style = OnbButtonStyle.Secondary) },
+        title = stringResource(R.string.onb_import_title),
+        subtitle = stringResource(R.string.onb_import_mode_subtitle),
+        footer = { OnbButton(stringResource(R.string.onb_go_back), onClick = onBack, style = OnbButtonStyle.Secondary) },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             OnbChoiceCard(
+                icon = painterResource(R.drawable.restore),
+                title = stringResource(R.string.onb_import_previous_title),
+                description = stringResource(R.string.onb_import_previous_desc),
+                onClick = onPreviousData,
+            )
+            OnbChoiceCard(
                 icon = painterResource(R.drawable.playlist_add),
-                title = "Import",
-                description = "import music, playlists and albums from supported providers like Apple Music, Spotify, Tidal and YouTube Music",
+                title = stringResource(R.string.onb_import),
+                description = stringResource(R.string.onb_import_desc),
                 onClick = onImport,
             )
             OnbChoiceCard(
                 icon = painterResource(R.drawable.backup),
-                title = "Import from backup",
-                description = "if you by any chance have a BlossomTune backup",
+                title = stringResource(R.string.onb_import_backup_title),
+                description = stringResource(R.string.onb_import_backup_desc),
                 onClick = onBackup,
             )
             if (backupError != null) {
@@ -122,21 +122,61 @@ internal fun ImportModePage(onImport: () -> Unit, onBackup: () -> Unit, onBack: 
     }
 }
 
-// ---- 3. Provider ----
+// ---- 2b. bringing previous data over ----
+
+@Composable
+internal fun RestoringPage(step: TransferStep, manifest: TransferManifest?) {
+    val done = step is TransferStep.Done
+    val progress = if (done) 1f else (step as? TransferStep.Working)?.progress ?: 0f
+    OnboardingPage(
+        badge = { PageBadge(painterResource(if (done) R.drawable.check else R.drawable.restore)) },
+        title = if (done) stringResource(R.string.onb_all_set) else stringResource(R.string.onb_bringing_over),
+        subtitle = when {
+            done -> stringResource(R.string.onb_restart_once)
+            manifest != null -> stringResource(
+                R.string.onb_restore_counts,
+                pluralStringResource(R.plurals.onb_songs, manifest.songs, manifest.songs),
+                pluralStringResource(R.plurals.onb_playlists, manifest.playlists, manifest.playlists),
+                pluralStringResource(R.plurals.onb_plays, manifest.plays, manifest.plays),
+            )
+            else -> stringResource(R.string.onb_reading_export)
+        },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LinearProgressIndicator(
+                progress = { progress },
+                color = Color.White,
+                trackColor = Onb.Card,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape),
+            )
+            Text(
+                if (done) stringResource(R.string.onb_restarting) else stringResource(R.string.onb_restore_progress, (progress * 100).toInt()),
+                color = Onb.Subtitle,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+// ---- 3. provider ----
 
 @Composable
 internal fun ProviderListPage(onPick: (AccountService) -> Unit, onBack: () -> Unit) {
     OnboardingPage(
         badge = { PageBadge(painterResource(R.drawable.library_music)) },
-        title = "Select provider",
-        footer = { OnbButton(GoBack, onClick = onBack, style = OnbButtonStyle.Secondary) },
+        title = stringResource(R.string.onb_select_provider),
+        footer = { OnbButton(stringResource(R.string.onb_go_back), onClick = onBack, style = OnbButtonStyle.Secondary) },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             listOf(
-                AccountService.SPOTIFY to "Liked Songs and playlists",
-                AccountService.APPLE_MUSIC to "Library playlists and Favorite Songs",
-                AccountService.YOUTUBE_MUSIC to "Liked music and playlists · also supports sync",
-                AccountService.TIDAL to "My Tracks and your playlists",
+                AccountService.SPOTIFY to stringResource(R.string.onb_provider_spotify_desc),
+                AccountService.APPLE_MUSIC to stringResource(R.string.onb_provider_apple_desc),
+                AccountService.YOUTUBE_MUSIC to stringResource(R.string.onb_provider_youtube_desc),
+                AccountService.TIDAL to stringResource(R.string.onb_provider_tidal_desc),
             ).forEach { (service, description) ->
                 OnbCard(modifier = Modifier.fillMaxWidth(), onClick = { onPick(service) }, shape = RoundedCornerShape(20.dp)) {
                     Row(
@@ -156,7 +196,7 @@ internal fun ProviderListPage(onPick: (AccountService) -> Unit, onBack: () -> Un
     }
 }
 
-// ---- 4. Setup (instructions; the browser sheet opens over this) ----
+// ---- 4. setup (instructions, the browser sheet opens over this) ----
 
 @Composable
 internal fun ProviderSetupPage(
@@ -169,15 +209,18 @@ internal fun ProviderSetupPage(
 ) {
     OnboardingPage(
         badge = { ProviderSquircle(service, size = 40.dp) },
-        title = "${service.label} setup",
-        subtitle = "You will log in to your account. We never see your password. A web page will open.",
+        title = stringResource(R.string.onb_provider_setup_title, service.label),
+        subtitle = stringResource(R.string.onb_provider_setup_subtitle),
         footer = {
             when (state) {
-                is AccountImportState.Failed -> OnbButton(if (state.signedOut) "Sign in again" else "Try again", onClick = onRetry)
+                is AccountImportState.Failed -> OnbButton(
+                    if (state.signedOut) stringResource(R.string.onb_sign_in_again) else stringResource(R.string.onb_try_again),
+                    onClick = onRetry,
+                )
                 is AccountImportState.Loading, is AccountImportState.Choosing -> Unit
-                else -> if (!browserOpen) OnbButton("Open sign-in", onClick = onOpenBrowser)
+                else -> if (!browserOpen) OnbButton(stringResource(R.string.onb_open_sign_in), onClick = onOpenBrowser)
             }
-            OnbButton(GoBack, onClick = onBack, style = OnbButtonStyle.Secondary)
+            OnbButton(stringResource(R.string.onb_go_back), onClick = onBack, style = OnbButtonStyle.Secondary)
         },
     ) {
         when (state) {
@@ -188,7 +231,7 @@ internal fun ProviderSetupPage(
             }
             is AccountImportState.Failed -> Text(state.message, color = Color(0xFFFF8A80), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             else -> Text(
-                "Sign in on ${service.label}'s own page. Once you're in, the page closes and your playlists show up here.",
+                stringResource(R.string.onb_provider_setup_body, service.label),
                 color = Onb.Muted,
                 fontSize = 14.sp,
             )
@@ -196,7 +239,7 @@ internal fun ProviderSetupPage(
     }
 }
 
-// ---- 5. What to sync / import ----
+// ---- 5. what to sync or import ----
 
 @Composable
 internal fun WhatToSyncPage(
@@ -214,28 +257,28 @@ internal fun WhatToSyncPage(
     val selectedCount = choosing?.selected?.size ?: 0
     OnboardingPage(
         badge = { ProviderSquircle(service, size = 40.dp) },
-        title = "What to import",
-        subtitle = choosing?.accountName?.let { "Signed in as $it" },
+        title = stringResource(R.string.onb_what_to_import),
+        subtitle = choosing?.accountName?.let { stringResource(R.string.onb_signed_in_as, it) },
         scrollable = false,
         footer = {
             if (reading != null) {
-                OnbButton("Stop", onClick = onCancelReading, style = OnbButtonStyle.Secondary)
+                OnbButton(stringResource(R.string.onb_stop), onClick = onCancelReading, style = OnbButtonStyle.Secondary)
             } else {
                 OnbButton(
                     text = when {
-                        selectedCount == 0 -> "Choose what to import"
-                        service == AccountService.YOUTUBE_MUSIC -> "Next"
-                        else -> "Import $selectedCount"
+                        selectedCount == 0 -> stringResource(R.string.onb_choose_what_to_import)
+                        service == AccountService.YOUTUBE_MUSIC -> stringResource(R.string.onb_next)
+                        else -> stringResource(R.string.onb_import_count, selectedCount)
                     },
                     enabled = selectedCount > 0,
                     onClick = onConfirm,
                 )
-                OnbButton(GoBack, onClick = onBack, style = OnbButtonStyle.Secondary)
+                OnbButton(stringResource(R.string.onb_go_back), onClick = onBack, style = OnbButtonStyle.Secondary)
             }
         },
     ) {
         if (reading != null) {
-            Text("${reading.label} (${reading.done + 1} of ${reading.total})", color = Onb.Subtitle, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.onb_reading_progress, reading.label, reading.done + 1, reading.total), color = Onb.Subtitle, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(10.dp))
             LinearProgressIndicator(
                 progress = { reading.done.toFloat() / reading.total.coerceAtLeast(1) },
@@ -248,7 +291,7 @@ internal fun WhatToSyncPage(
         if (choosing == null) return@OnboardingPage
         val allSelected = selectedCount == choosing.playlists.size && selectedCount > 0
         Text(
-            text = if (allSelected) "Select none" else "Select all",
+            text = if (allSelected) stringResource(R.string.onb_select_none) else stringResource(R.string.onb_select_all),
             color = Onb.Subtitle,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -269,7 +312,7 @@ internal fun WhatToSyncPage(
             ) {
                 if (choosing.playlists.isEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        Text("Nothing in this account yet.", color = Onb.Muted, fontSize = 14.sp)
+                        Text(stringResource(R.string.onb_nothing_in_account), color = Onb.Muted, fontSize = 14.sp)
                     }
                 }
                 items(choosing.playlists, key = { it.id }) { playlist ->
@@ -305,7 +348,7 @@ private fun CoverTile(playlist: RemotePlaylist, selected: Boolean, onClick: () -
                 playlist.isLiked -> Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Brush.linearGradient(listOf(Color(0xFF4B5976), Color(0xFF171E2C)))),
+                        .background(Brush.linearGradient(listOf(Color(0xFF5B5B66), Color(0xFF1F1F24)))),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(painterResource(R.drawable.favorite), contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
@@ -335,18 +378,19 @@ private fun CoverTile(playlist: RemotePlaylist, selected: Boolean, onClick: () -
                         .background(Color.White),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(painterResource(R.drawable.check), contentDescription = "Selected", tint = Color.Black, modifier = Modifier.size(18.dp))
+                    Icon(painterResource(R.drawable.check), contentDescription = stringResource(R.string.onb_selected), tint = Color.Black, modifier = Modifier.size(18.dp))
                 }
             }
         }
         Spacer(Modifier.height(8.dp))
         Text(playlist.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        val detail = listOfNotNull(playlist.trackCount?.let { "$it songs" }, playlist.subtitle).joinToString(" · ")
+        val songCount = playlist.trackCount?.let { pluralStringResource(R.plurals.onb_songs, it, it) }
+        val detail = listOfNotNull(songCount, playlist.subtitle).joinToString(" · ")
         if (detail.isNotEmpty()) Text(detail, color = Onb.Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
-// ---- 6. YouTube only: also keep it in sync? ----
+// ---- 6. youtube only: also keep it in sync? ----
 
 @Composable
 internal fun SyncOptionsPage(
@@ -359,12 +403,12 @@ internal fun SyncOptionsPage(
 ) {
     OnboardingPage(
         badge = { ProviderSquircle(AccountService.YOUTUBE_MUSIC, size = 40.dp) },
-        title = "Also keep in sync?",
-        subtitle = "YouTube Music can stay in step with BlossomTune: your playlists, likes and history, both ways.",
+        title = stringResource(R.string.onb_sync_title),
+        subtitle = stringResource(R.string.onb_sync_subtitle),
         footer = {
             if (reading != null) {
                 Text(
-                    "${reading.label} (${reading.done + 1} of ${reading.total})",
+                    stringResource(R.string.onb_reading_progress, reading.label, reading.done + 1, reading.total),
                     color = Onb.Subtitle,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -372,34 +416,34 @@ internal fun SyncOptionsPage(
                     overflow = TextOverflow.Ellipsis,
                 )
             } else {
-                OnbButton("Import & sync", onClick = onSync)
-                OnbButton("Just import", onClick = onJustImport, style = OnbButtonStyle.Secondary)
-                OnbButton(GoBack, onClick = onBack, style = OnbButtonStyle.Secondary)
+                OnbButton(stringResource(R.string.onb_import_and_sync), onClick = onSync)
+                OnbButton(stringResource(R.string.onb_just_import), onClick = onJustImport, style = OnbButtonStyle.Secondary)
+                OnbButton(stringResource(R.string.onb_go_back), onClick = onBack, style = OnbButtonStyle.Secondary)
             }
         },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OnbToggleCard(
-                title = "Sync library on launch",
-                description = "Likes, library and the playlists you picked, each time BlossomTune opens",
+                title = stringResource(R.string.onb_sync_launch_title),
+                description = stringResource(R.string.onb_sync_launch_desc),
                 checked = choices.syncOnLaunch,
                 onCheckedChange = { onChange(choices.copy(syncOnLaunch = it)) },
             )
             OnbToggleCard(
-                title = "New playlists go to YouTube",
-                description = "Playlists you make here are created on YouTube too",
+                title = stringResource(R.string.onb_sync_new_playlists_title),
+                description = stringResource(R.string.onb_sync_new_playlists_desc),
                 checked = choices.newPlaylistsToYouTube,
                 onCheckedChange = { onChange(choices.copy(newPlaylistsToYouTube = it)) },
             )
             OnbToggleCard(
-                title = "Push plays to YouTube history",
-                description = "What you play here shows up in your YouTube history",
+                title = stringResource(R.string.onb_sync_push_plays_title),
+                description = stringResource(R.string.onb_sync_push_plays_desc),
                 checked = choices.reportPlays,
                 onCheckedChange = { onChange(choices.copy(reportPlays = it)) },
             )
             OnbToggleCard(
-                title = "Bring YouTube history here",
-                description = "Plays from your other devices join BlossomTune's history",
+                title = stringResource(R.string.onb_sync_bring_history_title),
+                description = stringResource(R.string.onb_sync_bring_history_desc),
                 checked = choices.copyHistory,
                 onCheckedChange = { onChange(choices.copy(copyHistory = it)) },
             )
@@ -407,7 +451,7 @@ internal fun SyncOptionsPage(
     }
 }
 
-// ---- 7. Profile ----
+// ---- 7. profile ----
 
 @Composable
 internal fun ProfilePage(
@@ -421,42 +465,23 @@ internal fun ProfilePage(
 ) {
     OnboardingPage(
         badge = { PageBadge(painterResource(R.drawable.person)) },
-        title = "Let's create your profile!",
+        title = stringResource(R.string.onb_profile_title),
         footer = {
             Text(
-                "BlossomTune will never store your data online!",
+                stringResource(R.string.onb_never_store),
                 color = Onb.Faint,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 4.dp),
             )
-            OnbButton("Next", onClick = onNext, enabled = username.isNotBlank())
+            OnbButton(stringResource(R.string.onb_next), onClick = onNext, enabled = username.isNotBlank())
         },
     ) {
-        Text("what's your username?", color = Onb.Muted, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.onb_username_prompt), color = Onb.Muted, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
-        BasicTextField(
-            value = username,
-            onValueChange = { onUsernameChange(it.take(32)) },
-            singleLine = true,
-            textStyle = TextStyle(color = Color.White, fontFamily = InterFontFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.03).em),
-            cursorBrush = SolidColor(Color.White),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            decorationBox = { inner ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(CircleShape)
-                        .background(Onb.Field)
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                ) {
-                    if (username.isEmpty()) Text("username", color = Onb.Faint, fontSize = 16.sp)
-                    inner()
-                }
-            },
-        )
+        OnbTextField(value = username, onValueChange = { onUsernameChange(it.take(32)) }, placeholder = stringResource(R.string.onb_username_hint))
         Spacer(Modifier.height(24.dp))
-        Text("Set a profile picture here!", color = Onb.Muted, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.onb_set_photo), color = Onb.Muted, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
         val deviceTilt = rememberDeviceTilt()
         ProfileIdCard(
@@ -473,125 +498,6 @@ internal fun ProfilePage(
         )
     }
 }
-
-// ---- 8. Build your home (only when nothing was imported) ----
-
-@Composable
-internal fun BuildHomePage(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    artists: List<ArtistItem>,
-    loading: Boolean,
-    selected: Set<String>,
-    onToggle: (ArtistItem) -> Unit,
-    onNext: () -> Unit,
-) {
-    OnboardingPage(
-        badge = { PageBadge(painterResource(R.drawable.home)) },
-        title = "Let's build your home",
-        subtitle = "Select any artist you really like",
-        scrollable = false,
-        footer = {
-            OnbButton(
-                text = when (selected.size) {
-                    0 -> "you need to pick 3 artists"
-                    1 -> "2 more"
-                    2 -> "one more artist to pick"
-                    else -> "next"
-                },
-                enabled = selected.size >= MinArtists,
-                onClick = onNext,
-            )
-        },
-    ) {
-        BasicTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            singleLine = true,
-            textStyle = TextStyle(color = Color.White, fontFamily = InterFontFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.03).em),
-            cursorBrush = SolidColor(Color.White),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            decorationBox = { inner ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(CircleShape)
-                        .background(Onb.Field)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box {
-                        if (query.isEmpty()) Text("Search artists", color = Onb.Faint, fontSize = 15.sp)
-                        inner()
-                    }
-                }
-            },
-        )
-        Spacer(Modifier.height(16.dp))
-        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            val columns = (maxWidth / 112.dp).toInt().coerceIn(3, 6)
-            if (loading && artists.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.TopCenter).size(26.dp), color = Color.White, strokeWidth = 2.dp)
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columns),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                contentPadding = PaddingValues(bottom = 12.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(artists, key = { it.id }) { artist ->
-                    ArtistBubble(artist = artist, selected = artist.id in selected, onClick = { onToggle(artist) })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ArtistBubble(artist: ArtistItem, selected: Boolean, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
-            .padding(4.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .graphicsLayer {
-                    val s = if (selected) 0.92f else 1f
-                    scaleX = s
-                    scaleY = s
-                }
-                .clip(CircleShape)
-                .background(Onb.Card)
-                .then(if (selected) Modifier.border(3.dp, Color.White, CircleShape) else Modifier),
-        ) {
-            AsyncImage(
-                model = artist.thumbnail,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(painterResource(R.drawable.check), contentDescription = "Selected", tint = Color.White, modifier = Modifier.size(30.dp))
-                }
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(artist.title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
 
 @Composable
 internal fun BlurWarningPage(
@@ -619,10 +525,10 @@ internal fun BlurWarningPage(
                 Column(modifier = Modifier.padding(horizontal = side)) {
                     PageBadge(painterResource(R.drawable.warning))
                     Spacer(Modifier.height(22.dp))
-                    Text("Warning", color = Onb.Title, fontSize = 34.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold, letterSpacing = OnbTitleTracking)
+                    Text(stringResource(R.string.onb_warning), color = Onb.Title, fontSize = 34.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold, letterSpacing = OnbTitleTracking)
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "Your phone may be too weak to run blurs. Do you want to disable blur? You can always change this in Settings.",
+                        stringResource(R.string.onb_blur_warning_body),
                         color = Onb.Subtitle,
                         fontSize = 18.sp,
                         lineHeight = 23.sp,
@@ -631,8 +537,8 @@ internal fun BlurWarningPage(
                     )
                     Spacer(Modifier.height(22.dp))
                     OnbToggleCard(
-                        title = "Disable Blur",
-                        description = detected?.let { "Measured: $it" } ?: "",
+                        title = stringResource(R.string.onb_disable_blur),
+                        description = detected?.let { stringResource(R.string.onb_measured, it) } ?: "",
                         checked = disableBlur,
                         onCheckedChange = onDisableBlurChange,
                         leading = { Box(Modifier.size(22.dp).clip(CircleShape).background(Onb.Badge)) },
@@ -665,13 +571,20 @@ internal fun BlurWarningPage(
                 steps = 3,
                 modifier = Modifier.matchParentSize(),
             )
+            val progressiveBar = dev.meowlabs.blossomtune.ui.component.rememberProgressiveBlur()
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(Brush.verticalGradient(0f to Color.Transparent, 0.5f to Onb.Page.copy(alpha = 0.7f), 1f to Onb.Page)),
+                    .background(
+                        if (progressiveBar) {
+                            Brush.verticalGradient(0f to Color.Transparent, 0.5f to Onb.Page.copy(alpha = 0.7f), 1f to Onb.Page)
+                        } else {
+                            androidx.compose.ui.graphics.SolidColor(Onb.Page.copy(alpha = 0.6f))
+                        },
+                    ),
             )
             OnbButton(
-                text = if (disableBlur) "continue" else "no, continue",
+                text = if (disableBlur) stringResource(R.string.onb_continue) else stringResource(R.string.onb_no_continue),
                 onClick = onContinue,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -683,7 +596,7 @@ internal fun BlurWarningPage(
     }
 }
 
-// ---- 10. Last one ----
+// ---- 10. last one ----
 
 @Composable
 internal fun LastOnePage(
@@ -695,21 +608,21 @@ internal fun LastOnePage(
 ) {
     OnboardingPage(
         badge = { PageBadge(painterResource(R.drawable.tune)) },
-        title = "Last one",
-        subtitle = "Disable anything that you don't like",
-        footer = { OnbButton("next", onClick = onNext) },
+        title = stringResource(R.string.onb_last_one),
+        subtitle = stringResource(R.string.onb_last_one_subtitle),
+        footer = { OnbButton(stringResource(R.string.onb_next_lower), onClick = onNext) },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             OnbToggleCard(
-                title = "Auto Crossfade",
-                description = "Automatically crossfades, analysing the pitch, tempo and more to pick the perfect moment",
+                title = stringResource(R.string.onb_auto_crossfade_title),
+                description = stringResource(R.string.onb_auto_crossfade_desc),
                 checked = autoCrossfade,
                 onCheckedChange = onAutoCrossfadeChange,
                 header = { CrossfadeBanner() },
             )
             OnbToggleCard(
-                title = "AI Artist filter",
-                description = "Turning this off may give you AI slop recommendations",
+                title = stringResource(R.string.onb_ai_filter_title),
+                description = stringResource(R.string.onb_ai_filter_desc),
                 checked = aiArtistFilter,
                 onCheckedChange = onAiArtistFilterChange,
             )

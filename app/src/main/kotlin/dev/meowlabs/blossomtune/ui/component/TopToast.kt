@@ -116,10 +116,8 @@ object TopToaster {
     }
 }
 
-// Kartu toast ikut halaman terang: dulu #151B27 dengan judul putih, jadi satu-satunya
-// kotak hitam di layar putih. Judulnya pakai tinta, bukan putih.
-private val ToastCard = Color(0xFFFFFFFF)
-private val ToastSquare = Color(0xFFF2F2F7)
+private val ToastCard = Color(0xFF1E1E1E)
+private val ToastSquare = Color(0xFFD9D9D9)
 private val ToastError = Color(0xFFEE5A52)
 private val ToastEase = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
@@ -128,7 +126,7 @@ private val ToastTitle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 17.sp,
     letterSpacing = (-0.6).sp,
-    color = Color(0xFF1C2144),
+    color = Color.White,
 )
 
 /** Draws the current toast over everything in its parent; touches elsewhere pass straight through. */
@@ -219,7 +217,7 @@ private fun ToastPill(toast: TopToast) {
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
-                    Icon(painterResource(toast.iconRes), null, tint = Color(0xFF181F2E), modifier = Modifier.size(24.dp))
+                    Icon(painterResource(toast.iconRes), null, tint = Color(0xFF232323), modifier = Modifier.size(24.dp))
                 }
             }
         }
@@ -227,7 +225,8 @@ private fun ToastPill(toast: TopToast) {
         Text(
             text = toast.text,
             style = ToastTitle,
-            maxLines = 2,
+            // three for the longest ones ("No FLAC decoder available on this phone · playing in...")
+            maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
@@ -239,18 +238,18 @@ private fun ToastPill(toast: TopToast) {
                     .clip(RoundedCornerShape(12.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
+                        indication = RemoteFocus,
                     ) {
                         TopToaster.dismiss(toast.id)
                         toast.onAction?.invoke()
                     }
                     .padding(horizontal = 4.dp, vertical = 8.dp),
             ) {
-                Icon(painterResource(R.drawable.undo), null, tint = Color(0xFFE2E5EA), modifier = Modifier.size(18.dp))
+                Icon(painterResource(R.drawable.undo), null, tint = Color(0xFFE6E6E6), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(
                     toast.actionLabel,
-                    style = TextStyle(fontFamily = InterFontFamily, fontSize = 15.sp, color = Color(0xFFE2E5EA)),
+                    style = TextStyle(fontFamily = InterFontFamily, fontSize = 15.sp, color = Color(0xFFE6E6E6)),
                     maxLines = 1,
                 )
             }
@@ -259,7 +258,7 @@ private fun ToastPill(toast: TopToast) {
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.padding(start = 12.dp).size(26.dp).clip(CircleShape).background(ToastSquare),
             ) {
-                Icon(painterResource(R.drawable.check), null, tint = Color(0xFF181F2E), modifier = Modifier.size(16.dp))
+                Icon(painterResource(R.drawable.check), null, tint = Color(0xFF232323), modifier = Modifier.size(16.dp))
             }
         }
     }

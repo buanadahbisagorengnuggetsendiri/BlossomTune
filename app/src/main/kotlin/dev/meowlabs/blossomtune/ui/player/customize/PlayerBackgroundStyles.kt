@@ -52,7 +52,23 @@ fun PlayerBackgroundContent(
             thumbnailUrl = thumbnailUrl,
             modifier = modifier,
         )
+        PlayerBackgroundStyle.AMBIENT -> StandaloneAmbientBackground(
+            thumbnailUrl = thumbnailUrl,
+            modifier = modifier,
+        )
     }
+}
+
+// the ambient backdrop on its own, from the picture's colours and with its own clock, for previews and the other styles' pages
+@Composable
+private fun StandaloneAmbientBackground(thumbnailUrl: String?, modifier: Modifier = Modifier) {
+    val colors = dev.meowlabs.blossomtune.ui.player.flagship.rememberAmbientColors()
+    dev.meowlabs.blossomtune.ui.player.flagship.FollowPicture(colors, thumbnailUrl)
+    dev.meowlabs.blossomtune.ui.player.flagship.AmbientBackdrop(
+        colors = colors,
+        time = dev.meowlabs.blossomtune.ui.player.flagship.rememberAmbientClock(running = true),
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -65,6 +81,8 @@ fun PlayerBackgroundPreview(
     modifier: Modifier = Modifier,
 
     warp: Boolean = true,
+    /** a clock shared by several of these (crossfading copies), so they don't each run their own */
+    timeProvider: (() -> Float)? = null,
 ) {
     if (style != PlayerBackgroundStyle.COVER_GRADIENT) {
         PlayerBackgroundContent(
@@ -75,13 +93,14 @@ fun PlayerBackgroundPreview(
         )
         return
     }
-    Box(modifier = modifier.background(Color(0xFF131823))) {
+    Box(modifier = modifier.background(Color(0xFF1A1A1C))) {
         CoverGradientBackdrop(
             thumbnailUrl = thumbnailUrl,
             width = width,
             height = height,
             animate = animate,
             shader = if (warp) rememberWarpShader() else null,
+            timeProvider = timeProvider,
         )
     }
 }
@@ -96,9 +115,9 @@ private fun SolidBackground(pureBlack: Boolean, modifier: Modifier = Modifier) {
 private fun DarkGradientBackground(modifier: Modifier = Modifier) {
     val brush = remember {
         Brush.verticalGradient(
-            0f to Color(0xFF1F2839),
-            0.55f to Color(0xFF131924),
-            1f to Color(0xFF0A0D14),
+            0f to Color(0xFF2A2A2E),
+            0.55f to Color(0xFF1A1A1D),
+            1f to Color(0xFF0E0E10),
         )
     }
     Box(modifier = modifier.background(brush))

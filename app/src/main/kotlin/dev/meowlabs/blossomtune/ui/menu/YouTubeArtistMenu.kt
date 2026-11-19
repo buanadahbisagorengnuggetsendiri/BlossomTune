@@ -2,7 +2,7 @@
 
 package dev.meowlabs.blossomtune.ui.menu
 
-import dev.meowlabs.blossomtune.ui.component.SheetDivider
+import dev.meowlabs.blossomtune.ui.component.SheetHeaderGap
 import dev.meowlabs.blossomtune.ui.component.SheetHeaderButton
 import dev.meowlabs.blossomtune.ui.component.SheetHeader
 import android.content.Intent
@@ -17,13 +17,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -57,17 +57,17 @@ fun YouTubeArtistMenu(
     val context = LocalContext.current
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val libraryArtist by database.artist(artist.id).collectAsState(initial = null)
-    val isPinned by database.speedDialDao.isPinned(artist.id).collectAsState(initial = false)
+    val libraryArtist by remember(database, artist.id) { database.artist(artist.id) }.collectAsState(initial = null)
+    val isPinned by remember(database, artist.id) { database.speedDialDao.isPinned(artist.id) }.collectAsState(initial = false)
     val coroutineScope = rememberCoroutineScope()
 
     SheetHeader(
         thumbnailUrl = artist.thumbnail,
         title = artist.title,
-        subtitle = "Artist",
+        subtitle = stringResource(R.string.recent_search_artist),
     )
 
-    SheetDivider()
+    Spacer(Modifier.height(SheetHeaderGap))
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -84,6 +84,24 @@ fun YouTubeArtistMenu(
             NewActionGrid(
                 actions = buildList {
                     if (true) {
+                        // Shuffle and radio first: they're the two cards, and what an artist's menu is for.
+                        artist.shuffleEndpoint?.let { shuffleEndpoint ->
+                            add(
+                                NewAction(
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.shuffle),
+                                            contentDescription = null,
+                                        )
+                                    },
+                                    text = stringResource(R.string.shuffle),
+                                    onClick = {
+                                        playerConnection.playQueue(YouTubeQueue(shuffleEndpoint))
+                                        onDismiss()
+                                    }
+                                )
+                            )
+                        }
                         artist.radioEndpoint?.let { watchEndpoint ->
                             add(
                                 NewAction(
@@ -115,7 +133,7 @@ fun YouTubeArtistMenu(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
-                            text = if (isPinned) "Unpin" else "Pin",
+                            text = stringResource(if (isPinned) R.string.pc_unpin else R.string.pc_pin),
                             onClick = {
                                 coroutineScope.launch(Dispatchers.IO) {
                                     if (isPinned) {

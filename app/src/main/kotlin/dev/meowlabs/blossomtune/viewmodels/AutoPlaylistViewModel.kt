@@ -21,6 +21,7 @@ import dev.meowlabs.blossomtune.extensions.filterExplicit
 import dev.meowlabs.blossomtune.extensions.filterVideoSongs
 import dev.meowlabs.blossomtune.extensions.toEnum
 import dev.meowlabs.blossomtune.importer.ImportSource
+import dev.meowlabs.blossomtune.playback.CachedSongs
 import dev.meowlabs.blossomtune.utils.SyncUtils
 import dev.meowlabs.blossomtune.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -58,6 +60,7 @@ constructor(
     private val database: MusicDatabase,
     savedStateHandle: SavedStateHandle,
     private val syncUtils: SyncUtils,
+    private val cachedSongs: CachedSongs,
 ) : ViewModel() {
     val playlist = savedStateHandle.get<String>("playlist")!!
 
@@ -118,6 +121,17 @@ constructor(
                     "local_liked" -> database.onDeviceSongs(sortType, descending)
                         .map { songs -> AutoPlaylistSongs(visible(songs.filter { it.song.liked })) }
 
+                    // The Cached page and its liked songs: what the player kept whole from
+                    // streaming. They come most recently played first, the cache's own "date added".
+                    "cached" -> cachedSongs.songs
+                        .map { songs -> AutoPlaylistSongs(visible(songs.sortedForSongSort(sortType, descending) { it.asReversed() })) }
+
+                    "cached_liked" -> cachedSongs.songs
+                        .map { songs ->
+                            val liked = songs.filter { it.song.liked }
+                            AutoPlaylistSongs(visible(liked.sortedForSongSort(sortType, descending) { it.asReversed() }))
+                        }
+
                     "songs" -> database.songs(sortType, descending)
                         .map { AutoPlaylistSongs(visible(it)) }
 
@@ -127,8 +141,16 @@ constructor(
                     else -> flowOf(AutoPlaylistSongs(emptyList()))
                 }
             }
+            .onEach { lastShown = playlist to it }
             .flowOn(Dispatchers.Default)
-            .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Lazily, null)
+            // Stops a moment after the page stops watching: the Cached lists look at the player's
+            // cache every couple of seconds, which shouldn't go on from the background. The last
+            // list is kept, so coming back shows it at once.
+            .stateIn(
+                viewModelScope,
+                kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000),
+                lastShown?.takeIf { it.first == playlist }?.second,
+            )
 
     /**
      * Liked songs by the service each was imported from, the ones liked here first and then the
@@ -150,6 +172,12 @@ constructor(
             bySource[source]?.let { LikedSourceSection(source, it) }
         }
         return AutoPlaylistSongs(songs = sections.flatMap { it.songs }, sections = sections)
+    }
+
+    private companion object {
+        // the list the page showed last time, so opening it again has its songs from the first frame instead of popping in after the morph; one slot keeps the memory small
+        @Volatile
+        var lastShown: Pair<String, AutoPlaylistSongs>? = null
     }
 
     fun syncLikedSongs() {

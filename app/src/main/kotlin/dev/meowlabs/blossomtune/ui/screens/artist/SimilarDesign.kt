@@ -90,7 +90,7 @@ import dev.meowlabs.blossomtune.ui.component.GlassState
 import dev.meowlabs.blossomtune.ui.component.HomeCardHighlight
 import dev.meowlabs.blossomtune.ui.component.HomeCardSpacing
 import dev.meowlabs.blossomtune.ui.component.HomeCoverCard
-import dev.meowlabs.blossomtune.ui.component.HomeRowHeight
+import dev.meowlabs.blossomtune.ui.component.homeRowHeight
 import dev.meowlabs.blossomtune.ui.component.HomeTrackRow
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
 import dev.meowlabs.blossomtune.ui.component.detail.FeaturedArtistUi
@@ -346,9 +346,8 @@ internal fun SimilarPage(
                                 modifier = Modifier.revealOnAppear(key = "albums", seenState = revealSeen),
                             ) {
                                 items(groups.albums, key = { it.id }) { album ->
+                                    val active = album.id == mediaMetadata?.album?.id
                                     HomeCoverCard(
-                                        titleColor = Color.White,
-                                        subtitleColor = Color.White.copy(alpha = 0.62f),
                                         title = album.title,
                                         subtitle = listOfNotNull(
                                             album.artists?.joinToString { it.name }?.ifBlank { null },
@@ -356,8 +355,8 @@ internal fun SimilarPage(
                                         ).joinToString(" · ").ifBlank { null },
                                         thumbnailUrl = album.thumbnail,
                                         sharedElementKey = "album-${album.id}",
-                                        isActive = album.id == mediaMetadata?.album?.id,
-                                        isPlaying = isPlaying,
+                                        isActive = active,
+                                        isPlaying = active && isPlaying,
                                         modifier = Modifier.combinedClickable(
                                             interactionSource = null,
                                             indication = HomeCardHighlight,
@@ -620,17 +619,18 @@ internal fun PagedSongGrid(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
             .fillMaxWidth()
-            .height(HomeRowHeight * rows + 6.dp * (rows - 1)),
+            .height(homeRowHeight() * rows + 6.dp * (rows - 1)),
     ) {
         items(items = songs, key = { it.id }) { song ->
             Box(modifier = Modifier.width(columnWidth)) {
+                val active = song.id == activeId
                 HomeTrackRow(
                     thumbnailUrl = song.thumbnail,
                     songId = song.id,
                     title = song.title,
                     subtitle = song.artists.joinToString { it.name },
-                    isActive = song.id == activeId,
-                    isPlaying = isPlaying,
+                    isActive = active,
+                    isPlaying = active && isPlaying,
                     onClick = { onClick(song) },
                     onLongClick = { onMenu(song) },
                     onMoreClick = { onMenu(song) },

@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +54,7 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.importer.ImportProgress
 import dev.meowlabs.blossomtune.importer.ImportSource
 import dev.meowlabs.blossomtune.importer.account.AccountService
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import dev.meowlabs.blossomtune.ui.screens.search.SearchColors
 import dev.meowlabs.blossomtune.ui.component.damageBoundary
@@ -83,6 +84,18 @@ internal fun ImportSource.service(): AccountService? = when (this) {
     ImportSource.DEEZER, ImportSource.OTHER -> null
 }
 
+/** The services the Imported tab always lists, in the mock's order, even before anything came from them. */
+internal val ImportedTabServices = listOf(
+    ImportSource.SPOTIFY,
+    ImportSource.YOUTUBE_MUSIC,
+    ImportSource.APPLE_MUSIC,
+    ImportSource.TIDAL,
+)
+
+/** A service's name on a half-width card, where "YouTube Music" next to its icon would be cut off. */
+internal val ImportSource.cardLabel: String
+    get() = if (this == ImportSource.YOUTUBE_MUSIC) "YouTube" else label
+
 /** A source's app icon, or - for one with no icon of ours - a neutral squircle with a note in it. */
 @Composable
 internal fun ImportSourceIcon(source: ImportSource, size: Dp, modifier: Modifier = Modifier) {
@@ -108,9 +121,9 @@ internal fun ImportSourceIcon(source: ImportSource, size: Dp, modifier: Modifier
 }
 
 /**
- * The banner right under the search bar. Idle, it invites an import - the services' icons flowing
- * past, "Sync and add your music from your favourite music provider" - and opens the import sheet.
- * While an import runs it is replaced by its progress.
+ * The banner at the top of the All and Imported tabs. Idle, it invites an import - the services'
+ * icons flowing past, "Import your music here!" - and opens the import sheet. While an import runs
+ * it is replaced by its progress.
  */
 @Composable
 fun LibraryImportBanner(
@@ -118,6 +131,7 @@ fun LibraryImportBanner(
     onOpenSheet: () -> Unit,
     onOpenProgress: () -> Unit,
     modifier: Modifier = Modifier,
+    onDismiss: (() -> Unit)? = null,
 ) {
     Crossfade(
         targetState = progress.isRunning,
@@ -129,32 +143,56 @@ fun LibraryImportBanner(
         if (running) {
             ImportProgressBanner(progress = progress, onClick = onOpenProgress)
         } else {
-            ImportPromoBanner(onClick = onOpenSheet)
+            ImportPromoBanner(onClick = onOpenSheet, onDismiss = onDismiss)
         }
     }
 }
 
 @Composable
-private fun ImportPromoBanner(onClick: () -> Unit) {
-    Column(
+private fun ImportPromoBanner(onClick: () -> Unit, onDismiss: (() -> Unit)? = null) {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(BannerShape)
             .background(SearchColors.Tile)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = 22.dp),
+            .clickable(role = Role.Button, onClick = onClick),
     ) {
-        ProviderMarquee()
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text = "Sync and add your music from your favourite music provider",
-            color = SearchColors.Primary,
-            fontSize = 21.sp,
-            lineHeight = 25.sp,
-            letterSpacing = (-0.4).sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 22.dp),
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 22.dp),
+        ) {
+            ProviderMarquee()
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = stringResource(R.string.lib_import_banner_title),
+                color = SearchColors.Primary,
+                fontSize = 21.sp,
+                lineHeight = 25.sp,
+                letterSpacing = (-0.4).sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 22.dp),
+            )
+        }
+        if (onDismiss != null) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .clickable(role = Role.Button, onClick = onDismiss),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.close),
+                    contentDescription = stringResource(R.string.close),
+                    tint = SearchColors.Primary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
     }
 }
 
@@ -219,19 +257,16 @@ private fun ImportProgressBanner(progress: ImportProgress, onClick: () -> Unit) 
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 22.dp, vertical = 26.dp),
     ) {
-        // Bar progres: trek abu di atas kartu terang, isinya aksen. Dulu putih di atas
-        // kaca gelap; di kartu putih dua-duanya hilang.
-        val progressFill = MaterialTheme.colorScheme.primary
         // Drawn from the animated value in the draw phase: the bar moves without recomposing.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+                .background(Color.White.copy(alpha = 0.14f))
                 .drawBehind {
                     drawRoundRect(
-                        color = progressFill,
+                        color = Color.White,
                         size = Size(size.width * fraction.value.coerceAtLeast(0.02f), size.height),
                         cornerRadius = CornerRadius(size.height / 2f),
                     )
@@ -240,9 +275,14 @@ private fun ImportProgressBanner(progress: ImportProgress, onClick: () -> Unit) 
         Spacer(Modifier.height(24.dp))
         Text(
             text = when {
-                total <= 0 -> "Getting your tracks ready…"
-                progress.source != null -> "Adding $done of $total tracks from ${progress.source.label}"
-                else -> "Adding $done of $total tracks"
+                progress.resync != null && total <= 0 ->
+                    stringResource(R.string.lib_import_checking_resync, progress.resync.playlistName)
+                progress.resync != null ->
+                    stringResource(R.string.lib_import_adding_resync, done, total, progress.resync.playlistName)
+                total <= 0 -> stringResource(R.string.lib_import_getting_ready)
+                progress.source != null ->
+                    stringResource(R.string.lib_import_adding_from, done, total, progress.source.label)
+                else -> stringResource(R.string.lib_import_adding, done, total)
             },
             color = SearchColors.Primary,
             fontSize = 21.sp,

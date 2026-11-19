@@ -5,10 +5,10 @@ plugins {
 
 android {
     namespace = "com.music.kugou"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
-        minSdk = 26
+        minSdk = 24
     }
 
     compileOptions {

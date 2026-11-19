@@ -1,5 +1,3 @@
-// YouLyPlus.kt
-
 package com.music.youlyplus
 
 import com.music.youlyplus.models.LyricsResponse
@@ -7,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -21,13 +20,10 @@ import java.util.concurrent.atomic.AtomicReference
 
 object YouLyPlus {
 
+    // the workers.dev, atomix and both vercel mirrors were dead as of october 2026 (cloudflare error 1042, no dns, deployments disabled), racing them wasted four requests per song
     private val BASE_SERVERS = listOf(
         "https://lyricsplus.prjktla.my.id",
-        "https://lyricsplus.atomix.one",
         "https://lyricsplus.binimum.org",
-        "https://lyricsplus.prjktla.workers.dev",
-        "https://lyricsplus-seven.vercel.app",
-        "https://lyrics-plus-backend.vercel.app",
     )
 
     private val lastWorkingServer = AtomicReference<String?>(null)
@@ -44,6 +40,8 @@ object YouLyPlus {
                 connectTimeoutMillis = 3_000
                 requestTimeoutMillis = 8_000
             }
+            // says who's asking so the server owner can reach us instead of blocking us
+            install(UserAgent) { agent = "BlossomTune (+https://github.com/realidkroo/BlossomTune-Music)" }
             install(ContentNegotiation) {
                 json(
                     Json {
@@ -141,8 +139,7 @@ object YouLyPlus {
 
             val isBg = item.syllabus?.any { it.isBackground == true } == true
             val lineTimestamp = formatTime(lineTime)
-            // A line is either a background vocal or attributed to a voice, never both — the app's
-            // parser treats {bg} as its own kind of line and centres it regardless of singer.
+            // a line is either a background vocal or attributed to a voice, never both, the app's parser treats {bg} as its own kind of line and centres it regardless of singer
             val marker = when {
                 isBg -> "{bg}"
                 !item.element?.singer.isNullOrBlank() -> "{agent:${item.element?.singer}}"
@@ -153,11 +150,7 @@ object YouLyPlus {
             if (!syllabus.isNullOrEmpty()) {
                 val sb = StringBuilder(lineTimestamp)
                 sb.append(marker)
-                // The API times SYLLABLES and carries word boundaries in the text itself: a
-                // syllable that ends a word ends with a space ("Ta", "hun ", "CAS", "KET "). Adding
-                // a space after every syllable without one split words apart - "Ta hun", "CAS KET",
-                // "wa nt". Only when a line carries no spacing at all (one entry per word, no
-                // trailing spaces) do the gaps have to be supplied here.
+                // the api times syllables and carries word boundaries in the text itself, so spaces are supplied only when a line has none at all
                 val spacedByApi = syllabus.dropLast(1).any { it.text?.lastOrNull()?.isWhitespace() == true }
                 syllabus.forEachIndexed { index, syl ->
                     val sylTime = syl.time ?: 0L

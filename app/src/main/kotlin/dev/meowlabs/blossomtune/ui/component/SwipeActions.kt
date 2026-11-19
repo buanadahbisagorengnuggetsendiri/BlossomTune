@@ -71,13 +71,22 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.offline.Download
+import androidx.media3.exoplayer.offline.DownloadRequest
+import androidx.media3.exoplayer.offline.DownloadService
 import dev.meowlabs.blossomtune.LocalDatabase
+import dev.meowlabs.blossomtune.LocalDownloadUtil
 import dev.meowlabs.blossomtune.LocalPlayerConnection
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.db.entities.SongEntity
+import dev.meowlabs.blossomtune.extensions.metadata
+import dev.meowlabs.blossomtune.importer.ImportSource
 import dev.meowlabs.blossomtune.models.toMediaMetadata
+import dev.meowlabs.blossomtune.playback.ExoDownloadService
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.utils.ShowMediaInfo
 import com.music.innertube.YouTube
 import com.music.innertube.models.SongItem
 import kotlinx.coroutines.CoroutineScope
@@ -98,14 +107,23 @@ class SwipeAction(
     @DrawableRes val icon: Int,
     val color: Color,
     val label: String,
+    val mediaItem: (() -> MediaItem)? = null,
     val onTrigger: () -> Unit,
 )
 
-/** sliding left queues a song (green), sliding right saves it or takes it out of your playlist (purple) */
+/** queueing a song is green, saving it or taking it out of your playlist is purple (whichever side it's on) */
 val SwipeQueueColor = Color(0xFF34C759)
 val SwipeSaveColor = Color(0xFF9B72F2)
+// each extra gesture option gets its own colour so you can tell what you armed before letting go
+val SwipeDownloadColor = Color(0xFF0A84FF)
+val SwipePlayNextColor = Color(0xFFFF9F0A)
+val SwipePlaylistColor = Color(0xFFFF375F)
+val SwipeDetailsColor = Color(0xFF5AC8FA)
 
-private val SwipePillIdle = Color(0xFF1C2144).copy(alpha = 0.08f)
+/** for a swipe that takes music out of the library for good, like removing an import */
+val SwipeRemoveColor = Color(0xFFFF453A)
+
+private val SwipePillIdle = Color.White.copy(alpha = 0.12f)
 
 // a hold has to be this long before it counts as a long press inside a swipeable row, so pressing
 // down and then sliding never opens selection or the menu by accident
@@ -118,9 +136,9 @@ private const val SwipeResistance = 0.35f
 private val SwipeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 // the pill lives in the gap the swipe opens: this far in from the screen edge, this far from the row
-private val PillEdgeInset = 10.dp
-private val PillGap = 8.dp
-private val SlabInset = 10.dp
+internal val PillEdgeInset = 10.dp
+internal val PillGap = 8.dp
+internal val SlabInset = 10.dp
 private val PillPadding = 13.dp
 private val PillIconSize = 18.dp
 private val PillLabelSpacing = 6.dp
@@ -337,7 +355,7 @@ fun SwipeActionsBox(
  * action's colour and the label slides out beside the icon.
  */
 @Composable
-private fun BoxScope.SwipePill(
+internal fun BoxScope.SwipePill(
     action: SwipeAction,
     atStart: Boolean,
     room: () -> Float,
@@ -429,22 +447,112 @@ private fun BoxScope.SwipePill(
     }
 }
 
-/** sliding left on a song: straight onto the end of the queue */
+/** the queue swipe on a song: straight onto the end of the queue */
 @Composable
 fun queueSwipeAction(mediaItem: () -> MediaItem): SwipeAction {
-    val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current
     return SwipeAction(
-        icon = R.drawable.queue_music,
-        color = SwipeQueueColor,
-        label = stringResource(R.string.add_to_queue),
+        icon = SongSwipeAction.Queue.icon,
+        color = SongSwipeAction.Queue.color,
+        label = stringResource(SongSwipeAction.Queue.pillLabel),
+        mediaItem = mediaItem,
     ) {
         // PlayerConnection says "Added to Queue" itself
         playerConnection?.addToQueue(mediaItem())
     }
 }
 
-/** sliding right on a song that's already in the database: into the library, or back out of it */
+// download or remove download when swiping a song row
+@Composable
+fun downloadSwipeAction(mediaItem: (() -> MediaItem)?): SwipeAction {
+    val context = LocalContext.current
+    val database = LocalDatabase.current
+    val downloadUtil = LocalDownloadUtil.current
+    val item = remember(mediaItem) { mediaItem?.invoke() }
+    val download by remember(downloadUtil, item?.mediaId) {
+        if (item != null) downloadUtil.getDownload(item.mediaId) else kotlinx.coroutines.flow.flowOf(null)
+    }.collectAsState(initial = null)
+    val isDownloaded = download?.state == Download.STATE_COMPLETED || download?.state == Download.STATE_DOWNLOADING
+    return SwipeAction(
+        icon = if (isDownloaded) R.drawable.offline else SongSwipeAction.Download.icon,
+        color = SongSwipeAction.Download.color,
+        label = stringResource(if (isDownloaded) R.string.remove_download else SongSwipeAction.Download.pillLabel),
+        mediaItem = mediaItem,
+    ) {
+        val target = mediaItem?.invoke() ?: return@SwipeAction
+        val title = target.mediaMetadata.title?.toString().orEmpty()
+        val thumb = target.mediaMetadata.artworkUri?.toString()
+        if (isDownloaded) {
+            DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, target.mediaId, false)
+            TopToaster.show(text = context.getString(R.string.remove_download), thumbnail = thumb, iconRes = R.drawable.offline)
+        } else {
+            target.metadata?.let { meta -> database.query { insert(meta) } }
+            val request = DownloadRequest.Builder(target.mediaId, target.mediaId.toUri())
+                .setCustomCacheKey(target.mediaId)
+                .setData(title.toByteArray())
+                .build()
+            DownloadService.sendAddDownload(context, ExoDownloadService::class.java, request, false)
+            TopToaster.show(text = "${context.getString(R.string.downloading)} ${title.ifBlank { context.getString(R.string.pc_song_fallback) }}", thumbnail = thumb, iconRes = R.drawable.download)
+        }
+    }
+}
+
+// line the song up right after whatever is playing now
+@Composable
+fun playNextSwipeAction(mediaItem: (() -> MediaItem)?): SwipeAction {
+    val playerConnection = LocalPlayerConnection.current
+    val context = LocalContext.current
+    return SwipeAction(
+        icon = SongSwipeAction.PlayNext.icon,
+        color = SongSwipeAction.PlayNext.color,
+        label = stringResource(SongSwipeAction.PlayNext.pillLabel),
+        mediaItem = mediaItem,
+    ) {
+        val target = mediaItem?.invoke() ?: return@SwipeAction
+        playerConnection?.playNext(target)
+        TopToaster.show(
+            text = context.getString(R.string.pc_playing_next, target.mediaMetadata.title ?: context.getString(R.string.pc_song_fallback)),
+            thumbnail = target.mediaMetadata.artworkUri?.toString(),
+            iconRes = R.drawable.playlist_play,
+        )
+    }
+}
+
+// open the playlist picker sheet for the swiped song
+@Composable
+fun addToPlaylistSwipeAction(
+    mediaItem: (() -> MediaItem)?,
+    onOpenDialog: (MediaItem) -> Unit,
+): SwipeAction = SwipeAction(
+    icon = SongSwipeAction.AddToPlaylist.icon,
+    color = SongSwipeAction.AddToPlaylist.color,
+    label = stringResource(SongSwipeAction.AddToPlaylist.pillLabel),
+    mediaItem = mediaItem,
+) {
+    val target = mediaItem?.invoke() ?: return@SwipeAction
+    onOpenDialog(target)
+}
+
+// open the media details sheet for the swiped song
+@Composable
+fun detailsSwipeAction(mediaItem: (() -> MediaItem)?): SwipeAction {
+    val database = LocalDatabase.current
+    val bottomSheetPageState = LocalBottomSheetPageState.current
+    return SwipeAction(
+        icon = SongSwipeAction.Details.icon,
+        color = SongSwipeAction.Details.color,
+        label = stringResource(SongSwipeAction.Details.pillLabel),
+        mediaItem = mediaItem,
+    ) {
+        val target = mediaItem?.invoke() ?: return@SwipeAction
+        target.metadata?.let { meta -> database.query { insert(meta) } }
+        bottomSheetPageState.show {
+            ShowMediaInfo(target.mediaId)
+        }
+    }
+}
+
+/** the library swipe on a song that's already in the database: into the library, or back out of it */
 @Composable
 fun librarySwipeAction(song: SongEntity): SwipeAction {
     val context = LocalContext.current
@@ -464,6 +572,34 @@ fun librarySwipeAction(song: SongEntity): SwipeAction {
             text = context.getString(if (inLibrary) R.string.removed_from_library else R.string.added_to_library),
             thumbnail = song.thumbnailUrl,
             iconRes = R.drawable.library_add_check,
+        )
+    }
+}
+
+/**
+ * Sliding right in "Imported from Spotify": the song stops being one of [source]'s imports and leaves
+ * the library, in one go. Red, since it doesn't come back with another swipe the way adding does.
+ */
+@Composable
+fun removeImportSwipeAction(song: SongEntity, source: ImportSource): SwipeAction {
+    val context = LocalContext.current
+    val database = LocalDatabase.current
+    return SwipeAction(
+        icon = R.drawable.delete,
+        color = SwipeRemoveColor,
+        label = stringResource(R.string.remove_from_import_and_library),
+    ) {
+        // the library part is the same as the library swipe's: the feedback token, then the local flag
+        if (song.inLibrary != null) song.libraryRemoveToken?.let { SwipeScope.launch { YouTube.feedback(listOf(it)) } }
+        database.transaction {
+            deleteImportedSong(song.id, source.key)
+            deleteImportSessionSong(song.id, source.key)
+            if (song.inLibrary != null) update(song.toggleLibrary())
+        }
+        TopToaster.show(
+            text = context.getString(R.string.removed_from_import_and_library, source.label),
+            thumbnail = song.thumbnailUrl,
+            iconRes = R.drawable.delete,
         )
     }
 }
@@ -501,7 +637,7 @@ fun librarySwipeAction(song: SongItem): SwipeAction {
     }
 }
 
-/** sliding right inside a playlist you made: take the song out of it */
+/** the library swipe inside a playlist you made: take the song out of it */
 @Composable
 fun removeFromPlaylistSwipeAction(onRemove: () -> Unit): SwipeAction =
     SwipeAction(

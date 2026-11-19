@@ -1,5 +1,3 @@
-// LocalItem.kt
-
 package dev.meowlabs.blossomtune.db.entities
 
 sealed class LocalItem {

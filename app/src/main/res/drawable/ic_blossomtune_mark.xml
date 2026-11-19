@@ -2,13 +2,30 @@
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="128"
-    android:viewportHeight="128">
-    <!--
-        BlossomTune mark: five petals around a tilted note head — the launcher icon's glyph as one
-        silhouette, so every screen can tint it with its own ink. Same geometry as ic_splash_mark.xml
-        and the constants in LaunchIntro.kt, which draws it by hand during the launch flight.
-    -->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M111.12,64.00A13,11.5 0 1,1 85.12,64.00A13,11.5 0 1,1 111.12,64.00ZM75.88,112.50A13,11.5 72 1,1 67.85,87.78A13,11.5 72 1,1 75.88,112.50ZM18.86,93.98A13,11.5 144 1,1 39.89,78.69A13,11.5 144 1,1 18.86,93.98ZM18.86,34.02A13,11.5 216 1,1 39.89,49.31A13,11.5 216 1,1 18.86,34.02ZM75.88,15.50A13,11.5 288 1,1 67.85,40.22A13,11.5 288 1,1 75.88,15.50ZM71.87,59.72A12.5,9.5 -20 1,1 48.37,68.28A12.5,9.5 -20 1,1 71.87,59.72Z" />
+    android:viewportHeight="139">
+    <!-- the blossomtune mark from icon new - transparent 2.svg, moved 58,48 so it sits in the same box as the old mark -->
+    <group
+        android:translateX="-58"
+        android:translateY="-48">
+        <path
+            android:pathData="M163.5 96.3493C180.167 105.972 180.167 130.028 163.5 139.651L108 171.694C91.3333 181.316 70.5 169.288 70.5 150.043V85.9569C70.5 66.7119 91.3333 54.6838 108 64.3063L163.5 96.3493Z"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="19"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M97 112L108.5 98L120 112"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="11"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M110.325 125C111.871 133.439 121.868 148.704 142.944 149.92"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="11"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
 </vector>

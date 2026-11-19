@@ -12,22 +12,19 @@ import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.datasource.ResolvingDataSource
-import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
+import dev.meowlabs.blossomtune.utils.followAppProxy
 import com.music.innertube.YouTube
 import dev.meowlabs.blossomtune.constants.AudioQuality
 import dev.meowlabs.blossomtune.constants.DownloadQuality
 import dev.meowlabs.blossomtune.constants.DownloadQualityKey
 import dev.meowlabs.blossomtune.constants.IpVersionKey
 import dev.meowlabs.blossomtune.constants.OfflineModeKey
-import dev.meowlabs.blossomtune.module.ResolveResult
-import dev.meowlabs.blossomtune.module.StreamFormat
 import dev.meowlabs.blossomtune.module.TrackQuery
-import dev.meowlabs.blossomtune.module.monochrome.MonochromeModule
 import dev.meowlabs.blossomtune.modules.SourceModules
 import dev.meowlabs.blossomtune.utils.dataStore
 import com.music.innertube.models.IpVersion
@@ -40,12 +37,14 @@ import dev.meowlabs.blossomtune.db.entities.FormatEntity
 import dev.meowlabs.blossomtune.db.entities.LyricsEntity
 import dev.meowlabs.blossomtune.db.entities.SongEntity
 import dev.meowlabs.blossomtune.lyrics.LyricsHelper
+import dev.meowlabs.blossomtune.models.TransferBatch
+import dev.meowlabs.blossomtune.models.TransferItem
+import dev.meowlabs.blossomtune.models.TransferState
 import dev.meowlabs.blossomtune.models.toMediaMetadata
 import dev.meowlabs.blossomtune.utils.OfflineMode
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import dev.meowlabs.blossomtune.di.DownloadCache
-import dev.meowlabs.blossomtune.di.PlayerCache
 import dev.meowlabs.blossomtune.ui.utils.resize
 import dev.meowlabs.blossomtune.utils.YTPlayerUtils
 import dev.meowlabs.blossomtune.utils.enumPreference
@@ -57,7 +56,12 @@ import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -78,75 +82,79 @@ constructor(
     val database: MusicDatabase,
     val databaseProvider: DatabaseProvider,
     @DownloadCache val downloadCache: SimpleCache,
-    @PlayerCache val playerCache: SimpleCache,
     private val sourceModules: SourceModules,
     private val lyricsHelper: LyricsHelper,
 ) {
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val downloadQuality by enumPreference(context, DownloadQualityKey, DownloadQuality.HIGH)
     private val ipVersion by enumPreference(context, IpVersionKey, IpVersion.AUTO)
-    private val songUrlCache = HashMap<String, Pair<String, Long>>()
+    /** Each song's stream url and when it stops working (ms since 1970); read on the download threads. */
+    private val songUrlCache = java.util.concurrent.ConcurrentHashMap<String, Pair<String, Long>>()
+
+    // the providers each song's download already failed from, so its next try goes further down the download order
+    private val failedProviders = java.util.concurrent.ConcurrentHashMap<String, Set<String>>()
 
     /** Per-track stream request headers, so a cached url is replayed with its client's Origin. */
-    private val songStreamHeaders = HashMap<String, Map<String, String>>()
+    private val songStreamHeaders = java.util.concurrent.ConcurrentHashMap<String, Map<String, String>>()
 
-    /** Monochrome's FLAC for each song being downloaded lossless: its url and request headers. */
-    private val losslessStreams = java.util.concurrent.ConcurrentHashMap<String, Pair<String, Map<String, String>>>()
+    /** a module's file for each song being downloaded from one, looked up once since the download opens it more than once */
+    private class ModuleDownload(val providerId: String, val url: String, val headers: Map<String, String>)
+
+    private val moduleDownloads = java.util.concurrent.ConcurrentHashMap<String, ModuleDownload>()
+
+    /** The YouTube format each download started in, so a resumed one can't carry on in another. */
+    private val downloadItags = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
 
+    private val _batch = MutableStateFlow(TransferBatch())
+
+    /**
+     * The songs downloaded since the last time nothing was downloading, with how far each has got,
+     * for the Library's progress card and sheet. A finished batch stays until the next download
+     * starts, so the sheet can still save it as a playlist.
+     */
+    val batch: StateFlow<TransferBatch> = _batch.asStateFlow()
+
+    // Straight from the network, never through the player's cache. The player caches the stream it
+    // played, which is often another format than the download asks for (a lower quality, another
+    // client's stream). A download that took the cached start from there and the rest from its own
+    // stream was two files glued together: the song played for a few seconds, then went silent.
     private val dataSourceFactory =
         ResolvingDataSource.Factory(
-            CacheDataSource
-                .Factory()
-                .setCache(playerCache)
-                .setUpstreamDataSourceFactory(
-                    OkHttpDataSource.Factory(
-                        OkHttpClient.Builder()
-                            .dns(object : Dns {
-                                override fun lookup(hostname: String): List<InetAddress> {
-                                    val addresses = Dns.SYSTEM.lookup(hostname)
-                                    return when (this@DownloadUtil.ipVersion) {
-                                        IpVersion.IPV4 -> addresses.filter { it is Inet4Address }.ifEmpty { addresses }
-                                        IpVersion.IPV6 -> addresses.filter { it is Inet6Address }.ifEmpty { addresses }
-                                        IpVersion.AUTO -> addresses
-                                    }
-                                }
-                            })
-                            .proxy(YouTube.proxy)
-                            .proxyAuthenticator { _, response ->
-                                YouTube.proxyAuth?.let { auth ->
-                                    response.request.newBuilder()
-                                        .header("Proxy-Authorization", auth)
-                                        .build()
-                                } ?: response.request
+            OkHttpDataSource.Factory(
+                OkHttpClient.Builder()
+                    .dns(object : Dns {
+                        override fun lookup(hostname: String): List<InetAddress> {
+                            val addresses = Dns.SYSTEM.lookup(hostname)
+                            return when (this@DownloadUtil.ipVersion) {
+                                IpVersion.IPV4 -> addresses.filter { it is Inet4Address }.ifEmpty { addresses }
+                                IpVersion.IPV6 -> addresses.filter { it is Inet6Address }.ifEmpty { addresses }
+                                IpVersion.AUTO -> addresses
                             }
-                            .build(),
-                    ),
-                ),
+                        }
+                    })
+                    .followAppProxy()
+                    .build(),
+            ),
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
-            val length = if (dataSpec.length >= 0) dataSpec.length else 1
 
-            if (downloadQuality == DownloadQuality.LOSSLESS) {
-                losslessStream(mediaId)?.let { (url, headers) ->
-                    return@Factory dataSpec.buildUpon()
-                        .setUri(url.toUri())
-                        // its own key under the download: the player cache may hold this song's
-                        // YouTube stream under the bare id, and the two mustn't end up in one file
-                        .setKey("$LosslessKeyPrefix$mediaId")
-                        .setHttpRequestHeaders(dataSpec.httpRequestHeaders + headers)
-                        .build()
-                }
+            // a tv copying a song its linked phone already has takes the phone's file, the very same song and much quicker
+            dev.meowlabs.blossomtune.link.PhoneFiles.streamUrl(mediaId)?.let { return@Factory dataSpec.withUri(it.toUri()) }
+
+            moduleDownload(mediaId)?.let { found ->
+                return@Factory dataSpec.buildUpon()
+                    .setUri(found.url.toUri())
+                    .setHttpRequestHeaders(dataSpec.httpRequestHeaders + found.headers)
+                    .build()
             }
 
-            if (playerCache.isCached(mediaId, dataSpec.position, length)) {
-                return@Factory dataSpec
-            }
-
-            songUrlCache[mediaId]?.takeIf { it.second < System.currentTimeMillis() }?.let {
+            // only while it still works. This used to keep the url's lifetime instead of when it ends,
+            // and compare the wrong way round, so a dead url was reused for every retry of a download
+            songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
                 return@Factory dataSpec
                     .withUri(it.first.toUri())
                     .withRequestHeaders(dataSpec.httpRequestHeaders + songStreamHeaders[mediaId].orEmpty())
@@ -161,6 +169,14 @@ constructor(
             }.getOrThrow()
             val format = playbackData.format
 
+            // Picking up part way with a fresh url that gives another format would glue two files
+            // together. Fail instead: the failed download is wiped (see forgetStream), so trying
+            // again starts the whole song over in one format.
+            val startedItag = downloadItags.put(mediaId, format.itag)
+            if (dataSpec.position > 0 && startedItag != null && startedItag != format.itag) {
+                throw java.io.IOException("Stream format changed part way through the download of $mediaId")
+            }
+
             database.query {
                 upsert(
                     FormatEntity(
@@ -170,7 +186,9 @@ constructor(
                         codecs = format.mimeType.substringAfter("codecs=", "").removeSurrounding("\""),
                         bitrate = format.bitrate,
                         sampleRate = format.audioSampleRate,
-                        contentLength = format.contentLength!!,
+                        // some formats don't say; the real size is saved when the download finishes.
+                        // Asserting it here failed those songs' downloads every time they were tried
+                        contentLength = format.contentLength ?: 0L,
                         loudnessDb = playbackData.audioConfig?.loudnessDb,
                         perceptualLoudnessDb = playbackData.audioConfig?.perceptualLoudnessDb,
                         playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl
@@ -213,7 +231,7 @@ constructor(
                 "${it}&range=0-${format.contentLength ?: 10000000}"
             }
 
-            songUrlCache[mediaId] = streamUrl to playbackData.streamExpiresInSeconds * 1000L
+            songUrlCache[mediaId] = streamUrl to System.currentTimeMillis() + playbackData.streamExpiresInSeconds * 1000L
             songStreamHeaders[mediaId] = playbackData.streamHeaders
             dataSpec
                 .withUri(streamUrl.toUri())
@@ -251,10 +269,17 @@ constructor(
                                 Download.STATE_COMPLETED -> {
                                     database.updateDownloadedInfo(download.request.id, true, LocalDateTime.now())
                                     recordDownloadedLength(download)
-                                    losslessStreams.remove(download.request.id)
+                                    moduleDownloads.remove(download.request.id)
+                                    failedProviders.remove(download.request.id)
+                                    downloadItags.remove(download.request.id)
                                     saveLyrics(download.request.id)
                                 }
-                                Download.STATE_FAILED,
+                                Download.STATE_FAILED -> {
+                                    database.updateDownloadedInfo(download.request.id, false, null)
+                                    forgetStream(download.request.id)
+                                    // kept by R8 in release builds, unlike Timber: the reason is the only clue
+                                    android.util.Log.w(LOG_TAG, "Download of ${download.request.id} failed", finalException)
+                                }
                                 Download.STATE_STOPPED,
                                 Download.STATE_REMOVING -> {
                                     database.updateDownloadedInfo(download.request.id, false, null)
@@ -275,6 +300,9 @@ constructor(
             result[cursor.download.request.id] = cursor.download
         }
         downloads.value = result
+
+        scope.launch { followBatches() }
+        scope.launch { followAutoDownloads(context) }
 
         // Offline mode holds downloads where they are rather than failing them: they carry on
         // when it's turned off. Only then - resuming whenever offline mode reads off, at every
@@ -297,14 +325,18 @@ constructor(
         }
     }
 
-    /**
-     * Monochrome's FLAC of [mediaId], for a lossless download: null when Monochrome doesn't have the
-     * song (or can't be reached), and the song downloads from YouTube at High instead. Looked up
-     * once per song: the download opens the stream more than once.
-     */
-    private fun losslessStream(mediaId: String): Pair<String, Map<String, String>>? {
-        losslessStreams[mediaId]?.let { return it }
-        val module = sourceModules.module(MonochromeModule.Id) ?: return null
+    // a failed download retries with a fresh stream from the next provider down, and drops its bytes so two formats never get glued together
+    private fun forgetStream(mediaId: String) {
+        songUrlCache.remove(mediaId)
+        songStreamHeaders.remove(mediaId)
+        downloadItags.remove(mediaId)
+        moduleDownloads.remove(mediaId)?.let { failed -> failedProviders.merge(mediaId, setOf(failed.providerId)) { a, b -> a + b } }
+        runCatching { downloadCache.removeResource(mediaId) }
+    }
+
+    /** the first module in the download order with a whole file of [mediaId]; null when youtube comes first or nothing else has it */
+    private fun moduleDownload(mediaId: String): ModuleDownload? {
+        moduleDownloads[mediaId]?.let { return it }
         val song = runBlocking(Dispatchers.IO) { database.song(mediaId).first() } ?: return null
         val track = TrackQuery(
             title = song.song.title,
@@ -312,11 +344,9 @@ constructor(
             album = song.song.albumName ?: song.album?.title,
             durationMs = song.song.duration.takeIf { it > 0 }?.times(1000L),
         )
-        val found = runBlocking(Dispatchers.IO) {
-            runCatching { module.resolve(track, sourceModules.picks(MonochromeModule.Id)) }.getOrNull()
-        } as? ResolveResult.Found ?: return null
-        // a file to download, not a playlist of segments or something only a CDM can open
-        if (found.stream.format != StreamFormat.Progressive || found.stream.drm != null) return null
+        val route = runBlocking(Dispatchers.IO) { sourceModules.downloadRoute(track, failedProviders[mediaId].orEmpty()) }
+        val (module, stream) = route as? SourceModules.Route.Module ?: return null
+        val (mimeType, codecs) = savedFormatOf(stream.codec)
 
         database.query {
             // the length is filled in when the download finishes: see recordDownloadedLength
@@ -324,10 +354,10 @@ constructor(
                 FormatEntity(
                     id = mediaId,
                     itag = -1,
-                    mimeType = "audio/flac",
-                    codecs = "flac",
+                    mimeType = mimeType,
+                    codecs = codecs,
                     bitrate = 0,
-                    sampleRate = null,
+                    sampleRate = stream.sampleRateHz,
                     contentLength = 0L,
                     loudnessDb = null,
                     perceptualLoudnessDb = null,
@@ -336,7 +366,18 @@ constructor(
             )
             if (song.song.dateDownload == null) upsert(song.song.copy(dateDownload = LocalDateTime.now()))
         }
-        return (found.stream.url to found.stream.headers).also { losslessStreams[mediaId] = it }
+        return ModuleDownload(module.info.id, stream.url, stream.headers).also { moduleDownloads[mediaId] = it }
+    }
+
+    // the saved file as the format badges read it, a mime type and a codec, from the codec the module named
+    private fun savedFormatOf(codec: String?): Pair<String, String> = when (codec?.uppercase()) {
+        "FLAC" -> "audio/flac" to "flac"
+        "ALAC" -> "audio/mp4" to "alac"
+        "AAC", "HE-AAC" -> "audio/mp4" to "aac"
+        "MP3" -> "audio/mpeg" to "mp3"
+        "OPUS" -> "audio/ogg" to "opus"
+        "E-AC-3", "DOLBY ATMOS" -> "audio/mp4" to "ec-3"
+        else -> "audio/*" to codec?.lowercase().orEmpty()
     }
 
     /** One lyrics lookup at a time: an album finishing downloading would otherwise ask every provider at once per song. */
@@ -372,10 +413,100 @@ constructor(
 
     private val DownloadQuality.youTubeQuality: AudioQuality
         get() = when (this) {
-            DownloadQuality.LOSSLESS, DownloadQuality.HIGH -> AudioQuality.HIGH
+            DownloadQuality.HIGH -> AudioQuality.HIGH
             DownloadQuality.MEDIUM -> AudioQuality.MEDIUM
             DownloadQuality.LOW -> AudioQuality.LOW
         }
+
+    /**
+     * Keeps [batch] up to date. The manager only reports a download starting, finishing or
+     * failing, never how far along it is, so while anything downloads this asks twice a second.
+     * Nothing is polled while idle: it waits for [downloads] to show a download under way.
+     */
+    private suspend fun followBatches() {
+        while (true) {
+            downloads.first { map -> map.values.any { it.isUnderWay } }
+            val ids = LinkedHashSet<String>()
+            val songs = HashMap<String, dev.meowlabs.blossomtune.db.entities.Song?>()
+            while (true) {
+                // the manager may only be read on the thread it was made on
+                val running = kotlinx.coroutines.withContext(Dispatchers.Main) {
+                    downloadManager.currentDownloads.filter { it.isUnderWay }
+                }
+                running.forEach { ids += it.request.id }
+                val known = downloads.value
+                // cancelled or deleted part way: it leaves the batch rather than showing as failed
+                ids.retainAll { id -> known[id]?.state.let { it != null && it != Download.STATE_REMOVING } }
+                ids.forEach { id -> if (id !in songs) songs[id] = database.song(id).first() }
+                _batch.value = TransferBatch(
+                    ids.map { id -> transferItem(id, running.firstOrNull { it.request.id == id } ?: known[id], songs[id]) },
+                )
+                if (running.isEmpty()) break
+                delay(500)
+            }
+            // a batch that ended on an out-of-date entry in downloads can't spin this loop
+            delay(1_000)
+        }
+    }
+
+    // a song added to a playlist with "download new songs" on, or liked with it on for liked songs, starts downloading as it comes in
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private suspend fun followAutoDownloads(context: Context) {
+        context.dataStore.data
+            .map { AutoDownloads.marks(it) }
+            .distinctUntilChanged()
+            .collectLatest { marks ->
+                if (marks.isEmpty()) return@collectLatest
+                val sources = marks.map { (id, mark) ->
+                    if (id == AutoDownloads.LikedId) database.likedSongIdsSince(mark) else database.playlistSongIdsAfter(id, mark)
+                }
+                combine(sources) { lists -> lists.flatMap { it }.toSet() }
+                    .distinctUntilChanged()
+                    .collect { ids -> ids.forEach { startAutoDownload(context, it) } }
+            }
+    }
+
+    private suspend fun startAutoDownload(context: Context, songId: String) {
+        if (OfflineMode.isOn) return
+        // already saved, on its way, or stopped by hand: asking again would start a finished one over
+        val known = downloads.value[songId]
+        if (known != null && known.state != Download.STATE_FAILED) return
+        val song = database.song(songId).first() ?: return
+        // an imported file has no youtube id to download from
+        if (song.song.isLocal) return
+        val request = androidx.media3.exoplayer.offline.DownloadRequest.Builder(songId, songId.toUri())
+            .setCustomCacheKey(songId)
+            .setData(song.song.title.toByteArray())
+            .build()
+        kotlinx.coroutines.withContext(Dispatchers.Main) {
+            // android won't start the service from the background (a sync running behind another app), so the manager takes it straight then
+            runCatching {
+                androidx.media3.exoplayer.offline.DownloadService.sendAddDownload(context, ExoDownloadService::class.java, request, false)
+            }.onFailure { downloadManager.addDownload(request) }
+        }
+    }
+
+    private val Download.isUnderWay: Boolean
+        get() = state == Download.STATE_QUEUED || state == Download.STATE_DOWNLOADING || state == Download.STATE_RESTARTING
+
+    private fun transferItem(id: String, download: Download?, song: dev.meowlabs.blossomtune.db.entities.Song?): TransferItem =
+        TransferItem(
+            key = id,
+            title = song?.song?.title
+                ?: download?.request?.data?.takeIf { it.isNotEmpty() }?.decodeToString()
+                ?: "Song",
+            subtitle = song?.artists?.joinToString { it.name }?.ifBlank { null },
+            artworkUrl = song?.song?.thumbnailUrl,
+            state = when (download?.state) {
+                Download.STATE_COMPLETED -> TransferState.Done
+                Download.STATE_DOWNLOADING -> TransferState.Running
+                Download.STATE_QUEUED, Download.STATE_RESTARTING -> TransferState.Waiting
+                else -> TransferState.Failed
+            },
+            // unknown until the server says how big the file is
+            progress = ((download?.percentDownloaded ?: 0f) / 100f).coerceIn(0f, 1f),
+            songId = id,
+        )
 
     fun getDownload(songId: String): Flow<Download?> =
         downloads.map { it[songId] }.distinctUntilChanged()
@@ -385,7 +516,6 @@ constructor(
     }
 
     private companion object {
-        /** the key a lossless download is fetched under, below the download cache */
-        const val LosslessKeyPrefix = "lossless|"
+        const val LOG_TAG = "BlossomTuneDownload"
     }
 }

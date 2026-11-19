@@ -1,5 +1,3 @@
-// MusicDatabase.kt
-
 package dev.meowlabs.blossomtune.db
 
 import android.annotation.SuppressLint
@@ -27,6 +25,10 @@ import dev.meowlabs.blossomtune.db.entities.FormatEntity
 import dev.meowlabs.blossomtune.db.entities.LyricsEntity
 import dev.meowlabs.blossomtune.db.entities.PlayCountEntity
 import dev.meowlabs.blossomtune.db.entities.PlaylistEntity
+import dev.meowlabs.blossomtune.db.entities.ImportSession
+import dev.meowlabs.blossomtune.db.entities.ImportSessionSong
+import dev.meowlabs.blossomtune.db.entities.ImportedPlaylist
+import dev.meowlabs.blossomtune.db.entities.ImportedPlaylistTrack
 import dev.meowlabs.blossomtune.db.entities.ImportedSong
 import dev.meowlabs.blossomtune.db.entities.PlaylistEvent
 import dev.meowlabs.blossomtune.db.entities.PlaylistSongMap
@@ -37,6 +39,7 @@ import dev.meowlabs.blossomtune.db.entities.SearchHistory
 import dev.meowlabs.blossomtune.db.entities.SetVideoIdEntity
 import dev.meowlabs.blossomtune.db.entities.SongAlbumMap
 import dev.meowlabs.blossomtune.db.entities.SongArtistMap
+import dev.meowlabs.blossomtune.db.entities.SongEdit
 import dev.meowlabs.blossomtune.db.entities.SongEntity
 import dev.meowlabs.blossomtune.db.entities.SpeedDialItem
 import dev.meowlabs.blossomtune.db.entities.SortedSongAlbumMap
@@ -103,6 +106,9 @@ class MusicDatabase(
     fun close() = delegate.close()
 }
 
+// bump this with every schema change and add its migration to AllMigrations, the import checks old exports against it too
+const val MusicDatabaseVersion = 44
+
 @Database(
     entities = [
         SongEntity::class,
@@ -124,13 +130,18 @@ class MusicDatabase(
         SpeedDialItem::class,
         PlaylistEvent::class,
         ImportedSong::class,
+        ImportSession::class,
+        ImportSessionSong::class,
+        ImportedPlaylist::class,
+        ImportedPlaylistTrack::class,
+        SongEdit::class,
     ],
     views = [
         SortedSongArtistMap::class,
         SortedSongAlbumMap::class,
         PlaylistSongMapPreview::class,
     ],
-    version = 39,
+    version = MusicDatabaseVersion,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -139,7 +150,7 @@ abstract class InternalDatabase : RoomDatabase() {
     abstract val speedDialDao: SpeedDialDao
 
     companion object {
-        const val DB_NAME = "song.db"
+        const val DB_NAME = "blossomtune.db"
 
         fun newInstance(context: Context): MusicDatabase =
             MusicDatabase(
@@ -185,6 +196,11 @@ val AllMigrations: Array<Migration>
         MIGRATION_36_37,
         MIGRATION_37_38,
         MIGRATION_38_39,
+        MIGRATION_39_40,
+        MIGRATION_40_41,
+        MIGRATION_41_42,
+        MIGRATION_42_43,
+        MIGRATION_43_44,
     )
 
 val MIGRATION_1_2 =
@@ -763,5 +779,116 @@ val MIGRATION_38_39 =
                 "CREATE TABLE IF NOT EXISTS `imported_song` (`songId` TEXT NOT NULL, `source` TEXT NOT NULL, `importedAt` INTEGER NOT NULL, PRIMARY KEY(`songId`, `source`))",
             )
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_imported_song_source` ON `imported_song` (`source`)")
+        }
+    }
+
+val MIGRATION_39_40 =
+    object : Migration(39, 40) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // IF NOT EXISTS for the same reason as 38 -> 39: a device that already has the tables
+            // must not fail the upgrade and fall into the destructive reset.
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `import_session` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `source` TEXT NOT NULL, `startedAt` INTEGER NOT NULL)",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `import_session_song` (`sessionId` INTEGER NOT NULL, `songId` TEXT NOT NULL, `addedToLibrary` INTEGER NOT NULL, `liked` INTEGER NOT NULL, PRIMARY KEY(`sessionId`, `songId`))",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_import_session_song_songId` ON `import_session_song` (`songId`)")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `imported_playlist` (`playlistId` TEXT NOT NULL, `source` TEXT NOT NULL, `sessionId` INTEGER, `importedAt` INTEGER NOT NULL, PRIMARY KEY(`playlistId`))",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_imported_playlist_source` ON `imported_playlist` (`source`)")
+
+            // Imports made before sessions existed become one session per service, so "Delete
+            // Spotify imports" still reaches them. What each one changed wasn't recorded, so the
+            // best guess is used: the import put its songs in the library, and a liked one was
+            // liked by it. That is also how Liked songs already groups them.
+            db.execSQL(
+                "INSERT INTO `import_session` (`source`, `startedAt`) " +
+                    "SELECT `source`, MIN(`importedAt`) FROM `imported_song` " +
+                    "WHERE `source` NOT IN (SELECT `source` FROM `import_session`) GROUP BY `source`",
+            )
+            db.execSQL(
+                "INSERT OR IGNORE INTO `import_session_song` (`sessionId`, `songId`, `addedToLibrary`, `liked`) " +
+                    "SELECT `import_session`.`id`, `imported_song`.`songId`, " +
+                    "CASE WHEN `song`.`inLibrary` IS NOT NULL THEN 1 ELSE 0 END, " +
+                    "CASE WHEN `song`.`liked` THEN 1 ELSE 0 END " +
+                    "FROM `imported_song` " +
+                    "JOIN `import_session` ON `import_session`.`source` = `imported_song`.`source` " +
+                    "JOIN `song` ON `song`.`id` = `imported_song`.`songId`",
+            )
+            // A playlist counts as imported when every song in it came from that one service and
+            // its cover is the service's own picture (or none). Playlists made in the app get a
+            // generated cover saved on the phone, so they never match.
+            db.execSQL(
+                "INSERT OR IGNORE INTO `imported_playlist` (`playlistId`, `source`, `sessionId`, `importedAt`) " +
+                    "SELECT `m`.`playlistId`, `i`.`source`, `s`.`id`, `s`.`startedAt` " +
+                    "FROM `playlist_song_map` AS `m` " +
+                    "JOIN `imported_song` AS `i` ON `i`.`songId` = `m`.`songId` " +
+                    "JOIN `playlist` AS `p` ON `p`.`id` = `m`.`playlistId` " +
+                    "JOIN `import_session` AS `s` ON `s`.`source` = `i`.`source` " +
+                    "WHERE `p`.`isEditable` AND (`p`.`thumbnailUrl` IS NULL OR `p`.`thumbnailUrl` LIKE 'http%') " +
+                    "GROUP BY `m`.`playlistId`, `i`.`source` " +
+                    "HAVING COUNT(DISTINCT `m`.`songId`) = " +
+                    "(SELECT COUNT(DISTINCT `songId`) FROM `playlist_song_map` WHERE `playlistId` = `m`.`playlistId`)",
+            )
+        }
+    }
+
+val MIGRATION_40_41 =
+    object : Migration(40, 41) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Where each imported playlist lives on its service, for Re-sync. Columns are checked
+            // first, the way the tables above use IF NOT EXISTS: adding one that's already there
+            // fails the upgrade, and a failed upgrade falls into the destructive reset.
+            val columns = db.query("PRAGMA table_info(`imported_playlist`)").use { cursor ->
+                val name = cursor.getColumnIndex("name")
+                buildSet { while (cursor.moveToNext()) add(cursor.getString(name)) }
+            }
+            if ("remoteId" !in columns) db.execSQL("ALTER TABLE `imported_playlist` ADD COLUMN `remoteId` TEXT")
+            if ("remoteUrl" !in columns) db.execSQL("ALTER TABLE `imported_playlist` ADD COLUMN `remoteUrl` TEXT")
+            if ("lastSyncedAt" !in columns) db.execSQL("ALTER TABLE `imported_playlist` ADD COLUMN `lastSyncedAt` INTEGER")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `imported_playlist_track` (`playlistId` TEXT NOT NULL, `trackKey` TEXT NOT NULL, PRIMARY KEY(`playlistId`, `trackKey`))",
+            )
+        }
+    }
+
+val MIGRATION_41_42 =
+    object : Migration(41, 42) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // checked first like 40 -> 41, adding a column that's already there fails into the destructive reset
+            val columns = db.query("PRAGMA table_info(`song`)").use { cursor ->
+                val name = cursor.getColumnIndex("name")
+                buildSet { while (cursor.moveToNext()) add(cursor.getString(name)) }
+            }
+            if ("addedByLike" !in columns) db.execSQL("ALTER TABLE `song` ADD COLUMN `addedByLike` INTEGER NOT NULL DEFAULT 0")
+            // best guess for songs already in: a like put it in when both dates match, or youtube sync brought the like, and imports or files never count
+            db.execSQL(
+                "UPDATE `song` SET `addedByLike` = 1 " +
+                    "WHERE `inLibrary` IS NOT NULL AND `liked` AND NOT `isLocal` " +
+                    "AND `id` NOT IN (SELECT `songId` FROM `imported_song` WHERE `source` != 'youtube_music') " +
+                    "AND (`likedDate` IS NULL OR ABS(`likedDate` - `inLibrary`) < 5000 " +
+                    "OR `id` IN (SELECT `songId` FROM `imported_song` WHERE `source` = 'youtube_music'))",
+            )
+        }
+    }
+
+val MIGRATION_42_43 =
+    object : Migration(42, 43) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // the song edit sheet's hand edits, kept apart from the song so a refetch can't wash them out
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `song_edit` (`songId` TEXT NOT NULL, `title` TEXT, `artists` TEXT, `album` TEXT, " +
+                    "`year` INTEGER, `cover` TEXT, `videoId` TEXT, `noVideo` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`songId`))",
+            )
+        }
+    }
+
+val MIGRATION_43_44 =
+    object : Migration(43, 44) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // local songs' genre tags for the library's Genres tab, read again for files that came in before
+            db.execSQL("ALTER TABLE `song` ADD COLUMN `genre` TEXT")
         }
     }

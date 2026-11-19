@@ -9,6 +9,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,10 +17,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.Dp
+import dev.meowlabs.blossomtune.ui.utils.isWideLayout
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -51,6 +57,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -87,7 +94,7 @@ import dev.meowlabs.blossomtune.playback.queues.YouTubeQueue
 import dev.meowlabs.blossomtune.ui.component.GlassState
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
 import dev.meowlabs.blossomtune.ui.component.RoundedHighlight
-import dev.meowlabs.blossomtune.ui.component.SwipeActionsBox
+import dev.meowlabs.blossomtune.ui.component.SongSwipeBox
 import dev.meowlabs.blossomtune.ui.component.librarySwipeAction
 import dev.meowlabs.blossomtune.ui.component.queueSwipeAction
 import dev.meowlabs.blossomtune.ui.component.glassRoot
@@ -100,17 +107,17 @@ import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
 import dev.meowlabs.blossomtune.ui.component.navigateToTab
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
 private val SearchCategories = listOf(
-    "All" to null,
-    "Music" to FILTER_SONG,
-    "Artist" to FILTER_ARTIST,
-    "Video" to FILTER_VIDEO,
-    "Album" to FILTER_ALBUM,
-    "Playlist" to FILTER_COMMUNITY_PLAYLIST,
-    "Featured" to FILTER_FEATURED_PLAYLIST,
+    R.string.search_category_all to null,
+    R.string.search_category_music to FILTER_SONG,
+    R.string.search_category_artist to FILTER_ARTIST,
+    R.string.search_category_video to FILTER_VIDEO,
+    R.string.search_category_album to FILTER_ALBUM,
+    R.string.search_category_playlist to FILTER_COMMUNITY_PLAYLIST,
+    R.string.search_category_featured to FILTER_FEATURED_PLAYLIST,
 )
 
 @Composable
@@ -169,8 +176,8 @@ fun OnlineSearchResult(
             val text = raw.trim()
             if (text.isNotEmpty() && text != viewModel.query) {
                 focusManager.clearFocus()
-                navController.navigate("search/${URLEncoder.encode(text, "UTF-8")}") {
-                    popUpTo("search/${URLEncoder.encode(viewModel.query, "UTF-8")}") {
+                navController.navigate(searchRoute(text)) {
+                    popUpTo(searchRoute(viewModel.query)) {
                         inclusive = true
                     }
                 }
@@ -183,7 +190,10 @@ fun OnlineSearchResult(
         }
     }
 
+    val recentContext = androidx.compose.ui.platform.LocalContext.current
     val onItemClick: (YTItem) -> Unit = { item ->
+        // kept for the search page's recent searches
+        RecentSearches.add(recentContext, item)
         when (item) {
             is SongItem -> {
                 if (item.id == mediaMetadata?.id) {
@@ -216,6 +226,9 @@ fun OnlineSearchResult(
     }
 
     val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+    // on its side the field is in the pane at the left (SearchSidePane): only the kinds of result sit over the list
+    val landscape = dev.meowlabs.blossomtune.ui.utils.isLandscapeLayout()
+    val statusTop = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
 
     val top = remember(summary, viewModel.query) {
         summary?.let { pickTopResult(it.summaries.flatMap { section -> section.items }, viewModel.query) }
@@ -226,17 +239,19 @@ fun OnlineSearchResult(
             .fillMaxSize()
             .background(SearchColors.page(pureBlack))
     ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 // recorded while scrolling too, so the bar's blur never drops out mid-scroll
                 .glassRoot(glassState, isActive = { progressProvider() > 0.01f })
         ) {
+            // wide screens show the results two to a row, so the rows aren't mostly empty space
+            val columns = if (maxWidth >= 600.dp) 2 else 1
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    top = searchTopBarHeight(withTitle = true, extra = 46.dp),
+                    top = if (landscape) statusTop + SearchTopClearance + 34.dp + 18.dp else searchTopBarHeight(withTitle = true, extra = 46.dp),
                     bottom = bottomInset + 24.dp,
                 ),
             ) {
@@ -255,13 +270,14 @@ fun OnlineSearchResult(
                     } else {
                         if (top != null) {
                             item(key = "top_header") {
-                                SearchSectionHeader(title = "Top Results", ruleAbove = false)
+                                SearchSectionHeader(title = stringResource(R.string.search_top_results), ruleAbove = false)
                             }
                             item(key = "top_card") {
+                                val active = mediaMetadata?.id == top.id
                                 TopResultCard(
                                     item = top,
-                                    isActive = mediaMetadata?.id == top.id,
-                                    isPlaying = isPlaying,
+                                    isActive = active,
+                                    isPlaying = active && isPlaying,
                                     onClick = { onItemClick(top) },
                                     onLongClick = { onItemLongClick(top) },
                                 )
@@ -278,22 +294,22 @@ fun OnlineSearchResult(
                                 renderedSection = true
                                 item(key = "summary_header_${index}_${section.title}") {
                                     SearchSectionHeader(
-                                        title = if (index == 0) "Exact matches" else section.title,
+                                        title = if (index == 0) stringResource(R.string.search_exact_matches) else section.title,
                                         ruleAbove = ruleAbove,
                                     )
                                 }
+                                val chunked = rows.chunked(columns)
                                 items(
-                                    items = rows,
-                                    key = { "summary_${index}_${it.id}" },
+                                    items = chunked,
+                                    key = { chunk -> "c${columns}_summary_${index}_${chunk.first().id}" },
                                     contentType = { "resultRow" },
-                                ) { item ->
-                                    ResultRow(
-                                        item = item,
-                                        isActive = mediaMetadata?.id == item.id,
-                                        isPlaying = isPlaying,
-                                        onClick = { onItemClick(item) },
-                                        onLongClick = { onItemLongClick(item) },
-                                        onMenu = { onItemLongClick(item) },
+                                ) { rowItems ->
+                                    ResultRowChunk(
+                                        items = rowItems,
+                                        columns = columns,
+                                        mediaMetadataId = mediaMetadata?.id,
+                                        onItemClick = onItemClick,
+                                        onItemLongClick = onItemLongClick,
                                     )
                                 }
                                 item(key = "summary_gap_$index") {
@@ -320,25 +336,25 @@ fun OnlineSearchResult(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = "No results",
+                                    text = stringResource(R.string.search_no_results),
                                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                                     color = SearchColors.Secondary,
                                 )
                             }
                         }
                     } else {
+                        val chunked = page.items.chunked(columns)
                         items(
-                            items = page.items,
-                            key = { it.id },
+                            items = chunked,
+                            key = { chunk -> "c${columns}_${chunk.first().id}" },
                             contentType = { "resultRow" },
-                        ) { item ->
-                            ResultRow(
-                                item = item,
-                                isActive = mediaMetadata?.id == item.id,
-                                isPlaying = isPlaying,
-                                onClick = { onItemClick(item) },
-                                onLongClick = { onItemLongClick(item) },
-                                onMenu = { onItemLongClick(item) },
+                        ) { rowItems ->
+                            ResultRowChunk(
+                                items = rowItems,
+                                columns = columns,
+                                mediaMetadataId = mediaMetadata?.id,
+                                onItemClick = onItemClick,
+                                onItemLongClick = onItemLongClick,
                             )
                         }
                     }
@@ -346,17 +362,36 @@ fun OnlineSearchResult(
             }
         }
 
-        SearchGlassTopBar(
+        if (landscape) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to SearchColors.page(pureBlack),
+                            0.7f to SearchColors.page(pureBlack).copy(alpha = 0.9f),
+                            1f to Color.Transparent,
+                        )
+                    )
+                    .padding(top = statusTop + SearchTopClearance - 4.dp, bottom = 14.dp),
+            ) {
+                SearchCategoryRow(
+                    categories = SearchCategories.map { stringResource(it.first) },
+                    selectedIndex = selectedIndex,
+                    onSelect = { index -> viewModel.filter.value = SearchCategories[index].second },
+                )
+            }
+        } else SearchGlassTopBar(
             glassState = glassState,
             progressProvider = progressProvider,
             pureBlack = pureBlack,
-            title = "Search",
+            title = stringResource(R.string.search),
             trailing = {
                 SearchAvatar(imageUrl = profilePicStr.ifBlank { null }, onClick = { navController.navigateToTab("settings") })
             },
             below = {
                 SearchCategoryRow(
-                    categories = SearchCategories.map { it.first },
+                    categories = SearchCategories.map { stringResource(it.first) },
                     selectedIndex = selectedIndex,
                     onSelect = { index -> viewModel.filter.value = SearchCategories[index].second },
                 )
@@ -366,7 +401,7 @@ fun OnlineSearchResult(
                 value = query,
                 onValueChange = { query = it },
                 onSearch = submit,
-                placeholder = "Search for any tracks, albums, lyrics...",
+                placeholder = stringResource(R.string.search_placeholder_tracks_albums),
                 leading = {
                     Icon(
                         painter = painterResource(R.drawable.arrow_back),
@@ -376,7 +411,7 @@ fun OnlineSearchResult(
                             .size(20.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
+                                indication = RemoteFocus,
                             ) { navController.navigateUp() },
                     )
                 },
@@ -385,19 +420,56 @@ fun OnlineSearchResult(
     }
 }
 
+// youtube's own first pick, unless another result matches the typed words clearly better; taking the first song anywhere showed songs nobody searched for
 private fun pickTopResult(items: List<YTItem>, query: String): YTItem? {
     if (items.isEmpty()) return null
-    val normalised = query.trim().lowercase()
+    val words = searchWords(query)
+    if (words.isEmpty()) return items.first()
+    val typed = words.joinToString(" ")
 
     items.filterIsInstance<ArtistItem>()
-        .firstOrNull { it.title.trim().lowercase() == normalised }
+        .firstOrNull { searchWords(it.title).joinToString(" ") == typed }
         ?.let { return it }
 
-    val songs = items.filterIsInstance<SongItem>()
-    songs.firstOrNull { !it.isVideoSong }?.let { return it }
-
-    return songs.firstOrNull() ?: items.first()
+    // the highest score wins, and on a tie the one youtube put first
+    var best: YTItem? = null
+    var bestScore = 0
+    items.forEach { item ->
+        val score = matchScore(item, words, typed)
+        if (score > bestScore) {
+            best = item
+            bestScore = score
+        }
+    }
+    return best ?: items.first()
 }
+
+// how well an item's title and credits cover the typed words: all of them beats some, the exact title beats both, and a music video gives way to the song
+private fun matchScore(item: YTItem, words: List<String>, typed: String): Int {
+    val title = searchWords(item.title)
+    val credits = when (item) {
+        is SongItem -> item.artists.flatMap { searchWords(it.name) }
+        is AlbumItem -> item.artists.orEmpty().flatMap { searchWords(it.name) }
+        is PlaylistItem -> item.author?.name?.let(::searchWords).orEmpty()
+        else -> emptyList()
+    }
+    val known = (title + credits).toHashSet()
+    val found = words.count { it in known }
+    if (found == 0) return 0
+    var score = found * 100 / words.size
+    if (title.joinToString(" ") == typed) score += 100 else if (found == words.size) score += 40
+    if (item is SongItem && item.isVideoSong) score -= 5
+    return score.coerceAtLeast(1)
+}
+
+// lowercase words without accents, so "Beyoncé" and "beyonce" match
+private fun searchWords(text: String): List<String> =
+    AccentMarks.replace(java.text.Normalizer.normalize(text.lowercase(), java.text.Normalizer.Form.NFD), "")
+        .split(WordBreaks)
+        .filter { it.isNotEmpty() }
+
+private val AccentMarks = Regex("\\p{M}+")
+private val WordBreaks = Regex("[^\\p{L}\\p{N}]+")
 
 @Composable
 private fun TopResultCard(
@@ -406,38 +478,34 @@ private fun TopResultCard(
     isPlaying: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val kind = when (item) {
-        is SongItem -> if (item.isVideoSong) "Video" else "Song"
-        is AlbumItem -> "Album"
-        is ArtistItem -> "Artist"
-        is PlaylistItem -> "Playlist"
+        is SongItem -> if (item.isVideoSong) stringResource(R.string.item_kind_video) else stringResource(R.string.item_kind_song)
+        is AlbumItem -> stringResource(R.string.item_kind_album)
+        is ArtistItem -> stringResource(R.string.item_kind_artist)
+        is PlaylistItem -> stringResource(R.string.item_kind_playlist)
     }
     val detail = when (item) {
         is SongItem -> listOfNotNull(
             kind,
-            item.artists.joinToString { it.name }.takeIf { it.isNotBlank() }?.let { "by $it" },
+            item.artists.joinToString { it.name }.takeIf { it.isNotBlank() }?.let { stringResource(R.string.search_by_artist, it) },
             item.duration?.let { formatDuration(it) },
         ).joinToString("  •  ")
 
         is AlbumItem -> listOfNotNull(
             kind,
-            item.artists?.joinToString { it.name }?.takeIf { it.isNotBlank() }?.let { "by $it" },
+            item.artists?.joinToString { it.name }?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.search_by_artist, it) },
             item.year?.toString(),
         ).joinToString("  •  ")
 
         is ArtistItem -> kind
-        is PlaylistItem -> listOfNotNull(kind, item.author?.name?.let { "by $it" }, item.songCountText)
+        is PlaylistItem -> listOfNotNull(kind, item.author?.name?.let { stringResource(R.string.search_by_artist, it) }, item.songCountText)
             .joinToString("  •  ")
     }
 
-    // Dengan sampul, kartu ini digelapkan scrim hitam (lihat di bawah), jadi tintanya putih.
-    // Tanpa sampul kartunya tetap putih dan memakai tinta halaman.
-    val hasArt = item.thumbnail != null
-    val ink = if (hasArt) Color.White else SearchColors.Primary
-    val inkMuted = if (hasArt) Color.White.copy(alpha = 0.72f) else SearchColors.Secondary
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = SearchHorizontalPadding)
             .clip(RoundedCornerShape(16.dp))
@@ -493,7 +561,7 @@ private fun TopResultCard(
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                     ),
-                    color = ink,
+                    color = SearchColors.Primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -501,7 +569,7 @@ private fun TopResultCard(
                 Text(
                     text = detail,
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = inkMuted,
+                    color = SearchColors.Secondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -513,7 +581,7 @@ private fun TopResultCard(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(ink)
+                        .background(Color.White)
                         .clickable(onClick = onClick),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -522,7 +590,7 @@ private fun TopResultCard(
                             if (isActive && isPlaying) R.drawable.ic_untitled_pause else R.drawable.play
                         ),
                         contentDescription = null,
-                        tint = if (hasArt) SearchColors.Primary else SearchColors.OnPrimary,
+                        tint = Color.Black,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -533,14 +601,61 @@ private fun TopResultCard(
 }
 
 @Composable
+private fun ResultRowChunk(
+    items: List<YTItem>,
+    columns: Int,
+    mediaMetadataId: String?,
+    onItemClick: (YTItem) -> Unit,
+    onItemLongClick: (YTItem) -> Unit,
+) {
+    if (columns > 1) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = SearchHorizontalPadding - 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items.forEach { item ->
+                ResultRow(
+                    item = item,
+                    isActive = mediaMetadataId == item.id,
+                    onClick = { onItemClick(item) },
+                    onLongClick = { onItemLongClick(item) },
+                    onMenu = { onItemLongClick(item) },
+                    horizontalPadding = 8.dp,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            repeat(columns - items.size) {
+                Spacer(Modifier.weight(1f))
+            }
+        }
+    } else {
+        val item = items.first()
+        ResultRow(
+            item = item,
+            isActive = mediaMetadataId == item.id,
+            onClick = { onItemClick(item) },
+            onLongClick = { onItemLongClick(item) },
+            onMenu = { onItemLongClick(item) },
+        )
+    }
+}
+
+// no play state here: rows only tint the active title, so a play or pause leaves every row alone
+@Composable
 private fun ResultRow(
     item: YTItem,
     isActive: Boolean,
-    isPlaying: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onMenu: () -> Unit,
+    modifier: Modifier = Modifier,
+    horizontalPadding: Dp = SearchHorizontalPadding,
 ) {
+    val albumLabel = stringResource(R.string.item_kind_album)
+    val artistLabel = stringResource(R.string.item_kind_artist)
+    val playlistLabel = stringResource(R.string.item_kind_playlist)
     val subtitle = when (item) {
         is SongItem -> listOfNotNull(
             item.artists.joinToString { it.name }.takeIf { it.isNotBlank() },
@@ -548,12 +663,12 @@ private fun ResultRow(
         ).joinToString("  •  ")
 
         is AlbumItem -> listOfNotNull(
-            "Album",
+            albumLabel,
             item.artists?.joinToString { it.name }?.takeIf { it.isNotBlank() },
         ).joinToString("  •  ")
 
-        is ArtistItem -> "Artist"
-        is PlaylistItem -> listOfNotNull("Playlist", item.author?.name).joinToString("  •  ")
+        is ArtistItem -> artistLabel
+        is PlaylistItem -> listOfNotNull(playlistLabel, item.author?.name).joinToString("  •  ")
     }
 
     val row: @Composable () -> Unit = {
@@ -566,7 +681,7 @@ private fun ResultRow(
                     onClick = onClick,
                     onLongClick = onLongClick,
                 )
-                .padding(horizontal = SearchHorizontalPadding, vertical = 8.dp),
+                .padding(horizontal = horizontalPadding, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SearchArtwork(
@@ -584,7 +699,7 @@ private fun ResultRow(
                         fontWeight = FontWeight.SemiBold,
                     ),
 
-                    color = if (isActive) MaterialTheme.colorScheme.primary else SearchColors.Primary,
+                    color = if (isActive) Color(0xFF7FD1FF) else SearchColors.Primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -601,19 +716,19 @@ private fun ResultRow(
         }
     }
 
-    Column {
-        // songs slide: left to queue, right to save to the library
+    Column(modifier = modifier) {
+        // songs slide to queue or save to the library; Settings > Gesture sets which side does which
         if (item is SongItem) {
-            SwipeActionsBox(
-                start = { librarySwipeAction(item) },
-                end = { queueSwipeAction { item.toMediaItem() } },
+            SongSwipeBox(
+                library = { librarySwipeAction(item) },
+                queue = { queueSwipeAction { item.toMediaItem() } },
             ) {
                 row()
             }
         } else {
             row()
         }
-        SearchRule()
+        SearchRule(horizontalPadding = horizontalPadding)
     }
 }
 

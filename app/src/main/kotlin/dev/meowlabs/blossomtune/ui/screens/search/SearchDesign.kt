@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -39,12 +38,14 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +64,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -75,10 +77,15 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.component.BlurDirection
+import dev.meowlabs.blossomtune.ui.component.FlatBarScrimAlpha
+import dev.meowlabs.blossomtune.ui.component.rememberProgressiveBlur
 import dev.meowlabs.blossomtune.ui.component.GlassState
+import dev.meowlabs.blossomtune.ui.component.LocalPlayerBottomSheetState
 import dev.meowlabs.blossomtune.ui.component.ProgressiveGlassBackground
 import dev.meowlabs.blossomtune.ui.utils.resize
 import dev.meowlabs.blossomtune.ui.component.containerTransformSource
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
 val SearchHorizontalPadding = 24.dp
 
@@ -90,33 +97,17 @@ val SearchTitleBlockHeight = 62.dp
 
 val SearchTopClearance = 18.dp
 
-/**
- * Token halaman Search. Nilainya sekarang terang (najstore), bukan hitam lagi.
- *
- * Catatan penting: `Primary`/`Secondary` di sini = tinta DI ATAS HALAMAN. Kalau dipakai
- * di atas gambar/artwork (header genre), di situ harus putih eksplisit - jangan pakai
- * token ini, karena tintanya akan hilang di atas foto terang.
- */
 object SearchColors {
-    val Field = Color(0xFFE4EFFC)          // es: kolom cari
-    val FieldFocused = Color(0xFFFFFFFF)   // fokus: putih, dibedakan lewat border
-    val Tile = Color(0xFFFFFFFF)           // kartu putih di atas halaman es
-    val TileHigh = Color(0xFFDCEAF9)       // state terpilih / hover = es panel
-    val Divider = Color(0xFFCFE3F7)
-    val Primary = Color(0xFF0E1B2C)        // tinta utama di halaman
-    val OnPrimary = Color(0xFFFFFFFF)      // teks di atas state terpilih
-    val Secondary = Color(0xFF4E6C8A)      // metadata
-    val Placeholder = Color(0xFF4E6C8A)    // 4.71 di atas Field
+    val Field = Color(0xFF141416)
+    val FieldFocused = Color(0xFF1E1E21)
+    val Tile = Color(0xFF121214)
+    val TileHigh = Color(0xFF1C1C1F)
+    val Divider = Color(0xFF232326)
+    val Primary = Color.White
+    val Secondary = Color(0xFF9A9AA0)
+    val Placeholder = Color(0xFF77777D)
 
-    /**
-     * Halaman selalu ikut skema. `pureBlack` sengaja tidak dipakai lagi: opsi hitam pekat
-     * hanya masuk akal di mode gelap, dan pemanggilnya (Settings/Search/Genre) dulu
-     * mengirim `true` tanpa syarat - hasilnya bar kaca hitam di tengah halaman putih.
-     */
-    @androidx.compose.runtime.Composable
-    @androidx.compose.runtime.ReadOnlyComposable
-    @Suppress("UNUSED_PARAMETER")
-    fun page(pureBlack: Boolean): Color = androidx.compose.material3.MaterialTheme.colorScheme.background
+    fun page(pureBlack: Boolean): Color = Color.Black
 }
 
 val SearchCollapseEasing = CubicBezierEasing(0.57f, 0.53f, 0f, 1f)
@@ -197,7 +188,7 @@ fun searchTopBarHeight(
     extra: Dp = 0.dp,
     titleBlockHeight: Dp = SearchTitleBlockHeight,
 ): Dp {
-    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBar = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
     return statusBar + SearchTopClearance +
         (if (withTitle) titleBlockHeight else 0.dp) +
         SearchFieldHeight + extra + 32.dp
@@ -235,7 +226,7 @@ fun SearchGlassTopBar(
     below: (@Composable () -> Unit)? = null,
     field: @Composable () -> Unit,
 ) {
-    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBar = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
     val pageColor = SearchColors.page(pureBlack)
     val density = LocalDensity.current
     val titleTravelPx = with(density) { titleBlockHeight.toPx() }
@@ -265,6 +256,8 @@ fun SearchGlassTopBar(
                 )
             }
         }
+        // a flat bar only when there's glass under it, without blur the fade is all that keeps the title readable
+        val flatBar = blurActive && !rememberProgressiveBlur()
         if (showGlass) {
             Box(
                 modifier = Modifier
@@ -272,6 +265,10 @@ fun SearchGlassTopBar(
                     .drawWithCache {
                         onDrawBehind {
                             val p = progressProvider().coerceIn(0f, 1f)
+                            if (flatBar) {
+                                drawRect(pageColor.copy(alpha = p * FlatBarScrimAlpha))
+                                return@onDrawBehind
+                            }
 
                             val boost = if (blurActive) 1f else 1.12f
                             drawRect(
@@ -305,7 +302,7 @@ fun SearchGlassTopBar(
                             transformOrigin = TransformOrigin(0f, 0.5f)
                             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                                 val quantised = ((p * 14f) / 3f).toInt() * 3
-                                renderEffect = if (quantised > 0) {
+                                renderEffect = if (quantised > 0 && dev.meowlabs.blossomtune.ui.utils.AppMotion.elementBlur) {
                                     blurCache.getOrPut(quantised) {
                                         android.graphics.RenderEffect.createBlurEffect(
                                             quantised.toFloat(),
@@ -465,6 +462,20 @@ fun SearchField(
     focusRequester: FocusRequester? = null,
     onFocusChanged: ((Boolean) -> Unit)? = null,
 ) {
+    val playerSheet = LocalPlayerBottomSheetState.current
+    val focusManager = LocalFocusManager.current
+    var fieldHasFocus by remember { mutableStateOf(false) }
+
+    // The search page stays composed beneath the player. Once the player starts opening, a
+    // focused field there can leave Android's text-selection handle floating above the player.
+    // Clear only this field's focus, not focus in the player's own sheets (e.g. a lyrics editor).
+    LaunchedEffect(playerSheet, focusManager) {
+        val sheet = playerSheet ?: return@LaunchedEffect
+        snapshotFlow { sheet.progress > 0.001f }.collect { playerOpening ->
+            if (playerOpening && fieldHasFocus) focusManager.clearFocus()
+        }
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -475,7 +486,7 @@ fun SearchField(
                 if (readOnlyClick != null) {
                     Modifier.clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
+                        indication = RemoteFocus,
                         onClick = readOnlyClick,
                     )
                 } else {
@@ -519,13 +530,10 @@ fun SearchField(
                                 Modifier
                             }
                         )
-                        .then(
-                            if (onFocusChanged != null) {
-                                Modifier.onFocusChanged { onFocusChanged(it.isFocused) }
-                            } else {
-                                Modifier
-                            }
-                        ),
+                        .onFocusChanged {
+                            fieldHasFocus = it.isFocused
+                            onFocusChanged?.invoke(it.isFocused)
+                        },
                 )
             }
         }
@@ -718,7 +726,7 @@ private fun moodTint(stripeColor: Long): Color {
     val r = ((argb shr 16) and 0xFF)
     val g = ((argb shr 8) and 0xFF)
     val b = (argb and 0xFF)
-    if (r == 0 && g == 0 && b == 0) return Color(0xFF2C3952)
+    if (r == 0 && g == 0 && b == 0) return Color(0xFF3A3A44)
     val lift = { c: Int -> (c + (170 - c) * 0.45f).toInt().coerceIn(40, 220) }
     return Color(lift(r), lift(g), lift(b))
 }
@@ -741,7 +749,7 @@ fun SearchCategoryRow(
                 modifier = Modifier
                     .height(34.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(if (selected) SearchColors.Primary else SearchColors.Tile)
+                    .background(if (selected) Color.White else SearchColors.Tile)
                     .clickable { onSelect(index) }
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center,
@@ -752,7 +760,7 @@ fun SearchCategoryRow(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                     ),
-                    color = if (selected) SearchColors.OnPrimary else SearchColors.Primary,
+                    color = if (selected) Color.Black else SearchColors.Primary,
                     maxLines = 1,
                 )
             }
@@ -822,11 +830,11 @@ fun SearchOverflowDots(onClick: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun SearchRule(modifier: Modifier = Modifier) {
+fun SearchRule(modifier: Modifier = Modifier, horizontalPadding: Dp = SearchHorizontalPadding) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = SearchHorizontalPadding)
+            .padding(horizontal = horizontalPadding)
             .height(1.dp)
             .background(SearchColors.Divider)
     )
@@ -911,7 +919,7 @@ fun SearchLoadingDots(modifier: Modifier = Modifier) {
                         scaleY = s
                     }
                     .clip(CircleShape)
-                    .background(SearchColors.Primary)
+                    .background(Color.White)
             )
         }
     }
@@ -919,7 +927,7 @@ fun SearchLoadingDots(modifier: Modifier = Modifier) {
 
 fun Modifier.searchCardBorder(radius: Dp = 16.dp): Modifier = this.border(
     width = androidx.compose.ui.unit.Dp.Hairline,
-    color = SearchColors.Primary.copy(alpha = 0.08f),
+    color = Color.White.copy(alpha = 0.05f),
     shape = RoundedCornerShape(radius),
 )
 

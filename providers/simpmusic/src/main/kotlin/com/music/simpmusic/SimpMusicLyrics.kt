@@ -1,5 +1,3 @@
-// SimpMusicLyrics.kt
-
 package com.music.simpmusic
 
 import com.music.simpmusic.models.LyricsData
@@ -20,7 +18,7 @@ import kotlin.math.abs
 
 object SimpMusicLyrics {
     private const val BASE_URL = "https://api-lyrics.simpmusic.org/v1/"
-    private const val FALLBACK_URL = "https://blossomtune-yt-music-server.onrender.com/v1/"
+    private const val FALLBACK_URL = "https://musicfy-yt-music-server.onrender.com/v1/"
 
     private val client by lazy {
         HttpClient(CIO) {

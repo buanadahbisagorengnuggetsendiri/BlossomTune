@@ -1,5 +1,3 @@
-// MonochromeAlbumCanvas.kt
-
 package dev.meowlabs.blossomtune.canvas
 
 import io.ktor.client.HttpClient

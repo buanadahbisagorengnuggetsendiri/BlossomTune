@@ -1,8 +1,4 @@
-// OnboardingDesign.kt
-//
-// The pieces every onboarding page is built from, matched to the "edit page" mocks: a light circle
-// (or a provider squircle) top-left, a big bold title, a grey subtitle, content, and pill buttons
-// pinned to the bottom. Pages cap their width so tablets and big display sizes don't stretch them.
+// shared building blocks for every onboarding page, width is capped so tablets don't stretch them
 
 package dev.meowlabs.blossomtune.ui.screens.setup.onboarding
 
@@ -30,6 +26,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -41,51 +39,49 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.ui.component.AppSwitch
+import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
 internal object Onb {
-    val Page = Color(0xFF141924)
-    val Card = Color(0xFF1F2839)
-    val CardPressed = Color(0xFF253045)
-    val Field = Color(0xFF1F2839)
+    val Page = Color(0xFF1C1C1C)
+    val Card = Color(0xFF2C2C2C)
+    val CardPressed = Color(0xFF353535)
+    val Field = Color(0xFF2C2C2C)
     val Title = Color.White
-    val Subtitle = Color(0xFFB2B9C8)
-    val Muted = Color(0xFF7384A5)
-    val Faint = Color(0xFF536281)
-    val ButtonPrimary = Color(0xFF495773)
-    val ButtonSecondary = Color(0xFF253045)
-    val Badge = Color(0xFFD3D7DF)
+    val Subtitle = Color(0xFFBDBDBD)
+    val Muted = Color(0xFF8C8C8C)
+    val Faint = Color(0xFF6A6A6A)
+    val ButtonPrimary = Color(0xFF5E5E5E)
+    val ButtonSecondary = Color(0xFF353535)
+    val Badge = Color(0xFFD9D9D9)
 
-    /** Wider than this and pages stop growing, centred, so a tablet doesn't get 1000dp lines. */
+    /** wider than this and pages stop growing, centred, so a tablet doesn't get 1000dp lines */
     val MaxContentWidth = 560.dp
 
-    /** Room the sheet's handle needs above the page. */
+    /** room the sheet's handle needs above the page */
     val TopClearance = 52.dp
 }
 
-/**
- * Tracking for the big page titles and the line under them: as tight as Home's headings. They were
- * -0.5sp and -0.2sp, which at 34sp and 18sp is looser than the -0.05em every other line in the app
- * gets, so the headings read wider than the text around them.
- */
+/** title tracking as tight as home's headings, the old looser values made them read wider than the text around them */
 internal val OnbTitleTracking = (-0.04).em
 internal val OnbSubtitleTracking = (-0.035).em
 
-/** Side padding that shrinks on very narrow screens (or very large display-size settings). */
+/** side padding that shrinks on very narrow screens or big display-size settings */
 @Composable
 internal fun rememberSidePadding(maxWidth: Dp): Dp = remember(maxWidth) { if (maxWidth < 340.dp) 20.dp else 28.dp }
 
-/**
- * One onboarding page. [content] scrolls when it doesn't fit (big font or display size, short
- * phones); [footer] stays pinned to the bottom above the navigation bar.
- */
+/** one onboarding page, content scrolls when it doesn't fit and footer stays pinned above the navigation bar */
 @Composable
 internal fun OnboardingPage(
     badge: @Composable () -> Unit,
@@ -93,6 +89,8 @@ internal fun OnboardingPage(
     subtitle: String? = null,
     modifier: Modifier = Modifier,
     scrollable: Boolean = true,
+    /** space above the badge, a popup sheet has its own handle row so it needs less */
+    contentTop: Dp = Onb.TopClearance + 18.dp,
     footer: @Composable ColumnScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
@@ -110,7 +108,7 @@ internal fun OnboardingPage(
                     .fillMaxWidth()
                     .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                     .padding(horizontal = side)
-                    .padding(top = Onb.TopClearance + 18.dp, bottom = 16.dp),
+                    .padding(top = contentTop, bottom = 16.dp),
             ) {
                 badge()
                 Spacer(Modifier.height(22.dp))
@@ -149,7 +147,7 @@ internal fun OnboardingPage(
     }
 }
 
-/** The light circle in the top-left corner of every page, with the page's own glyph. */
+/** the light circle top-left of every page, holding the page's own glyph */
 @Composable
 internal fun PageBadge(icon: Painter, size: Dp = 40.dp) {
     Box(
@@ -159,13 +157,13 @@ internal fun PageBadge(icon: Painter, size: Dp = 40.dp) {
             .background(Onb.Badge),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = Color(0xFF141924), modifier = Modifier.size(size * 0.52f))
+        Icon(icon, contentDescription = null, tint = Color(0xFF1C1C1C), modifier = Modifier.size(size * 0.52f))
     }
 }
 
 internal enum class OnbButtonStyle { Primary, Secondary }
 
-/** The pill buttons. Pressing dips the pill slightly, like the rest of the app's buttons. */
+/** the pill buttons, pressing dips the pill like the app's other buttons */
 @Composable
 internal fun OnbButton(
     text: String,
@@ -188,7 +186,7 @@ internal fun OnbButton(
             }
             .clip(CircleShape)
             .background(if (style == OnbButtonStyle.Primary) Onb.ButtonPrimary else Onb.ButtonSecondary)
-            .clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick)
+            .clickable(interactionSource = interaction, indication = RemoteFocus, enabled = enabled, onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -203,7 +201,38 @@ internal fun OnbButton(
     }
 }
 
-/** A tappable card that dims a touch while pressed. */
+/** round single-line field for the username on the profile pages */
+@Composable
+internal fun OnbTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        textStyle = TextStyle(color = Color.White, fontFamily = InterFontFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.03).em),
+        cursorBrush = SolidColor(Color.White),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        modifier = modifier,
+        decorationBox = { inner ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(CircleShape)
+                    .background(Onb.Field)
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+            ) {
+                if (value.isEmpty()) Text(placeholder, color = Onb.Faint, fontSize = 16.sp)
+                inner()
+            }
+        },
+    )
+}
+
+/** a tappable card that dims a touch while pressed */
 @Composable
 internal fun OnbCard(
     modifier: Modifier = Modifier,
@@ -223,7 +252,7 @@ internal fun OnbCard(
             .clip(shape)
             .background(if (pressed) Onb.CardPressed else Onb.Card)
             .then(
-                if (onClick != null) Modifier.clickable(interactionSource = interaction, indication = null, onClick = onClick)
+                if (onClick != null) Modifier.clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick)
                 else Modifier
             ),
     ) {
@@ -231,7 +260,7 @@ internal fun OnbCard(
     }
 }
 
-/** "Import / Import & sync / Import from backup": a big circle glyph, a title and a line of detail. */
+/** big circle glyph, a title and a line of detail, used for import, import and sync, import from backup */
 @Composable
 internal fun OnbChoiceCard(
     icon: Painter,
@@ -255,7 +284,7 @@ internal fun OnbChoiceCard(
     }
 }
 
-/** A setting with a switch, optionally with an illustration above it (the crossfade banner). */
+/** a setting with a switch, optionally with an illustration above it */
 @Composable
 internal fun OnbToggleCard(
     title: String,
@@ -291,5 +320,5 @@ internal fun OnbToggleCard(
     }
 }
 
-/** Soft fade at the bottom of scrolling content, so it slides under the buttons instead of ending in a hard line. */
+/** soft fade at the bottom of scrolling content so it slides under the buttons instead of ending in a hard line */
 internal val BottomFade = Brush.verticalGradient(listOf(Color.Transparent, Onb.Page))

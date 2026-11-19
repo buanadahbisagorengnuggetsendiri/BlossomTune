@@ -1,5 +1,3 @@
-// InnerTube.kt
-
 package com.music.innertube
 
 import com.music.innertube.models.Context
@@ -70,7 +68,7 @@ class InnerTube {
 
     var useLoginForBrowse: Boolean = false
 
-    /** Offline mode: every request fails at once with [OfflineModeException], none goes out. */
+    /** offline mode: every request fails at once with OfflineModeException, none goes out */
     @Volatile
     var offline: Boolean = false
 
@@ -157,27 +155,50 @@ class InnerTube {
         }
     }
 
-    private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false) {
+    private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false, visitor: String? = visitorData) {
         contentType(ContentType.Application.Json)
         headers {
-            append("X-Goog-Api-Format-Version", "1")
+            append("X-Goog-Api-Format-Version", client.apiFormatVersion)
             append("X-YouTube-Client-Name", client.clientId )
             append("X-YouTube-Client-Version", client.clientVersion)
-            append("X-Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-            append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
-            visitorData?.let { append("X-Goog-Visitor-Id", it) }
+            if (!client.isNativeApp) {
+                append("X-Origin", client.apiOrigin)
+                append("Referer", "${client.apiOrigin}/")
+            }
+            visitor?.let { append("X-Goog-Visitor-Id", it) }
             if (setLogin && client.loginSupported) {
                 cookie?.let { cookie ->
                     append("cookie", cookie)
                     if ("SAPISID" !in cookieMap) return@let
                     val currentTime = System.currentTimeMillis() / 1000
-                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} ${YouTubeClient.ORIGIN_YOUTUBE_MUSIC}")
+                    // the hash is tied to the origin it goes to, one made for music.youtube.com is a 401 on www.youtube.com
+                    val sapisidHash = sha1("$currentTime ${cookieMap["SAPISID"]} ${client.apiOrigin}")
                     append("Authorization", "SAPISIDHASH ${currentTime}_${sapisidHash}")
                 }
             }
         }
         userAgent(client.userAgent)
         parameter("prettyPrint", false)
+    }
+
+    // visitor ids minted by the clients that bring their own, by client name
+    private val ownVisitorIds = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    // this client's own visitor id, minted on first use; null when youtube wouldn't give one, the request then goes out without
+    private suspend fun ownVisitorId(client: YouTubeClient): String? =
+        ownVisitorIds[client.clientName] ?: mintVisitorId(client).getOrNull()
+
+    // a fresh visitor id minted as this client, the way the app gets one before its first player request
+    suspend fun mintVisitorId(client: YouTubeClient): Result<String> = runCatching {
+        val answer = httpClient.post("${client.apiOrigin}/youtubei/v1/visitor_id") {
+            ytClient(client, visitor = null)
+            setBody(VisitorIdBody(client.toContext(locale, null, null)))
+        }.body<kotlinx.serialization.json.JsonObject>()
+        val visitor = answer["responseContext"]?.let { it as? kotlinx.serialization.json.JsonObject }
+            ?.get("visitorData")?.let { it as? kotlinx.serialization.json.JsonPrimitive }?.content
+            ?: throw IllegalStateException("YouTube answered visitor_id without a visitorData")
+        ownVisitorIds[client.clientName] = visitor
+        visitor
     }
 
     private suspend fun <T> withRetry(
@@ -232,11 +253,12 @@ class InnerTube {
         signatureTimestamp: Int?,
         poToken: String? = null,
     ) = withRetry {
-        httpClient.post("player") {
-            ytClient(client, setLogin = true)
+        val visitor = if (client.ownVisitorId) ownVisitorId(client) else visitorData
+        httpClient.post("${client.apiOrigin}/youtubei/v1/player") {
+            ytClient(client, setLogin = true, visitor = visitor)
             setBody(
                 PlayerBody(
-                    context = client.toContext(locale, visitorData, dataSyncId).let {
+                    context = client.toContext(locale, visitor, dataSyncId).let {
                         if (client.isEmbedded) {
                             it.copy(
                                 thirdParty = Context.ThirdParty(
@@ -267,12 +289,15 @@ class InnerTube {
         cpn: String,
         playlistId: String?,
         client: YouTubeClient = YouTubeClient.WEB_REMIX,
+        extraParams: Map<String, String> = emptyMap(),
     ) = withRetry {
         httpClient.get(url) {
             ytClient(client, true)
             parameter("ver", "2")
             parameter("c", client.clientName)
+            parameter("cver", client.clientVersion)
             parameter("cpn", cpn)
+            extraParams.forEach { (name, value) -> parameter(name, value) }
 
             if (playlistId != null) {
                 parameter("list", playlistId)
@@ -287,7 +312,7 @@ class InnerTube {
         params: String? = null,
         continuation: String? = null,
         setLogin: Boolean = false,
-        /** Forces the response language (e.g. "en" so section titles can be parsed). */
+        /** forces the response language (e.g. "en" so section titles can be parsed) */
         hlOverride: String? = null,
     ) = withRetry {
         httpClient.post("browse") {
@@ -384,7 +409,6 @@ class InnerTube {
         videoId: String,
     ) = withRetry {
         httpClient.post("https://music.youtube.com/youtubei/v1/get_transcript") {
-            parameter("key", "AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX3")
             headers {
                 append("Content-Type", "application/json")
             }
@@ -399,10 +423,7 @@ class InnerTube {
         }
     }
 
-    /**
-     * One caption track's cues in YouTube's JSON timed-text format. [baseUrl] comes from a player
-     * response made as [client], and the request goes out as that client too.
-     */
+    /** one caption track's cues in youtube's json timed-text format, baseUrl comes from a player response made as client and the request goes out as that client too */
     suspend fun timedText(baseUrl: String, client: YouTubeClient) = withRetry {
         httpClient.get(baseUrl) {
             url.parameters["fmt"] = "json3"

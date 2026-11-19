@@ -15,15 +15,11 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +28,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,6 +46,7 @@ import dev.meowlabs.blossomtune.constants.CrossmixMode
 import dev.meowlabs.blossomtune.constants.CrossmixModeKey
 import dev.meowlabs.blossomtune.constants.DisableAiFilterKey
 import dev.meowlabs.blossomtune.constants.DisableBlurKey
+import dev.meowlabs.blossomtune.constants.DefaultTransitionMode
 import dev.meowlabs.blossomtune.importer.account.AccountImportState
 import dev.meowlabs.blossomtune.importer.account.AccountService
 import dev.meowlabs.blossomtune.ui.screens.settings.importsync.onSignInTick
@@ -61,46 +57,41 @@ import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.BehindScale
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.BlurCapability
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.BlurWarningPage
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.BrowserSpring
-import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.BuildHomePage
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.CardInfo
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.DoneStep
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.HelloCardStep
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ImportAskPage
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ImportModePage
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.LastOnePage
-import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.MinArtists
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.Onb
-import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.OnbButton
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.OnboardingBrowserSheet
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProfilePage
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProviderListPage
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProviderSetupPage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.RestoringPage
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.SyncOptionsPage
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.WhatToSyncPage
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.viewmodels.OnboardingViewModel
+import dev.meowlabs.blossomtune.viewmodels.TransferStep
+import dev.meowlabs.blossomtune.viewmodels.TransferViewModel
 import dev.meowlabs.blossomtune.viewmodels.YouTubeSyncChoices
-import com.music.innertube.models.ArtistItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.component.backdropClick
 
 private enum class Step {
-    Welcome, ImportAsk, ImportMode, Providers, ProviderSetup, WhatToSync, SyncOptions,
-    Profile, Hello, BuildHome, BlurWarning, LastOne, Done,
+    Welcome, ImportAsk, ImportMode, Restoring, Providers, ProviderSetup, WhatToSync, SyncOptions,
+    Profile, Hello, BlurWarning, LastOne, Done,
 }
 
-/** Pages that play once and move on by themselves; back never returns to them. */
-private val AutoSteps = setOf(Step.Hello, Step.Done)
+/** pages that play once and move on by themselves, back never returns to them */
+private val AutoSteps = setOf(Step.Hello, Step.Done, Step.Restoring)
 
-/**
- * Onboarding. The welcome page is the original; everything after it follows the "edit page"
- * mocks: import (or sync) → provider → sign in, in a browser sheet inside this sheet → pick
- * playlists → profile card → Hello → (artists, if nothing was imported) → (blur warning, on slow
- * phones) → Last one → Done.
- */
+/** the onboarding flow: welcome, import or sync, sign in, playlists, profile card, hello, blur warning, last one, done */
 @Composable
 fun SetupWizardScreen(
     onComplete: (String, Uri?) -> Unit,
@@ -150,6 +141,49 @@ fun SetupWizardScreen(
                 if (error == null) go(Step.Profile)
             }
         }
+    }
+
+    // ---- previous data: a whole export from the old app or another phone ----
+    val transfer: TransferViewModel = hiltViewModel()
+    val importStep by transfer.import.collectAsState()
+    val transferManifest by transfer.manifest.collectAsState()
+    var waitingForPermission by remember { mutableStateOf<Uri?>(null) }
+    fun startRestoring(uri: Uri) {
+        transfer.importFrom(uri)
+        go(Step.Restoring)
+    }
+    // local songs come back through the phone's music library, so ask first; a no still imports everything else
+    val audioPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        waitingForPermission?.let { uri ->
+            waitingForPermission = null
+            startRestoring(uri)
+        }
+    }
+    val transferPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                transfer.check(uri)
+                    .onSuccess { manifest ->
+                        if (transfer.wantsAudioPermission(manifest)) {
+                            waitingForPermission = uri
+                            audioPermission.launch(TransferViewModel.AudioPermission)
+                        } else {
+                            startRestoring(uri)
+                        }
+                    }
+                    .onFailure { backupError = it.message }
+            }
+        }
+    }
+    // a failed import goes back to the choices and says why there
+    LaunchedEffect(importStep) {
+        val failed = importStep as? TransferStep.Failed ?: return@LaunchedEffect
+        if (step == Step.Restoring) {
+            forward = false
+            history.removeAt(history.lastIndex)
+        }
+        backupError = failed.message
+        transfer.clearImport()
     }
 
     val session = vm.session
@@ -227,25 +261,14 @@ fun SetupWizardScreen(
         }
     }
 
-    // ---- artists ----
-    var artistQuery by rememberSaveable { mutableStateOf("") }
-    val pickedArtists = remember { mutableStateMapOf<String, ArtistItem>() }
-    val suggestions by vm.artistSuggestions.collectAsState()
-    val searchResults by vm.artistResults.collectAsState()
-    LaunchedEffect(step) { if (step == Step.BuildHome) vm.loadArtistSuggestions() }
-    LaunchedEffect(artistQuery) {
-        delay(350)
-        vm.searchArtists(artistQuery)
-    }
-
     // ---- settings the last pages flip ----
     val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
-    val (crossmixMode, onCrossmixModeChange) = rememberEnumPreference(CrossmixModeKey, defaultValue = CrossmixMode.AUTO_CROSSFADE)
+    val (crossmixMode, onCrossmixModeChange) = rememberEnumPreference(CrossmixModeKey, defaultValue = DefaultTransitionMode)
     val (disableAiFilter, onDisableAiFilterChange) = rememberPreference(DisableAiFilterKey, defaultValue = false)
 
     val card = CardInfo(username = username, photo = profilePicUri, cardNumber = vm.cardNumber, joinedText = vm.joinedText)
 
-    fun afterHome(): Step = if (vm.blur?.verdict == BlurCapability.Verdict.Laggy) Step.BlurWarning else Step.LastOne
+    fun afterHello(): Step = if (vm.blur?.verdict == BlurCapability.Verdict.Laggy) Step.BlurWarning else Step.LastOne
 
     BackHandler(enabled = !browserWanted) {
         if (selectedUncroppedUri != null) selectedUncroppedUri = null else back()
@@ -298,26 +321,21 @@ fun SetupWizardScreen(
                     modifier = Modifier.fillMaxSize(),
                 ) { current ->
                     when (current) {
-                        // the welcome page runs all the way to the top of the sheet, under the handle;
-                        // pushed down, the strip above it showed as a bar
-                        Step.Welcome -> Box(Modifier.fillMaxSize().background(Color.Black)) {
-                            WelcomeStep(isHiding = isLeavingWelcome)
-                            OnbButton(
-                                text = "Next",
-                                onClick = {
+                        // the welcome page runs to the top of the sheet under the handle, a tap anywhere on it moves on
+                        Step.Welcome -> WelcomeStep(
+                            isHiding = isLeavingWelcome,
+                            onNext = {
+                                // a second tap while she's waving goodbye would skip a page
+                                if (!isLeavingWelcome) {
                                     isLeavingWelcome = true
                                     scope.launch {
                                         delay(400)
                                         go(Step.ImportAsk)
                                         isLeavingWelcome = false
                                     }
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .navigationBarsPadding()
-                                    .padding(horizontal = 28.dp, vertical = 18.dp),
-                            )
-                        }
+                                }
+                            },
+                        )
 
                         Step.ImportAsk -> ImportAskPage(
                             onYes = { go(Step.ImportMode) },
@@ -325,6 +343,10 @@ fun SetupWizardScreen(
                         )
 
                         Step.ImportMode -> ImportModePage(
+                            onPreviousData = {
+                                backupError = null
+                                transferPicker.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+                            },
                             onImport = { go(Step.Providers) },
                             onBackup = {
                                 backupError = null
@@ -333,6 +355,8 @@ fun SetupWizardScreen(
                             onBack = ::back,
                             backupError = backupError,
                         )
+
+                        Step.Restoring -> RestoringPage(step = importStep, manifest = transferManifest)
 
                         Step.Providers -> ProviderListPage(
                             onPick = { service ->
@@ -365,7 +389,7 @@ fun SetupWizardScreen(
                             onSelectAll = { session?.selectAll() },
                             onSelectNone = { session?.selectNone() },
                             onConfirm = {
-                                // YouTube Music can also stay in sync; the others just import
+                                // youtube music can also stay in sync, the others just import
                                 if (session?.service == AccountService.YOUTUBE_MUSIC) go(Step.SyncOptions) else session?.readSelected()
                             },
                             onCancelReading = { session?.cancelReading() },
@@ -403,27 +427,7 @@ fun SetupWizardScreen(
                             card = card,
                             onProbe = vm::onBlurProbe,
                             onFinished = {
-                                go(if (!vm.broughtMusicIn) Step.BuildHome else afterHome(), replaceCurrent = true)
-                            },
-                        )
-
-                        Step.BuildHome -> BuildHomePage(
-                            query = artistQuery,
-                            onQueryChange = { artistQuery = it },
-                            artists = (searchResults ?: suggestions).let { shown ->
-                                // picked ones stay visible even when a search doesn't include them
-                                (pickedArtists.values.filter { picked -> shown.none { it.id == picked.id } } + shown)
-                            },
-                            loading = suggestions.isEmpty() && searchResults == null,
-                            selected = pickedArtists.keys,
-                            onToggle = { artist ->
-                                if (artist.id in pickedArtists) pickedArtists.remove(artist.id) else pickedArtists[artist.id] = artist
-                            },
-                            onNext = {
-                                if (pickedArtists.size >= MinArtists) {
-                                    vm.saveArtists(pickedArtists.values.toList())
-                                    go(afterHome())
-                                }
+                                go(afterHello(), replaceCurrent = true)
                             },
                         )
 
@@ -436,7 +440,7 @@ fun SetupWizardScreen(
 
                         Step.LastOne -> LastOnePage(
                             autoCrossfade = crossmixMode != CrossmixMode.OFF,
-                            onAutoCrossfadeChange = { on -> onCrossmixModeChange(if (on) CrossmixMode.AUTO_CROSSFADE else CrossmixMode.OFF) },
+                            onAutoCrossfadeChange = { on -> onCrossmixModeChange(if (on) CrossmixMode.CROSSMIX else CrossmixMode.OFF) },
                             aiArtistFilter = !disableAiFilter,
                             onAiArtistFilterChange = { on -> onDisableAiFilterChange(!on) },
                             onNext = { go(Step.Done) },
@@ -461,11 +465,7 @@ fun SetupWizardScreen(
                         .fillMaxSize()
                         .graphicsLayer { alpha = browserPresence.value }
                         .background(Color.Black.copy(alpha = 0.45f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = ::closeBrowser,
-                        ),
+                        .backdropClick(::closeBrowser),
                 )
                 OnboardingBrowserSheet(
                     service = session.service,

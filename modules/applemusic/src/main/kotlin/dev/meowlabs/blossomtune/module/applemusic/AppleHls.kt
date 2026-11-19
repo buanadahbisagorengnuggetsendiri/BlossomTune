@@ -1,5 +1,3 @@
-// AppleHls.kt
-
 package dev.meowlabs.blossomtune.module.applemusic
 
 import java.util.Base64

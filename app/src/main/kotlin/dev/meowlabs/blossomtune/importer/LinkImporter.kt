@@ -27,11 +27,7 @@ enum class LinkSource(val label: String, val example: String) {
 
 class LinkImportException(message: String) : Exception(message)
 
-/**
- * Reads a public playlist or album from a share link, without logging in. Each source reads the
- * same data its own web page shows a logged-out visitor, so private playlists aren't reachable —
- * those go through TuneMyMusic.
- */
+/** reads a public playlist or album from a share link without logging in, private playlists aren't reachable so those go through tunemymusic */
 object LinkImporter {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -57,7 +53,7 @@ object LinkImporter {
     private val YT_BROWSE_REGEX = Regex("music\\.youtube\\.com/(?:browse|playlist)/((?:VL|MPREb_)?[A-Za-z0-9_-]+)")
     private val SHORT_LINK_HOSTS = listOf("spotify.link", "spotify.app.link", "deezer.page.link", "link.deezer.com")
 
-    /** Works out which service a pasted link belongs to, or null if it isn't one we read. */
+    /** works out which service a pasted link belongs to, or null if it isn't one we read */
     fun detect(link: String): LinkSource? {
         val text = link.trim()
         return when {
@@ -81,13 +77,13 @@ object LinkImporter {
         }
     }
 
-    /** Share sheets often paste "Check out this playlist! https://…" — take just the URL. */
+    /** share sheets often paste "check out this playlist! https://…" — take just the url */
     private fun extractUrl(text: String): String? {
         if (text.startsWith("spotify:")) return text
         return Regex("https?://\\S+").find(text)?.value?.trimEnd('.', ',', ')', '"', '\'')
     }
 
-    /** Short links redirect to the real page; some go through an HTML page that holds the real URL. */
+    /** short links redirect to the real page; some go through an html page that holds the real url */
     private suspend fun resolveShortLink(url: String): String {
         val response = get(url)
         val finalUrl = response.call.request.url.toString()
@@ -119,13 +115,14 @@ object LinkImporter {
         }
     }
 
-    // ---- Spotify: the embed player page carries the track list for logged-out visitors ----
+    // spotify: the embed player page carries the track list for logged-out visitors
 
     private suspend fun fetchSpotify(url: String): ParsedImport {
         val match = SPOTIFY_REGEX.find(url)
             ?: throw LinkImportException("Paste a Spotify playlist or album link.")
         val (type, id) = match.destructured
         return parseSpotifyEmbed(getOk("https://open.spotify.com/embed/$type/$id", "Spotify"), type)
+            .from(PlaylistOrigin(remoteId = id, remoteUrl = "https://open.spotify.com/$type/$id"))
     }
 
     internal fun parseSpotifyEmbed(html: String, type: String): ParsedImport {
@@ -146,6 +143,7 @@ object LinkImporter {
                 artist = obj.string("subtitle").orEmpty().replace(' ', ' '),
                 album = albumName,
                 durationMs = obj.long("duration"),
+                sourceId = obj.string("uri")?.takeIf { it.startsWith("spotify:track:") },
             )
         }
         if (tracks.isEmpty()) throw LinkImportException("That Spotify $type has no songs we can read.")
@@ -168,15 +166,17 @@ object LinkImporter {
         )
     }
 
-    private const val SPOTIFY_EMBED_LIMIT = 100
+    internal const val SPOTIFY_EMBED_LIMIT = 100
 
-    // ---- Apple Music: the web page embeds its own data as serialized-server-data ----
+    // apple music: the web page embeds its own data as serialized-server-data
 
     private suspend fun fetchApple(url: String): ParsedImport {
         val match = APPLE_REGEX.find(url)
             ?: throw LinkImportException("Paste an Apple Music playlist or album link.")
         val type = match.groupValues[1]
-        return parseApplePage(getOk(url.substringBefore('#'), "Apple Music"), type)
+        val page = url.substringBefore('#')
+        return parseApplePage(getOk(page, "Apple Music"), type)
+            .from(PlaylistOrigin(remoteId = match.groupValues[2], remoteUrl = page))
     }
 
     internal fun parseApplePage(html: String, type: String): ParsedImport {
@@ -229,7 +229,7 @@ object LinkImporter {
         )
     }
 
-    // ---- Deezer: public API, no key needed ----
+    // deezer: public api, no key needed
 
     private suspend fun fetchDeezer(url: String): ParsedImport {
         val match = DEEZER_REGEX.find(url)
@@ -260,6 +260,7 @@ object LinkImporter {
         if (tracks.isEmpty()) throw LinkImportException("That Deezer $type has no songs we can read.")
         val cover = info.string("picture_xl") ?: info.string("cover_xl")
         return ParsedImport(likedSongs = emptyList(), playlists = mapOf(name to tracks), provider = ImportSource.DEEZER, playlistCovers = coverFor(name, cover))
+            .from(PlaylistOrigin(remoteId = id, remoteUrl = "https://www.deezer.com/$type/$id"))
     }
 
     private suspend fun deezerJson(url: String): JsonObject {
@@ -272,7 +273,7 @@ object LinkImporter {
         return obj
     }
 
-    // ---- YouTube / YouTube Music: our own client, ids are exact so nothing needs matching ----
+    // youtube / youtube music: our own client, ids are exact so nothing needs matching
 
     private suspend fun fetchYouTube(url: String): ParsedImport {
         val browseId = YT_BROWSE_REGEX.find(url)?.groupValues?.get(1)
@@ -297,7 +298,7 @@ object LinkImporter {
             playlists = mapOf(page.playlist.title to tracks),
             provider = ImportSource.YOUTUBE_MUSIC,
             playlistCovers = coverFor(page.playlist.title, page.playlist.thumbnail),
-        )
+        ).from(PlaylistOrigin(remoteId = playlistId, remoteUrl = "https://music.youtube.com/playlist?list=$playlistId"))
     }
 
     private suspend fun fetchYouTubeAlbum(browseId: String): ParsedImport {
@@ -311,9 +312,12 @@ object LinkImporter {
             playlists = mapOf(page.album.title to tracks),
             provider = ImportSource.YOUTUBE_MUSIC,
             playlistCovers = coverFor(page.album.title, page.album.thumbnail),
-        )
+        ).from(PlaylistOrigin(remoteId = browseId, remoteUrl = "https://music.youtube.com/browse/$browseId"))
     }
 
     private fun coverFor(name: String, cover: String?): Map<String, String> =
         if (cover.isNullOrBlank()) emptyMap() else mapOf(name to cover)
+
+    /** a link reads one playlist, so origin is where that one lives */
+    private fun ParsedImport.from(origin: PlaylistOrigin) = copy(playlistOrigins = playlists.keys.associateWith { origin })
 }

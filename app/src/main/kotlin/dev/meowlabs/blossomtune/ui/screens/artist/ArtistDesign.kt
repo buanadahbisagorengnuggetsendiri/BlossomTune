@@ -38,8 +38,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -55,6 +53,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,6 +91,7 @@ import dev.meowlabs.blossomtune.ui.component.BlurDirection
 import dev.meowlabs.blossomtune.ui.component.BlurEffectCache
 import dev.meowlabs.blossomtune.ui.component.BoneColor
 import dev.meowlabs.blossomtune.ui.component.DownscaledBlur
+import dev.meowlabs.blossomtune.ui.component.damageBoundary
 import dev.meowlabs.blossomtune.ui.component.GlassState
 import dev.meowlabs.blossomtune.ui.component.ProgressiveGlassBackground
 import dev.meowlabs.blossomtune.ui.component.ScrollAwayCover
@@ -112,8 +112,9 @@ import dev.meowlabs.blossomtune.ui.player.CanvasArtworkPlayer
 import dev.meowlabs.blossomtune.ui.screens.search.SearchAvatar
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.viewmodels.ArtistRelease
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
-import androidx.compose.material3.MaterialTheme
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
 // the round photo sits this far down the banner, and the page's header starts there
 internal const val ArtistAvatarAt = 0.45f
@@ -172,7 +173,7 @@ internal fun ArtistBanner(
     photoUrl: String?,
     stillUrl: String?,
     motionUrl: String?,
-    playMotion: Boolean,
+    playMotion: () -> Boolean,
     edgeBlur: Boolean,
     height: Dp,
     scrollProgress: () -> Float,
@@ -189,6 +190,9 @@ internal fun ArtistBanner(
         animationSpec = tween(450),
         label = "artistStill",
     )
+    // only a flip of the answer recomposes here, not each change of the scroll or the player sheet behind it
+    val latestPlayMotion = rememberUpdatedState(playMotion)
+    val motionPlaying by remember { derivedStateOf { latestPlayMotion.value() } }
 
     ScrollAwayCover(
         progress = scrollProgress,
@@ -199,7 +203,8 @@ internal fun ArtistBanner(
             .fillMaxWidth()
             .height(height),
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        // each video frame would repaint the whole window and both glass bars; bounded, only the banner repaints
+        Box(modifier = Modifier.fillMaxSize().damageBoundary()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -240,7 +245,7 @@ internal fun ArtistBanner(
                     CanvasArtworkPlayer(
                         primaryUrl = motionUrl,
                         fallbackUrl = null,
-                        isPlaying = playMotion,
+                        isPlaying = motionPlaying,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -268,10 +273,14 @@ private fun BoxScope.BannerBlurBand(
             Brush.verticalGradient(0f to Color.Transparent, 0.55f to Color.Black.copy(alpha = 0.85f), 1f to Color.Black)
         }
     }
+    // high quality on android 13+ grows the blur toward the edge in one pass; a faded fixed blur bloomed around bright parts
+    val smooth = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+        dev.meowlabs.blossomtune.ui.component.LocalBlurQuality.current == dev.meowlabs.blossomtune.constants.BlurQuality.HIGH
     DownscaledBlur(
         radius = { BlurEffectCache.effectiveRadius(radius) },
         tileMode = Shader.TileMode.CLAMP,
         mask = mask,
+        growDown = if (smooth) !atTop else null,
         modifier = Modifier
             .align(if (atTop) Alignment.TopCenter else Alignment.BottomCenter)
             .fillMaxWidth()
@@ -449,7 +458,7 @@ private fun SubscribePill(subscribed: Boolean, onClick: () -> Unit) {
             .clip(RoundedCornerShape(50))
             .drawBehind { drawRect(fill) }
             .border(1.dp, Color.White.copy(alpha = if (subscribed) 0.22f else 0f), RoundedCornerShape(50))
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick)
             .animateContentSize(spring(dampingRatio = 0.7f, stiffness = 500f))
             .padding(start = 14.dp, end = 17.dp)
     ) {
@@ -692,7 +701,7 @@ internal fun ArtistShelfTitle(
                     expanded = menuOpen,
                     onDismissRequest = { menuOpen = false },
                     shape = RoundedCornerShape(18.dp),
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color(0xFF1E1F23),
                 ) {
                     menu { menuOpen = false }
                 }
@@ -720,12 +729,12 @@ internal fun ArtistShelfTitle(
 @Composable
 internal fun ArtistMenuItem(text: String, icon: Int, onClick: () -> Unit) {
     DropdownMenuItem(
-        text = { Text(text = text, style = TrackTitleStyle, color = BlossomInk.Primary) },
+        text = { Text(text = text, style = TrackTitleStyle, color = Color.White) },
         leadingIcon = {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = BlossomInk.Muted,
+                tint = Color.White.copy(alpha = 0.8f),
                 modifier = Modifier.size(18.dp),
             )
         },
@@ -751,7 +760,7 @@ internal fun ArtistTopBar(
 ) {
     val density = LocalDensity.current
     val showChrome by remember { derivedStateOf { morph() > 0.01f } }
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarTop = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
 
     Box(modifier = Modifier.fillMaxWidth()) {
         if (showChrome) {
@@ -772,7 +781,7 @@ internal fun ArtistTopBar(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
+                .stableStatusBarsPadding()
                 .padding(top = 6.dp)
                 .height(47.dp)
                 .padding(start = 26.dp, end = 28.dp)

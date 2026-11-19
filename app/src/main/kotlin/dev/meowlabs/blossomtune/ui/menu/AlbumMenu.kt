@@ -2,7 +2,7 @@
 
 package dev.meowlabs.blossomtune.ui.menu
 
-import dev.meowlabs.blossomtune.ui.component.SheetDivider
+import dev.meowlabs.blossomtune.ui.component.SheetHeaderGap
 import dev.meowlabs.blossomtune.ui.component.SheetHeaderButton
 import dev.meowlabs.blossomtune.ui.component.SheetHeader
 import android.annotation.SuppressLint
@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -89,7 +88,6 @@ import dev.meowlabs.blossomtune.ui.component.SongListItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @SuppressLint("MutableCollectionMutableState")
 @Composable
@@ -103,7 +101,7 @@ fun AlbumMenu(
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val scope = rememberCoroutineScope()
-    val libraryAlbum by database.album(originalAlbum.id).collectAsState(initial = originalAlbum)
+    val libraryAlbum by remember(database, originalAlbum.id) { database.album(originalAlbum.id) }.collectAsState(initial = originalAlbum)
     val album = libraryAlbum ?: originalAlbum
     var songs by remember {
         mutableStateOf(emptyList<Song>())
@@ -148,7 +146,7 @@ fun AlbumMenu(
         label = "",
     )
 
-    val isPinned by database.speedDialDao.isPinned(album.id).collectAsState(initial = false)
+    val isPinned by remember(database, album.id) { database.speedDialDao.isPinned(album.id) }.collectAsState(initial = false)
 
     var showChoosePlaylistDialog by rememberSaveable {
         mutableStateOf(false)
@@ -273,8 +271,7 @@ fun AlbumMenu(
         trailing = {
             SheetHeaderButton(
                 icon = if (album.album.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border,
-                active = album.album.bookmarkedAt != null,
-                tint = if (album.album.bookmarkedAt != null) MaterialTheme.colorScheme.error else BlossomInk.Primary,
+                tint = if (album.album.bookmarkedAt != null) MaterialTheme.colorScheme.error else Color.White,
                 onClick = {
                     database.query {
                         update(album.album.toggleLike())
@@ -284,7 +281,7 @@ fun AlbumMenu(
         },
     )
 
-    SheetDivider()
+    Spacer(Modifier.height(SheetHeaderGap))
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -322,26 +319,54 @@ fun AlbumMenu(
                                 }
                             }
                         ),
-                    NewAction(
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.share),
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        text = stringResource(R.string.share),
-                        onClick = {
-                            onDismiss()
-                            val intent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/playlist?list=${album.album.playlistId}")
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.shuffle),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.shuffle),
+                            onClick = {
+                                onDismiss()
+                                if (songs.isNotEmpty()) {
+                                    album.album.playlistId?.let { playlistId ->
+                                        playerConnection.service.getAutomix(playlistId)
+                                    }
+                                    playerConnection.playQueue(
+                                        ListQueue(
+                                            title = album.album.title,
+                                            items = songs.shuffled().map(Song::toMediaItem)
+                                        )
+                                    )
+                                }
                             }
-                            context.startActivity(Intent.createChooser(intent, null))
-                        }
-                    ),
+                        ),
+                    // only an album youtube knows has a link, a local album or one not opened yet has none
+                    album.album.playlistId?.let { listId ->
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.share),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(R.string.share),
+                            onClick = {
+                                onDismiss()
+                                val intent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/playlist?list=$listId")
+                                }
+                                context.startActivity(Intent.createChooser(intent, null))
+                            }
+                        )
+                    },
                     NewAction(
                         icon = {
                             Icon(
@@ -374,31 +399,6 @@ fun AlbumMenu(
                             }
                         )
                     } else null,
-                        NewAction(
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.shuffle),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            text = stringResource(R.string.shuffle),
-                            onClick = {
-                                onDismiss()
-                                if (songs.isNotEmpty()) {
-                                    album.album.playlistId?.let { playlistId ->
-                                        playerConnection.service.getAutomix(playlistId)
-                                    }
-                                    playerConnection.playQueue(
-                                        ListQueue(
-                                            title = album.album.title,
-                                            items = songs.shuffled().map(Song::toMediaItem)
-                                        )
-                                    )
-                                }
-                            }
-                        ),
                 ),
                 modifier = Modifier.padding(bottom = 12.dp),
                 columns = if (false) 1 else 3
@@ -455,7 +455,7 @@ fun AlbumMenu(
                     Material3MenuItemData(
                         title = {
                             Text(
-                                text = if (isPinned) "Unpin from library" else "Pin to library"
+                                text = stringResource(if (isPinned) R.string.unpin_from_speed_dial else R.string.pin_to_speed_dial)
                             )
                         },
                         icon = {
@@ -488,6 +488,9 @@ fun AlbumMenu(
                 )
             )
         }
+
+        // a local album is already on the phone, so there's nothing to download or refetch from youtube
+        if (album.album.isLocal) return@LazyColumn
 
         item { Spacer(modifier = Modifier.height(12.dp)) }
 

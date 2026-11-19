@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -70,6 +69,7 @@ import dev.meowlabs.blossomtune.ui.utils.resize
 import kotlinx.coroutines.delay
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
 
 private val RowArtSize = 44.dp
 
@@ -129,6 +129,8 @@ fun QueueScreen(
     morph: CardMorphState? = null,
     /** Scrolling down the list hides the player's controls, like the lyrics; scrolling up shows them. */
     onImmersiveChange: (Boolean) -> Unit = {},
+    // off where the queue sits in a pane with no cover above it (the full video mode)
+    showHeader: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -255,11 +257,11 @@ fun QueueScreen(
         // Same box as the lyrics header: the cover is drawn here by the morph layer, so this only
         // holds its hitbox. The like button moved up here from the button column, which carries
         // shuffle and autoplay on this page.
-        Row(
+        if (showHeader) Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
+                .stableStatusBarsPadding()
                 .padding(start = LyricsHeaderArtX, end = PlayerHorizontalPadding)
                 .padding(top = LyricsHeaderArtTopFromStatusBar, bottom = 10.dp),
         ) {
@@ -377,7 +379,7 @@ fun QueueScreen(
                     )
 
                     QueueRow.Empty -> Text(
-                        text = "Nothing else queued",
+                        text = stringResource(R.string.pc_queue_empty),
                         fontSize = 14.sp,
                         color = Color.White.copy(alpha = 0.45f),
                         modifier = Modifier
@@ -464,6 +466,7 @@ fun QueueScreen(
 private enum class QueueSection(val reorderable: Boolean) {
     HISTORY(false),
     NOW_PLAYING(false),
+    NEXT_IN_QUEUE(true),
     CONTINUE(true),
     AUTOPLAY(true),
 }
@@ -492,7 +495,8 @@ private sealed interface QueueRow {
  * each song's key as it moves History <- Now Playing <- Continue, so a song change slides the
  * rows up a place rather than swapping them out. Autoplay songs are the tail of what's to come
  * (the service only appends them and keeps user-queued songs in front), so Continue Playing runs
- * up to the first of them.
+ * up to the first of them. Songs the user queued by hand lead the upcoming ones, in their own
+ * Next in Queue section.
  */
 private fun buildQueueRows(items: List<QueueItemData>, currentIndex: Int): List<QueueRow> {
     val rows = ArrayList<QueueRow>(items.size + 4)
@@ -515,16 +519,31 @@ private fun buildQueueRows(items: List<QueueItemData>, currentIndex: Int): List<
         addSong(current, QueueSection.NOW_PLAYING)
     }
 
-    rows += QueueRow.Header(QueueSection.CONTINUE)
+    // what the user queued by hand comes first, in the order they queued it
     var i = current + 1
-    val continueStart = rows.size
-    while (i < items.size && !items[i].isAutoplay) addSong(i++, QueueSection.CONTINUE)
+    val nextStart = i
+    while (i < items.size && items[i].isManual && !items[i].isAutoplay) i++
+    val hasNext = i > nextStart
+    if (hasNext) {
+        rows += QueueRow.Header(QueueSection.NEXT_IN_QUEUE)
+        for (j in nextStart until i) addSong(j, QueueSection.NEXT_IN_QUEUE)
+    }
 
-    if (i < items.size) {
+    val continueStart = i
+    var continueEnd = i
+    while (continueEnd < items.size && !items[continueEnd].isAutoplay) continueEnd++
+    val hasContinue = continueEnd > continueStart
+    val hasAutoplay = continueEnd < items.size
+
+    if (hasContinue || !hasNext) {
+        rows += QueueRow.Header(QueueSection.CONTINUE)
+        for (j in continueStart until continueEnd) addSong(j, QueueSection.CONTINUE)
+        if (!hasContinue && !hasAutoplay) rows += QueueRow.Empty
+    }
+
+    if (hasAutoplay) {
         rows += QueueRow.Header(QueueSection.AUTOPLAY)
-        while (i < items.size) addSong(i++, QueueSection.AUTOPLAY)
-    } else if (rows.size == continueStart) {
-        rows += QueueRow.Empty
+        for (j in continueEnd until items.size) addSong(j, QueueSection.AUTOPLAY)
     }
     return rows
 }
@@ -551,14 +570,17 @@ private fun QueueSectionHeader(
 ) {
     val title = when (section) {
         QueueSection.HISTORY -> stringResource(R.string.history)
-        QueueSection.NOW_PLAYING -> "Now Playing"
-        QueueSection.CONTINUE -> "Continue Playing"
-        QueueSection.AUTOPLAY -> "Autoplay"
+        QueueSection.NOW_PLAYING -> stringResource(R.string.now_playing)
+        QueueSection.NEXT_IN_QUEUE -> stringResource(R.string.queue_next_in_queue)
+        QueueSection.CONTINUE -> stringResource(R.string.continue_playing)
+        QueueSection.AUTOPLAY -> stringResource(R.string.pc_queue_autoplay)
     }
+    val fromTitle = queueTitle?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.pc_queue_from, it) }
+    val similar = stringResource(R.string.pc_queue_similar)
     val subtitle = when (section) {
-        QueueSection.HISTORY, QueueSection.NOW_PLAYING -> null
-        QueueSection.CONTINUE -> queueTitle?.takeIf { it.isNotBlank() }?.let { "Queue from $it" }
-        QueueSection.AUTOPLAY -> "Similar music"
+        QueueSection.HISTORY, QueueSection.NOW_PLAYING, QueueSection.NEXT_IN_QUEUE -> null
+        QueueSection.CONTINUE -> fromTitle
+        QueueSection.AUTOPLAY -> similar
     }
 
     Row(
@@ -588,7 +610,7 @@ private fun QueueSectionHeader(
         }
         if (section == QueueSection.HISTORY) {
             Text(
-                text = "Clear",
+                text = stringResource(R.string.clear),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White.copy(alpha = 0.85f),

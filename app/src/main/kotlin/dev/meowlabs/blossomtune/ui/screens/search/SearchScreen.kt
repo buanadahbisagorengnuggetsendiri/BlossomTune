@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.unit.Dp
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -53,6 +56,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -61,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import dev.meowlabs.blossomtune.ui.screens.Screens
 import com.music.innertube.models.AlbumItem
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.PlaylistItem
@@ -85,14 +90,39 @@ import dev.meowlabs.blossomtune.viewmodels.coverKey
 import dev.meowlabs.blossomtune.viewmodels.OnlineSearchSuggestionViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
 import dev.meowlabs.blossomtune.ui.component.navigateToTab
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+
+/** set on the search page's entry to open its field with the keyboard up */
+internal const val SearchFocusKey = "focusSearch"
+
+/** opens the search page's field, ready to type (the Search tab's double tap) */
+fun NavController.requestSearchFocus() {
+    runCatching { getBackStackEntry(Screens.Search.route) }.getOrNull()
+        ?.savedStateHandle?.set(SearchFocusKey, true)
+}
 
 @Composable
 fun SearchScreen(
     navController: NavController,
     pureBlack: Boolean,
 ) {
+    // on its side the field and its history stay in the pane at the left (SearchSidePane), so this side shows the categories
+    if (dev.meowlabs.blossomtune.ui.utils.isLandscapeLayout()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(SearchColors.page(pureBlack))
+        ) {
+            SearchBrowseContent(
+                listState = rememberLazyListState(),
+                navController = navController,
+                columns = 3,
+                topPadding = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding() + SearchTopClearance,
+            )
+        }
+        return
+    }
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
@@ -151,7 +181,7 @@ fun SearchScreen(
                         navController.navigate("artist/${parsed.id}")
 
                     null ->
-                        navController.navigate("search/${URLEncoder.encode(text, "UTF-8")}")
+                        navController.navigate(searchRoute(text))
                 }
                 if (!pauseSearchHistory) {
                     coroutineScope.launch(Dispatchers.IO) {
@@ -173,6 +203,25 @@ fun SearchScreen(
             runCatching { focusRequester.requestFocus() }
         } else {
             keyboardController?.hide()
+        }
+    }
+
+    // two taps on the Search tab ask for the field (requestSearchFocus). Read from this page's own
+    // entry, the one the tab flags, so other pages opening don't recompose the search page
+    val backStackEntry = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current
+        as? androidx.navigation.NavBackStackEntry
+    val focusAsked = remember(backStackEntry) {
+        backStackEntry?.savedStateHandle?.getStateFlow(SearchFocusKey, false)
+    }?.collectAsState()
+    LaunchedEffect(focusAsked?.value) {
+        if (focusAsked?.value != true) return@LaunchedEffect
+        backStackEntry?.savedStateHandle?.set(SearchFocusKey, false)
+        if (active) {
+            // already open: just bring the keyboard back
+            runCatching { focusRequester.requestFocus() }
+            keyboardController?.show()
+        } else {
+            active = true
         }
     }
 
@@ -236,7 +285,7 @@ fun SearchScreen(
             glassState = glassState,
             progressProvider = progressProvider,
             pureBlack = pureBlack,
-            title = "Search",
+            title = stringResource(R.string.search),
             trailing = {
                 SearchAvatar(imageUrl = profilePicStr.ifBlank { null }, onClick = { navController.navigateToTab("settings") })
             },
@@ -245,7 +294,7 @@ fun SearchScreen(
                 value = query,
                 onValueChange = { query = it },
                 onSearch = commit,
-                placeholder = "Search for any tracks, albums, lyrics...",
+                placeholder = stringResource(R.string.search_tracks_placeholder),
                 focused = active,
                 leading = if (active) {
                     {
@@ -257,7 +306,7 @@ fun SearchScreen(
                                 .size(20.dp)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
+                                    indication = RemoteFocus,
                                 ) {
                                     active = false
                                     focusManager.clearFocus()
@@ -277,7 +326,7 @@ fun SearchScreen(
                                 .size(20.dp)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
+                                    indication = RemoteFocus,
                                 ) { query = TextFieldValue("") },
                         )
                     }
@@ -301,6 +350,9 @@ private fun SearchBrowseContent(
     listState: LazyListState,
     navController: NavController,
     viewModel: MoodAndGenresViewModel = hiltViewModel(),
+    // tiles in a row: two upright, three in the wider pane on its side
+    columns: Int = 2,
+    topPadding: Dp = searchTopBarHeight(withTitle = true),
 ) {
     val sections by viewModel.moodAndGenres.collectAsState()
     val bottomInset = LocalPlayerAwareWindowInsets.current
@@ -311,7 +363,7 @@ private fun SearchBrowseContent(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = searchTopBarHeight(withTitle = true),
+            top = topPadding,
             bottom = bottomInset + 24.dp,
         ),
     ) {
@@ -334,7 +386,7 @@ private fun SearchBrowseContent(
                         ruleBelow = true,
                     )
                 }
-                val rows = section.items.chunked(2)
+                val rows = section.items.chunked(columns)
                 itemsIndexed(
                     items = rows,
                     key = { rowIndex, _ -> "row_${sectionIndex}_$rowIndex" },
@@ -365,7 +417,7 @@ private fun SearchBrowseContent(
                                 modifier = Modifier.weight(1f),
                             )
                         }
-                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                        repeat(columns - row.size) { Spacer(modifier = Modifier.weight(1f)) }
                     }
                 }
                 item(key = "gap_${sectionIndex}") { Spacer(modifier = Modifier.height(22.dp)) }
@@ -375,7 +427,7 @@ private fun SearchBrowseContent(
 }
 
 @Composable
-private fun SearchActiveContent(
+internal fun SearchActiveContent(
     listState: LazyListState,
     query: String,
     state: dev.meowlabs.blossomtune.viewmodels.SearchSuggestionViewState,
@@ -383,6 +435,7 @@ private fun SearchActiveContent(
     onSubmit: (String) -> Unit,
     onDeleteHistory: (SearchHistory) -> Unit,
     navController: NavController,
+    topPadding: Dp = searchTopBarHeight(withTitle = false),
 ) {
     val playerConnection = LocalPlayerConnection.current
     val offlineMode by rememberPreference(dev.meowlabs.blossomtune.constants.OfflineModeKey, defaultValue = false)
@@ -394,14 +447,14 @@ private fun SearchActiveContent(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = searchTopBarHeight(withTitle = false),
+            top = topPadding,
             bottom = bottomInset + 24.dp,
         ),
     ) {
         if (query.isEmpty()) {
             if (state.history.isNotEmpty()) {
                 item(key = "history_header") {
-                    SearchSectionHeader(title = "Search History")
+                    SearchSectionHeader(title = stringResource(R.string.search_history))
                 }
                 items(
                     items = state.history,
@@ -425,7 +478,7 @@ private fun SearchActiveContent(
         } else {
             if (state.suggestions.isNotEmpty()) {
                 item(key = "suggestion_header") {
-                    SearchSectionHeader(title = "Suggestion")
+                    SearchSectionHeader(title = stringResource(R.string.suggestions))
                 }
                 items(
                     items = state.suggestions,
@@ -444,7 +497,7 @@ private fun SearchActiveContent(
             if (state.items.isNotEmpty()) {
                 item(key = "top_result_header") {
                     Spacer(modifier = Modifier.height(10.dp))
-                    SearchSectionHeader(title = "Top Result")
+                    SearchSectionHeader(title = stringResource(R.string.search_top_result))
                 }
                 items(
                     items = state.items,
@@ -477,7 +530,7 @@ private fun SearchActiveContent(
                         // offline there's nothing on its way: the library just has no match
                         if (offlineMode) {
                             Text(
-                                text = "Offline mode: nothing in your library matches",
+                                text = stringResource(R.string.search_offline_no_matches),
                                 color = SearchColors.Secondary,
                                 fontSize = 13.sp,
                             )

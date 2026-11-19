@@ -22,13 +22,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,12 +41,15 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachReversed
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -58,6 +57,7 @@ import androidx.navigation.NavController
 import dev.meowlabs.blossomtune.LocalDatabase
 import dev.meowlabs.blossomtune.LocalPlayerAwareWindowInsets
 import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.LocalSyncUtils
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.HideExplicitKey
 import dev.meowlabs.blossomtune.constants.HideVideoSongsKey
@@ -67,9 +67,8 @@ import dev.meowlabs.blossomtune.playback.queues.LocalAlbumRadio
 import dev.meowlabs.blossomtune.ui.component.HomeCardHighlight
 import dev.meowlabs.blossomtune.ui.component.HomeCardSpacing
 import dev.meowlabs.blossomtune.ui.component.HomeCoverCard
-import dev.meowlabs.blossomtune.ui.component.IconButton
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
-import dev.meowlabs.blossomtune.ui.component.SwipeActionsBox
+import dev.meowlabs.blossomtune.ui.component.SongSwipeBox
 import dev.meowlabs.blossomtune.ui.component.detail.CreatorUi
 import dev.meowlabs.blossomtune.ui.component.detail.FeaturedArtistsRow
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistDetailScaffold
@@ -79,8 +78,11 @@ import dev.meowlabs.blossomtune.ui.component.detail.PlaylistInset
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistSectionTitle
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistStatsStyle
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistTrackBones
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistModeBar
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistSearchBar
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistSelectTick
 import dev.meowlabs.blossomtune.ui.component.detail.PlaylistTrackRow
-import dev.meowlabs.blossomtune.ui.component.detail.featuredArtistsOf
+import dev.meowlabs.blossomtune.ui.component.detail.rememberFeaturedArtists
 import dev.meowlabs.blossomtune.ui.component.detail.playlistCoverHeight
 import dev.meowlabs.blossomtune.ui.component.librarySwipeAction
 import dev.meowlabs.blossomtune.ui.component.queueSwipeAction
@@ -105,6 +107,7 @@ fun AlbumScreen(
 ) {
     val menuState = LocalMenuState.current
     val database = LocalDatabase.current
+    val syncUtils = LocalSyncUtils.current
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
 
@@ -126,6 +129,29 @@ fun AlbumScreen(
         if (hideExplicit) songs = songs.filter { !it.song.explicit }
         if (hideVideoSongs) songs = songs.filter { !it.song.isVideo }
         songs
+    }
+
+    // the album's own song search, from the round button beside shuffle
+    var isSearching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
+    val focusRequester = remember { FocusRequester() }
+    val shownSongs = remember(filteredSongs, isSearching, query.text) {
+        val typed = query.text.trim()
+        if (!isSearching || typed.isEmpty()) {
+            filteredSongs
+        } else {
+            filteredSongs.filter { song ->
+                song.song.title.contains(typed, ignoreCase = true) ||
+                    song.artists.any { it.name.contains(typed, ignoreCase = true) }
+            }
+        }
+    }
+    val closeSearch = {
+        isSearching = false
+        query = TextFieldValue()
+    }
+    if (isSearching) {
+        BackHandler(onBack = closeSearch)
     }
 
     var inSelectMode by rememberSaveable { mutableStateOf(false) }
@@ -158,11 +184,16 @@ fun AlbumScreen(
     val revealSeen = rememberRevealSeenState()
     val album = albumWithSongs
     val totalSeconds = remember(filteredSongs) { filteredSongs.sumOf { it.song.duration } }
-    val featuredArtists = remember(filteredSongs) {
-        featuredArtistsOf(filteredSongs.flatMap { it.artists }, id = { it.id }, name = { it.name })
-    }
+    val featuredArtists = rememberFeaturedArtists(filteredSongs, { filteredSongs.flatMap { it.artists } }, id = { it.id }, name = { it.name })
     val mainArtistName = album?.artists?.firstOrNull()?.name
-    val isThisAlbum = album != null && mediaMetadata?.album?.id == album.album.id
+    // the shelves are built outside composition, so their titles are read here first
+    val moreByArtistTitle = if (mainArtistName != null) {
+        stringResource(R.string.album_more_by_artist, mainArtistName)
+    } else {
+        stringResource(R.string.album_more_by_this_artist)
+    }
+    val otherVersionsTitle = stringResource(R.string.album_other_versions)
+    val releasesForYouTitle = stringResource(R.string.album_releases_for_you)
 
     fun play(startIndex: Int = 0, shuffled: Boolean = false) {
         val current = album ?: return
@@ -194,31 +225,37 @@ fun AlbumScreen(
                 }
             }
         },
-        topBarOverride = if (inSelectMode) {
+        topBarOverride = if (isSearching) {
             {
-                AlbumSelectionBar(
-                    selectionCount = selection.size,
-                    allSelected = selection.size == filteredSongs.size && selection.isNotEmpty(),
-                    onToggleSelectAll = {
-                        if (selection.size == filteredSongs.size) {
-                            selection.clear()
-                        } else {
-                            selection.clear()
-                            selection.addAll(filteredSongs.map { it.id })
-                        }
-                    },
-                    onSelectionMenu = {
-                        menuState.show {
-                            SelectionSongMenu(
-                                songSelection = selection.mapNotNull { id -> filteredSongs.find { it.id == id } },
-                                onDismiss = menuState::dismiss,
-                                clearAction = onExitSelectionMode,
-                            )
-                        }
-                    },
-                    onClose = onExitSelectionMode,
+                PlaylistSearchBar(
+                    query = query,
+                    onQueryChange = { query = it },
+                    placeholder = stringResource(R.string.search_in_album),
+                    focusRequester = focusRequester,
+                    onClose = closeSearch,
                 )
             }
+        } else null,
+        modeBar = if (inSelectMode) {
+            PlaylistModeBar.Select(
+                count = selection.size,
+                allSelected = selection.size == filteredSongs.size && selection.isNotEmpty(),
+                onToggleAll = {
+                    val selectAll = selection.size != filteredSongs.size
+                    selection.clear()
+                    if (selectAll) selection.addAll(filteredSongs.map { it.id })
+                },
+                onMore = {
+                    menuState.show {
+                        SelectionSongMenu(
+                            songSelection = selection.mapNotNull { id -> filteredSongs.find { it.id == id } },
+                            onDismiss = menuState::dismiss,
+                            clearAction = onExitSelectionMode,
+                        )
+                    }
+                },
+                onClose = onExitSelectionMode,
+            )
         } else null,
     ) {
         if (album == null || album.songs.isEmpty()) {
@@ -231,17 +268,21 @@ fun AlbumScreen(
             return@PlaylistDetailScaffold
         }
 
-        item(key = "album_header", contentType = "header") {
+        if (!isSearching) item(key = "album_header", contentType = "header") {
+            // read here, not at the top of the screen: a track change then only redraws the header
+            val isThisAlbum = mediaMetadata?.album?.id == album.album.id
             PlaylistHeader(
+                onSearchClick = { isSearching = true },
                 title = album.album.title,
                 creators = album.artists.map { CreatorUi(name = it.name, avatarUrl = it.thumbnailUrl, artistId = it.id) },
                 // the description takes the stats' place, and the stats move under it
                 description = description?.takeIf { it.isNotBlank() },
                 stats = albumStats(
                     year = album.album.year,
-                    songCount = filteredSongs.size,
+                    songCountText = pluralStringResource(R.plurals.n_song, filteredSongs.size, filteredSongs.size),
                     totalSeconds = totalSeconds,
                     explicit = album.album.explicit,
+                    explicitTag = stringResource(R.string.album_explicit_tag),
                     format = format?.let { f ->
                         val codec = f.codecs.substringBefore('.').uppercase().ifBlank { null }
                         listOfNotNull(codec, (f.bitrate / 1000).takeIf { it > 0 }?.let { "$it kbps" }).joinToString(" ")
@@ -263,26 +304,27 @@ fun AlbumScreen(
         }
 
         itemsIndexed(
-            items = filteredSongs,
+            items = shownSongs,
             key = { _, song -> song.id },
             contentType = { _, _ -> "track" },
         ) { position, song ->
             val onCheckedChange: (Boolean) -> Unit = {
                 if (it) selection.add(song.id) else selection.remove(song.id)
             }
-            SwipeActionsBox(
+            SongSwipeBox(
                 modifier = Modifier.animateItem(),
                 enabled = !inSelectMode,
-                start = { librarySwipeAction(song.song) },
-                end = { queueSwipeAction { song.toMediaItem() } },
+                library = { librarySwipeAction(song.song) },
+                queue = { queueSwipeAction { song.toMediaItem() } },
             ) {
+                val active = song.id == mediaMetadata?.id
                 PlaylistTrackRow(
                     thumbnailUrl = song.song.thumbnailUrl,
                     songId = song.id,
                     title = song.song.title,
                     subtitle = "${song.artists.joinToString { it.name }} • ${makeTimeString(song.song.duration * 1000L)}",
-                    isActive = song.id == mediaMetadata?.id,
-                    isPlaying = isPlaying,
+                    isActive = active,
+                    isPlaying = active && isPlaying,
                     modifier = Modifier.revealOnAppear(
                         key = "track_${song.id}",
                         seenState = revealSeen,
@@ -310,11 +352,26 @@ fun AlbumScreen(
                             SongMenu(originalSong = song, navController = navController, onDismiss = menuState::dismiss)
                         }
                     },
+                    selected = inSelectMode && song.id in selection,
+                    liked = song.song.liked,
+                    onLikeClick = {
+                        val updated = song.song.toggleLike()
+                        database.query { update(updated) }
+                        syncUtils.likeSong(updated)
+                    },
                     trailing = if (inSelectMode) {
-                        { Checkbox(checked = song.id in selection, onCheckedChange = onCheckedChange) }
+                        { PlaylistSelectTick(checked = song.id in selection) }
                     } else null,
                 )
             }
+        }
+
+        // while searching only the matching songs show, as on a playlist
+        if (isSearching) {
+            item(key = "bottom_spacer") {
+                Spacer(Modifier.height(50.dp))
+            }
+            return@PlaylistDetailScaffold
         }
 
         item(key = "end_of_line") {
@@ -335,7 +392,7 @@ fun AlbumScreen(
 
         albumShelf(
             key = "more_by_artist",
-            title = if (mainArtistName != null) "More by $mainArtistName" else "More by this artist",
+            title = moreByArtistTitle,
             albums = moreByArtist,
             onTitleClick = album.artists.firstOrNull()?.id?.let { id -> { navController.navigate("artist/$id") } },
             navController = navController,
@@ -348,7 +405,7 @@ fun AlbumScreen(
         )
         albumShelf(
             key = "other_versions",
-            title = "Other versions",
+            title = otherVersionsTitle,
             albums = otherVersions,
             navController = navController,
             onLongClick = { item ->
@@ -360,7 +417,7 @@ fun AlbumScreen(
         )
         albumShelf(
             key = "releases_for_you",
-            title = "Releases for you",
+            title = releasesForYouTitle,
             albums = releasesForYou,
             navController = navController,
             onLongClick = { item ->
@@ -378,14 +435,14 @@ fun AlbumScreen(
 }
 
 /** "2016 · 14 songs · 52m · Explicit · OPUS 160 kbps" */
-private fun albumStats(year: Int?, songCount: Int, totalSeconds: Int, explicit: Boolean, format: String?): String {
+private fun albumStats(year: Int?, songCountText: String, totalSeconds: Int, explicit: Boolean, explicitTag: String, format: String?): String {
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60
     return listOfNotNull(
         year?.toString(),
-        "$songCount ${if (songCount == 1) "song" else "songs"}",
+        songCountText,
         (if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m").takeIf { totalSeconds > 0 },
-        "Explicit".takeIf { explicit },
+        explicitTag.takeIf { explicit },
         format?.ifBlank { null },
     ).joinToString(" · ")
 }
@@ -416,8 +473,6 @@ private fun LazyListScope.albumShelf(
         ) {
             items(items = distinct, key = { it.id }) { item ->
                 HomeCoverCard(
-                    titleColor = Color.White,
-                    subtitleColor = Color.White.copy(alpha = 0.62f),
                     title = item.title,
                     subtitle = listOfNotNull(
                         item.artists?.joinToString { it.name }?.ifBlank { null },
@@ -437,32 +492,6 @@ private fun LazyListScope.albumShelf(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AlbumSelectionBar(
-    selectionCount: Int,
-    allSelected: Boolean,
-    onToggleSelectAll: () -> Unit,
-    onSelectionMenu: () -> Unit,
-    onClose: () -> Unit,
-) {
-    TopAppBar(
-        title = { Text(pluralStringResource(R.plurals.n_selected, selectionCount, selectionCount)) },
-        navigationIcon = {
-            IconButton(onClick = onClose, onLongClick = {}) {
-                Icon(painter = painterResource(R.drawable.close), contentDescription = null)
-            }
-        },
-        actions = {
-            Checkbox(checked = allSelected, onCheckedChange = { onToggleSelectAll() })
-            IconButton(enabled = selectionCount > 0, onClick = onSelectionMenu, onLongClick = {}) {
-                Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-    )
-}
-
 @Composable
 private fun AlbumRetry(onRetry: () -> Unit) {
     Box(
@@ -472,7 +501,7 @@ private fun AlbumRetry(onRetry: () -> Unit) {
             .padding(top = 24.dp)
     ) {
         Text(
-            text = "Couldn't load this album. Tap to try again",
+            text = stringResource(R.string.album_load_failed),
             style = PlaylistStatsStyle,
             color = Color.White.copy(alpha = 0.7f),
             modifier = Modifier

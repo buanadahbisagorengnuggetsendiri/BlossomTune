@@ -3,7 +3,11 @@
 package dev.meowlabs.blossomtune.importer
 
 import android.content.Context
+import androidx.datastore.preferences.core.edit
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.constants.YtExcludeImportsKey
 import dev.meowlabs.blossomtune.constants.YtPullHistoryKey
+import dev.meowlabs.blossomtune.constants.YtSyncHoldKey
 import dev.meowlabs.blossomtune.db.MusicDatabase
 import dev.meowlabs.blossomtune.db.entities.Event
 import dev.meowlabs.blossomtune.db.entities.PlaylistEntity
@@ -40,9 +44,10 @@ data class YtSyncState(
     val running: Boolean = false,
     val label: String = "",
     val message: String? = null,
+    val canUndo: Boolean = false,
 )
 
-/** The manual YouTube actions on the Sync page; automatic library sync stays in [SyncUtils]. */
+/** the manual youtube actions on the sync page; automatic library sync stays in SyncUtils */
 @Singleton
 class YouTubeSyncManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -57,9 +62,14 @@ class YouTubeSyncManager @Inject constructor(
     private val _state = MutableStateFlow(YtSyncState())
     val state: StateFlow<YtSyncState> = _state.asStateFlow()
 
+    init {
+        scope.launch { _state.value = _state.value.copy(canUndo = SyncUndo.canUndo(context)) }
+    }
+
     fun syncNow() = launchTask("Syncing with YouTube…") {
         requireSignedIn()
-        syncUtils.performFullSyncSuspend()
+        context.dataStore.edit { it[YtSyncHoldKey] = false }
+        syncUtils.performFullSyncSuspend(manual = true)
         if (context.dataStore.get(YtPullHistoryKey, false)) {
             setLabel("Copying YouTube history…")
             val copied = pullHistory()
@@ -75,11 +85,32 @@ class YouTubeSyncManager @Inject constructor(
         if (copied == 0) "Nothing new in your YouTube history." else "$copied ${if (copied == 1) "play" else "plays"} copied from YouTube history."
     }
 
+    fun undoLastSync(withYouTube: Boolean) = launchTask("Undoing the last sync…") {
+        if (!SyncUndo.canUndo(context)) return@launchTask context.getString(R.string.yt_sync_undo_nothing)
+        if (withYouTube) requireSignedIn()
+        val failed = SyncUndo.undo(context, database, withYouTube)
+        when {
+            failed > 0 -> context.resources.getQuantityString(R.plurals.yt_sync_undo_failed, failed, failed)
+            withYouTube -> context.getString(R.string.yt_sync_undo_done_both)
+            else -> context.getString(R.string.yt_sync_undo_done_phone)
+        }
+    }
+
+    suspend fun lostLikesCount(): Int = LostLikes.count(context, database)
+
+    fun bringBackLikes() = launchTask(context.getString(R.string.yt_sync_lost_likes_running)) {
+        val back = LostLikes.bringBack(context, database)
+        if (back == 0) context.getString(R.string.yt_sync_lost_likes_none_body)
+        else context.resources.getQuantityString(R.plurals.yt_sync_lost_likes_done, back, back)
+    }
+
     fun uploadLocalPlaylists() = launchTask("Creating playlists on YouTube…") {
         requireSignedIn()
+        val keepOffYouTube = context.dataStore.get(YtExcludeImportsKey, false)
         val locals = database.playlistsByNameAsc().first().filter {
             it.playlist.browseId == null && it.playlist.isEditable && !it.playlist.isLocal &&
-                it.playlist.id != PlaylistEntity.LIKED_PLAYLIST_ID && it.playlist.id != PlaylistEntity.DOWNLOADED_PLAYLIST_ID
+                it.playlist.id != PlaylistEntity.LIKED_PLAYLIST_ID && it.playlist.id != PlaylistEntity.DOWNLOADED_PLAYLIST_ID &&
+                !(keepOffYouTube && database.getImportedPlaylist(it.playlist.id)?.source?.let { s -> s != ImportSource.YOUTUBE_MUSIC.key } == true)
         }
         if (locals.isEmpty()) return@launchTask "Every playlist is already on YouTube."
         var created = 0
@@ -112,7 +143,7 @@ class YouTubeSyncManager @Inject constructor(
 
     private fun launchTask(label: String, block: suspend () -> String) {
         if (job?.isActive == true) return
-        _state.value = YtSyncState(running = true, label = label)
+        _state.value = _state.value.copy(running = true, label = label, message = null)
         job = scope.launch {
             var message: String? = null
             try {
@@ -126,20 +157,15 @@ class YouTubeSyncManager @Inject constructor(
                 Timber.e(e, "YouTube sync task failed")
                 message = "Something went wrong: ${e.message ?: e.javaClass.simpleName}"
             } finally {
-                _state.value = YtSyncState(running = false, message = message)
+                _state.value = YtSyncState(running = false, message = message, canUndo = SyncUndo.canUndo(context))
             }
         }
     }
 
-    /**
-     * Copies YouTube Music history into BlossomTune's history. YouTube only says which day-ish bucket a
-     * play is in ("Today", "Last week", "March 2026"), so each play gets a time inside its bucket.
-     * A song that already has a play in that bucket is skipped — that covers songs played here (we
-     * report those to YouTube) and earlier copies, so pulling again never doubles up.
-     */
+    /** copies youtube music history into ours, youtube only gives day-ish buckets (today, last week, march 2026) so each play gets a time inside its bucket, a song already played in that bucket is skipped so pulling again never doubles up */
     private suspend fun pullHistory(): Int {
-        // English section titles, whatever the app language, so the buckets can be read
-        val page = YouTube.musicHistory(hlOverride = "en").getOrThrow()
+        // english section titles, whatever the app language, so the buckets can be read
+        val page = YouTube.musicHistory(hlOverride = "en", maxRequests = HistoryPagesMax).getOrThrow()
         val today = LocalDate.now()
         val now = LocalDateTime.now()
 
@@ -147,8 +173,11 @@ class YouTubeSyncManager @Inject constructor(
         database.events().first().forEach { existing.getOrPut(it.event.songId) { mutableListOf() } += it.event.timestamp.toLocalDate() }
 
         var copied = 0
+        var older = today.plusDays(1)
         page.sections.orEmpty().forEach { section ->
-            val bucket = bucketFor(section.title, today) ?: return@forEach
+            // a title we can't read still gets its plays, placed just before the section above it, so nothing is dropped
+            val bucket = bucketFor(section.title, today) ?: Bucket(older.minusDays(7).coerceAtMost(today), older.minusDays(1).coerceAtMost(today))
+            if (bucket.from.isBefore(older)) older = bucket.from
             section.songs.forEachIndexed { index, song ->
                 val dates = existing[song.id]
                 if (dates != null && dates.any { !it.isBefore(bucket.from) && !it.isAfter(bucket.to) }) return@forEachIndexed
@@ -184,11 +213,36 @@ class YouTubeSyncManager @Inject constructor(
                 if (to.isBefore(thisMonday)) Bucket(thisMonday, thisMonday) else Bucket(thisMonday, to)
             }
             "last week" -> Bucket(thisMonday.minusDays(7), thisMonday.minusDays(1))
-            else -> parseMonth(title.trim(), today)?.let { month ->
-                val end = minOf(month.atEndOfMonth(), today)
-                Bucket(month.atDay(1), end)
+            "this month" -> Bucket(today.withDayOfMonth(1), today)
+            "last month" -> YearMonth.from(today).minusMonths(1).let { Bucket(it.atDay(1), it.atEndOfMonth()) }
+            "this year" -> Bucket(today.withDayOfYear(1), today)
+            "last year" -> today.minusYears(1).let { Bucket(it.withDayOfYear(1), it.withDayOfYear(it.lengthOfYear())) }
+            else -> parseDay(title.trim(), today)?.let { Bucket(it, it) }
+                ?: parseMonth(title.trim(), today)?.let { month -> Bucket(month.atDay(1), minOf(month.atEndOfMonth(), today)) }
+                ?: title.trim().toIntOrNull()?.takeIf { it in 2000..today.year }?.let { year ->
+                    Bucket(LocalDate.of(year, 1, 1), minOf(LocalDate.of(year, 12, 31), today))
+                }
+        }
+    }
+
+    // a weekday name is the last one before yesterday, and youtube sometimes writes a single date ("march 3", "mar 3, 2025")
+    private fun parseDay(title: String, today: LocalDate): LocalDate? {
+        DayOfWeek.entries.firstOrNull { it.name.equals(title, ignoreCase = true) }?.let { weekday ->
+            var day = today.minusDays(2)
+            while (day.dayOfWeek != weekday) day = day.minusDays(1)
+            return day
+        }
+        for (pattern in DayPatterns) {
+            runCatching { return LocalDate.parse(title, DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH)) }
+        }
+        for (pattern in DayNoYearPatterns) {
+            runCatching {
+                val monthDay = java.time.MonthDay.parse(title, DateTimeFormatter.ofPattern(pattern, Locale.ENGLISH))
+                val thisYear = monthDay.atYear(today.year)
+                return if (thisYear.isAfter(today)) thisYear.minusYears(1) else thisYear
             }
         }
+        return null
     }
 
     private fun parseMonth(title: String, today: LocalDate): YearMonth? {
@@ -202,4 +256,13 @@ class YouTubeSyncManager @Inject constructor(
     }
 
     private fun LocalDateTime.coerceAtLeast(min: LocalDateTime): LocalDateTime = if (isBefore(min)) min else this
+
+    private fun LocalDate.coerceAtMost(max: LocalDate): LocalDate = if (isAfter(max)) max else this
+
+    private companion object {
+        // youtube hands the history out about a hundred plays per page, so this reaches a long way back
+        const val HistoryPagesMax = 40
+        val DayPatterns = listOf("MMMM d, yyyy", "MMM d, yyyy", "d MMMM yyyy", "d MMM yyyy")
+        val DayNoYearPatterns = listOf("MMMM d", "MMM d", "d MMMM", "d MMM")
+    }
 }

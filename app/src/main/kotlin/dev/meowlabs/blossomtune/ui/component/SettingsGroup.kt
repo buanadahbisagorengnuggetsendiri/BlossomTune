@@ -17,6 +17,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import dev.meowlabs.blossomtune.R
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +40,7 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -173,10 +176,8 @@ private fun ClusterRows(cluster: ItemCluster) {
         label = "pillInset"
     )
 
-    // Pil grup ikut mode. Dulu selalu #1F2839 (pil gelap), jadi di halaman terang
-    // grupnya jadi balok hitam. Di terang pil = surfaceVariant (lebih gelap dari
-    // halaman, sesuai tangga permukaan terang); di gelap nilainya sama seperti dulu.
-    val pillColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = pillAlpha)
+    // Expanded sub-menu background slightly brighter than accent surface
+    val pillColor = Color(0xFF282830).copy(alpha = pillAlpha)
 
     Box(
         modifier = Modifier
@@ -206,13 +207,28 @@ private fun SettingsItemRow(
     item: SettingsItem,
     style: SettingsGroupStyle,
 ) {
-    // A row arrived at from settings search claims the request the first time it composes, flashes
-    // briefly, then clears it - so the highlight fires once rather than every time the page opens.
+    // app behaviour can hide the line under each title, holding the row still shows it
+    val (hideDescriptions) = dev.meowlabs.blossomtune.utils.rememberPreference(
+        dev.meowlabs.blossomtune.constants.HideSettingsDescriptionsKey,
+        defaultValue = true,
+    )
+    // a row arrived at from search or a related link claims the request once, scrolls into view and flashes
     val key = item.highlightKey
-    androidx.compose.runtime.LaunchedEffect(key, SettingsHighlight.pending) {
-        if (key != null && SettingsHighlight.pending == key) {
+    val requester = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+    val settingsScroll = LocalSettingsScroll.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val placement = remember { SettingsPlacement() }
+    androidx.compose.runtime.LaunchedEffect(key) {
+        if (key == null) return@LaunchedEffect
+        // watched, not keyed on: clearing the request restarted the effect, so the row never scrolled and stayed lit
+        androidx.compose.runtime.snapshotFlow { SettingsHighlight.pending }.collect { pending ->
+            if (pending != key) return@collect
             SettingsHighlight.pending = null
             SettingsHighlight.active = key
+            // let the page finish opening first, or it scrolls while still sliding in
+            kotlinx.coroutines.delay(320)
+            val target = placement.coords
+            if (settingsScroll != null && target != null) settingsScroll.reveal(target, density) else requester.bringIntoView()
             kotlinx.coroutines.delay(2400)
             if (SettingsHighlight.active == key) SettingsHighlight.active = null
         }
@@ -229,6 +245,8 @@ private fun SettingsItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .bringIntoViewRequester(requester)
+            .onPlaced { placement.coords = it }
             .drawBehind {
                 if (highlightAlpha > 0.01f) {
                     drawRect(color = highlightColor.copy(alpha = 0.22f * highlightAlpha))
@@ -251,7 +269,7 @@ private fun SettingsItemRow(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(Color(0xFFE4E6EB)),
+                    .background(Color(0xFFE5E5EA)),
                 contentAlignment = Alignment.Center
             ) {
                 if (item.showBadge) {
@@ -267,9 +285,9 @@ private fun SettingsItemRow(
                                 painter = icon,
                                 contentDescription = null,
                                 tint = if (!item.enabled)
-                                    Color(0xFF141A26).copy(alpha = 0.38f)
+                                    Color(0xFF1C1C1E).copy(alpha = 0.38f)
                                 else
-                                    Color(0xFF141A26),
+                                    Color(0xFF1C1C1E),
                                 modifier = Modifier.size(20.dp)
                             )
                         } else {
@@ -287,9 +305,9 @@ private fun SettingsItemRow(
                             painter = icon,
                             contentDescription = null,
                             tint = if (!item.enabled)
-                                Color(0xFF141A26).copy(alpha = 0.38f)
+                                Color(0xFF1C1C1E).copy(alpha = 0.38f)
                             else
-                                Color(0xFF141A26),
+                                Color(0xFF1C1C1E),
                             modifier = Modifier.size(16.dp)
                         )
                     } else {
@@ -330,7 +348,7 @@ private fun SettingsItemRow(
                 MaterialTheme.colorScheme.onSurfaceVariant
             }
 
-            if (item.descriptionText != null) {
+            if (item.descriptionText != null && !hideDescriptions) {
                 Spacer(modifier = Modifier.height(1.dp))
                 Text(
                     text = item.descriptionText,
@@ -339,7 +357,7 @@ private fun SettingsItemRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-            } else {
+            } else if (item.descriptionText == null) {
                 item.description?.let { desc ->
                     Spacer(modifier = Modifier.height(2.dp))
                     ProvideTextStyle(
@@ -377,5 +395,7 @@ data class SettingsItem(
     val isSubOption: Boolean = false,
     /** Identifier used by settings search to flash this row when the user arrives from a result. */
     val highlightKey: String? = null,
+    // the title as shown in the app's language, so a page's own search finds it in any language
+    val searchText: String? = null,
     val onClick: (() -> Unit)? = null
 )

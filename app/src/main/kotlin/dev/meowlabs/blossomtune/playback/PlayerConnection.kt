@@ -20,19 +20,31 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import dev.meowlabs.blossomtune.db.MusicDatabase
 import dev.meowlabs.blossomtune.extensions.currentMetadata
+import dev.meowlabs.blossomtune.lyrics.LyricsUtils
+import dev.meowlabs.blossomtune.lyrics.VideoLyricsSync
 import dev.meowlabs.blossomtune.extensions.getCurrentQueueIndex
 import dev.meowlabs.blossomtune.extensions.getQueueWindows
 import dev.meowlabs.blossomtune.extensions.isAutoplay
+import dev.meowlabs.blossomtune.extensions.isManualQueued
 import dev.meowlabs.blossomtune.extensions.withAutoplay
 import dev.meowlabs.blossomtune.extensions.metadata
-import dev.meowlabs.blossomtune.extensions.togglePlayPause
+import dev.meowlabs.blossomtune.models.MediaMetadata
+import dev.meowlabs.blossomtune.songedit.SongEdits
 import dev.meowlabs.blossomtune.playback.MusicService.MusicBinder
+import dev.meowlabs.blossomtune.link.isTelevision
 import dev.meowlabs.blossomtune.playback.queues.Queue
+import dev.meowlabs.blossomtune.utils.NotRecommended
 import dev.meowlabs.blossomtune.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -49,12 +61,17 @@ class PlayerConnection(
     val context: Context,
     binder: MusicBinder,
     val database: MusicDatabase,
-    val scope: CoroutineScope,
+    parentScope: CoroutineScope,
 ) : Player.Listener {
     private companion object {
         private const val TAG = "PlayerConnection"
         private const val PLAYER_INIT_TIMEOUT_MS = 5000L
+        private const val VideoLyricsSyncDelayMs = 1_500L
     }
+
+    // its own job under the parent's, so dispose() can stop the pollers and flows this connection started
+    val scope: CoroutineScope =
+        CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
 
     val service = binder.service
     private val playerReadinessFlow = service.isPlayerReady
@@ -94,8 +111,9 @@ class PlayerConnection(
 
         playbackState = MutableStateFlow(initialState.first)
         playWhenReady = MutableStateFlow(initialState.second)
-        isPlaying = combine(playbackState, playWhenReady) { state, ready ->
-            ready && state != STATE_ENDED
+        // a pause or play fade shows what you pressed straight away, not when the player catches up
+        isPlaying = combine(playbackState, playWhenReady, service.transport.playIntent) { state, ready, intent ->
+            (intent ?: ready) && state != STATE_ENDED
         }.stateIn(
             scope,
             SharingStarted.Lazily,
@@ -126,13 +144,59 @@ class PlayerConnection(
         player.playbackState != STATE_ENDED && player.playWhenReady
     )
 
-    val mediaMetadata = MutableStateFlow(player.currentMetadata)
+    // the queue's own copy of the playing song, before the hand edits from its edit sheet go over it
+    @Volatile private var queueMetadata: MediaMetadata? = player.currentMetadata
+    val mediaMetadata = MutableStateFlow(queueMetadata?.let(SongEdits::applyTo))
+
+    init {
+        // a song edited while it's already in the queue shows the edit straight away
+        scope.launch { SongEdits.all.collect { mediaMetadata.value = queueMetadata?.let(SongEdits::applyTo) } }
+    }
+
+    private fun showMetadata(metadata: MediaMetadata?) {
+        queueMetadata = metadata
+        mediaMetadata.value = metadata?.let(SongEdits::applyTo)
+    }
+
     val currentSong =
         mediaMetadata.flatMapLatest {
             database.song(it?.id)
         }
+
+    /**
+     * How many ms the current song's lyrics are shifted. Positive shows each line sooner, so it is
+     * added to the playback position wherever lyrics are timed.
+     */
+    val lyricsOffsetMs: StateFlow<Int> = currentSong
+        .map { it?.song?.lyricsOffset ?: 0 }
+        .distinctUntilChanged()
+        .stateIn(scope, SharingStarted.Eagerly, 0)
+
     val currentLyrics = mediaMetadata.flatMapLatest { mediaMetadata ->
         database.lyrics(mediaMetadata?.id)
+    }
+
+    init {
+        // parse off the main thread, or the first frames of opening the player pay for it
+        scope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            currentLyrics.map { it?.lyrics }.distinctUntilChanged().collect(LyricsUtils::warmParsedLyrics)
+        }
+        // a music video shows its lyrics straight away, then they move onto the video's own timing once it's been listened to
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            combine(mediaMetadata, currentLyrics) { metadata, lyrics -> metadata to lyrics }
+                .distinctUntilChanged()
+                .collectLatest { (metadata, lyrics) ->
+                    if (metadata == null || lyrics == null) return@collectLatest
+                    // a song skipped straight past never asks youtube anything
+                    delay(VideoLyricsSyncDelayMs)
+                    runCatching {
+                        VideoLyricsSync.syncIfNeeded(context, database, metadata, lyrics) { albumSongId ->
+                            service.matchSongToVideo(albumSongId, metadata.id)
+                        }
+                    }
+                        .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it else reportException(it) }
+                }
+        }
     }
     val currentFormat =
         mediaMetadata.flatMapLatest { mediaMetadata ->
@@ -186,6 +250,7 @@ class PlayerConnection(
             artworkUri = mediaItem.mediaMetadata.artworkUri,
             duration = window.durationMs,
             isAutoplay = mediaItem.isAutoplay,
+            isManual = mediaItem.isManualQueued,
         )
     }
 
@@ -203,9 +268,13 @@ class PlayerConnection(
         )
     }
 
+    // mainactivity turns this off while the app is hidden, the poll below rests then instead of recomposing the player for nobody
+    val isUiVisible = MutableStateFlow(true)
+
     val progressState: kotlinx.coroutines.flow.StateFlow<dev.meowlabs.blossomtune.ui.player.models.ProgressState> =
         kotlinx.coroutines.flow.callbackFlow {
             while (true) {
+                isUiVisible.first { it }
                 try {
                     val p = attachedPlayer
                     if (p != null) {
@@ -292,7 +361,7 @@ class PlayerConnection(
 
         playbackState.value = newPlayer.playbackState
         playWhenReady.value = newPlayer.playWhenReady
-        mediaMetadata.value = newPlayer.currentMetadata
+        showMetadata(newPlayer.currentMetadata)
         queueTitle.value = service.queueTitle
         queueWindows.value = newPlayer.getQueueWindows()
         currentWindowIndex.value = newPlayer.getCurrentQueueIndex()
@@ -304,7 +373,17 @@ class PlayerConnection(
         Timber.tag(TAG).d("Attached to new player instance: $newPlayer")
     }
 
+    // a device this phone steers takes the songs picked here; never on a tv, which steers nothing
+    private val remote: dev.meowlabs.blossomtune.link.remote.RemoteControl? by lazy {
+        if (context.isTelevision()) null
+        else dagger.hilt.android.EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            dev.meowlabs.blossomtune.link.remote.RemoteControlEntryPoint::class.java,
+        ).remoteControl()
+    }
+
     fun playQueue(queue: Queue) {
+        if (remote?.takeQueue(queue) == true) return
         if (!playerReadinessFlow.value) {
             Timber.tag(TAG).w("playQueue called before player ready; delegating to service")
         }
@@ -334,7 +413,7 @@ class PlayerConnection(
     fun playNext(item: MediaItem) = playNext(listOf(item))
 
     fun playNext(items: List<MediaItem>) {
-
+        if (remote?.takeNext(items) == true) return
         try {
             service.playNext(items)
         } catch (e: Exception) {
@@ -346,7 +425,7 @@ class PlayerConnection(
     fun addToQueue(item: MediaItem) = addToQueue(listOf(item))
 
     fun addToQueue(items: List<MediaItem>) {
-
+        if (remote?.takeQueueEnd(items) == true) return
         try {
             service.addToQueue(items)
         } catch (e: Exception) {
@@ -388,15 +467,11 @@ class PlayerConnection(
         return order
     }
 
+    // a tap in the queue is picked like a song from a list, or blended in; the uid is looked up again when the song really changes
     fun playQueueItem(uid: Int) {
-        val index = mediaIndexOf(uid)
-        if (index == C.INDEX_UNSET) return
+        if (mediaIndexOf(uid) == C.INDEX_UNSET) return
         try {
-            player.seekToDefaultPosition(index)
-            if (player.playbackState == Player.STATE_IDLE || player.playbackState == STATE_ENDED) {
-                player.prepare()
-            }
-            player.playWhenReady = true
+            service.transport.pickFromQueue { mediaIndexOf(uid) }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error in playQueueItem")
         }
@@ -477,6 +552,20 @@ class PlayerConnection(
         )
     }
 
+    // the song playing now stops coming back in autoplay, radios and home, and we skip past it right away
+    fun stopRecommendingCurrent() {
+        val metadata = player.currentMetadata ?: return
+        NotRecommended.add(metadata.id)
+        seekToNext()
+        TopToaster.show(
+            text = context.getString(R.string.not_recommended_done),
+            thumbnail = metadata.thumbnailUrl,
+            iconRes = R.drawable.thumb_down,
+            actionLabel = context.getString(R.string.undo),
+            onAction = { NotRecommended.remove(metadata.id) },
+        )
+    }
+
     fun toggleLike() {
         try {
             service.toggleLike()
@@ -511,7 +600,7 @@ class PlayerConnection(
                     castHandler.play()
                 }
             } else {
-                player.togglePlayPause()
+                service.transport.togglePlayPause()
             }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error in togglePlayPause")
@@ -524,10 +613,7 @@ class PlayerConnection(
             if (castHandler?.isCasting?.value == true) {
                 castHandler.play()
             } else {
-                if (player.playbackState == Player.STATE_IDLE) {
-                    player.prepare()
-                }
-                player.playWhenReady = true
+                service.transport.play()
             }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error in play")
@@ -540,7 +626,7 @@ class PlayerConnection(
             if (castHandler?.isCasting?.value == true) {
                 castHandler.pause()
             } else {
-                player.playWhenReady = false
+                service.transport.pause()
             }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error in pause")
@@ -553,6 +639,7 @@ class PlayerConnection(
             if (castHandler?.isCasting?.value == true) {
                 castHandler.seekTo(position)
             } else {
+                service.transport.cancel()
                 player.seekTo(position)
             }
         } catch (e: Exception) {
@@ -568,11 +655,7 @@ class PlayerConnection(
                 castHandler.skipToNext()
                 return
             }
-            player.seekToNext()
-            if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) {
-                player.prepare()
-            }
-            player.playWhenReady = true
+            service.transport.skipNext()
             onSkipNext?.invoke()
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error in seekToNext")
@@ -580,6 +663,20 @@ class PlayerConnection(
     }
 
     var onRestartSong: (() -> Unit)? = null
+
+    // a swipe back: always the song before, never a restart, faded or blended like a skip
+    fun skipToPreviousSong() {
+        try {
+            val castHandler = service.castConnectionHandler
+            if (castHandler?.isCasting?.value == true) {
+                castHandler.skipToPrevious()
+                return
+            }
+            service.transport.jumpTo { player.previousMediaItemIndex }
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Error in skipToPreviousSong")
+        }
+    }
 
     fun seekToPrevious() {
         try {
@@ -590,22 +687,9 @@ class PlayerConnection(
                 return
             }
 
-            if (player.currentPosition > 3000 || !player.hasPreviousMediaItem()) {
-                player.seekTo(0)
-                if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) {
-                    player.prepare()
-                }
-                player.playWhenReady = true
-                onRestartSong?.invoke()
-            } else {
-
-                player.seekToPreviousMediaItem()
-                if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) {
-                    player.prepare()
-                }
-                player.playWhenReady = true
-                onSkipPrevious?.invoke()
-            }
+            val restarts = player.currentPosition > 3000 || !player.hasPreviousMediaItem()
+            service.transport.skipPrevious()
+            if (restarts) onRestartSong?.invoke() else onSkipPrevious?.invoke()
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error in seekToPrevious")
         }
@@ -627,7 +711,7 @@ class PlayerConnection(
         mediaItem: MediaItem?,
         reason: Int,
     ) {
-        mediaMetadata.value = mediaItem?.metadata
+        showMetadata(mediaItem?.metadata)
         currentMediaItemIndex.value = player.currentMediaItemIndex
         currentWindowIndex.value = player.getCurrentQueueIndex()
         publishQueueSnapshot()
@@ -673,20 +757,21 @@ class PlayerConnection(
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 val songEntity = database.song(mediaItem.mediaId).first() ?: return@launch
-                if (songEntity.song.isLocal && songEntity.song.thumbnailUrl == null) {
-                    val artworkFile = java.io.File(context.cacheDir, "artwork_${mediaItem.mediaId.hashCode()}.jpg")
-                    if (!artworkFile.exists()) {
-                        artworkFile.writeBytes(artworkData)
-                    }
-                    val newThumbnailUrl = android.net.Uri.fromFile(artworkFile).toString()
+                val thumbnailUrl = songEntity.song.thumbnailUrl
+                // a cover file that was cleared away counts as none, so playing the song brings it back
+                if (songEntity.song.isLocal &&
+                    (thumbnailUrl == null || dev.meowlabs.blossomtune.importer.LocalArtwork.needsRepair(context, thumbnailUrl))
+                ) {
+                    val newThumbnailUrl = dev.meowlabs.blossomtune.importer.LocalArtwork.save(context, mediaItem.mediaId, artworkData)
+                        ?: return@launch
                     database.query {
                         upsert(songEntity.song.copy(thumbnailUrl = newThumbnailUrl))
                     }
                     Timber.tag(TAG).d("Extracted local artwork to $newThumbnailUrl")
 
-                    val currentMetadata = this@PlayerConnection.mediaMetadata.value
+                    val currentMetadata = queueMetadata
                     if (currentMetadata?.id == mediaItem.mediaId) {
-                        this@PlayerConnection.mediaMetadata.value = currentMetadata.copy(thumbnailUrl = newThumbnailUrl)
+                        showMetadata(currentMetadata.copy(thumbnailUrl = newThumbnailUrl))
                     }
                 }
             } catch (e: Exception) {
@@ -749,6 +834,7 @@ class PlayerConnection(
         try {
             attachedPlayer?.removeListener(this)
             attachedPlayer = null
+            scope.cancel()
             Timber.tag(TAG).d("PlayerConnection disposed successfully")
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error during PlayerConnection disposal")

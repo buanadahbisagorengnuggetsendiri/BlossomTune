@@ -11,22 +11,31 @@ import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
 import com.music.innertube.utils.completed
 import com.music.innertube.utils.parseCookieString
-import com.music.lastfm.LastFM
 import dev.meowlabs.blossomtune.constants.InnerTubeCookieKey
-import dev.meowlabs.blossomtune.constants.LastFMUseSendLikes
 import dev.meowlabs.blossomtune.constants.LastFullSyncKey
 import dev.meowlabs.blossomtune.constants.SYNC_COOLDOWN
 import dev.meowlabs.blossomtune.constants.SelectedYtmPlaylistsKey
+import dev.meowlabs.blossomtune.constants.YtExcludeImportsKey
+import dev.meowlabs.blossomtune.constants.YtSyncHoldKey
 import dev.meowlabs.blossomtune.constants.YtSyncLikedSongsKey
+import dev.meowlabs.blossomtune.constants.YtSyncSourcesTaggedKey
 import dev.meowlabs.blossomtune.db.MusicDatabase
+import dev.meowlabs.blossomtune.importer.PlaylistAddedHere
+import dev.meowlabs.blossomtune.scrobble.Scrobbler
 import dev.meowlabs.blossomtune.db.entities.ArtistEntity
+import dev.meowlabs.blossomtune.db.entities.ImportedPlaylist
+import dev.meowlabs.blossomtune.db.entities.ImportedSong
 import dev.meowlabs.blossomtune.db.entities.PlaylistEntity
 import dev.meowlabs.blossomtune.db.entities.PlaylistSongMap
+import dev.meowlabs.blossomtune.db.entities.Song
 import dev.meowlabs.blossomtune.db.entities.SongEntity
 import dev.meowlabs.blossomtune.extensions.collectLatest
 import dev.meowlabs.blossomtune.extensions.isInternetConnected
 import dev.meowlabs.blossomtune.extensions.isSyncEnabled
+import dev.meowlabs.blossomtune.importer.ImportSource
 import dev.meowlabs.blossomtune.importer.PendingYouTubeLikes
+import dev.meowlabs.blossomtune.importer.SyncUndo
+import dev.meowlabs.blossomtune.importer.YouTubeLikesMemory
 import dev.meowlabs.blossomtune.models.toMediaMetadata
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -91,6 +100,7 @@ data class SyncState(
 class SyncUtils @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
+    private val scrobbler: Scrobbler,
 ) {
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         if (throwable !is CancellationException) {
@@ -107,8 +117,6 @@ class SyncUtils @Inject constructor(
     private val _syncState = MutableStateFlow(SyncState())
     val syncState: StateFlow<SyncState> = _syncState.asStateFlow()
 
-    private var lastfmSendLikes = false
-
     companion object {
         private const val MAX_RETRIES = 3
         private const val INITIAL_RETRY_DELAY_MS = 1000L
@@ -116,13 +124,6 @@ class SyncUtils @Inject constructor(
     }
 
     init {
-        context.dataStore.data
-            .map { it[LastFMUseSendLikes] ?: false }
-            .distinctUntilChanged()
-            .collectLatest(syncScope) {
-                lastfmSendLikes = it
-            }
-
         startProcessingQueue()
     }
 
@@ -142,7 +143,7 @@ class SyncUtils @Inject constructor(
 
     private suspend fun processOperation(operation: SyncOperation) {
         when (operation) {
-            is SyncOperation.FullSync -> executeFullSync()
+            is SyncOperation.FullSync -> executeFullSync(manual = false)
             is SyncOperation.LikedSongs -> executeSyncLikedSongs()
             is SyncOperation.LibrarySongs -> executeSyncLibrarySongs()
             is SyncOperation.UploadedSongs -> executeSyncUploadedSongs()
@@ -203,12 +204,12 @@ class SyncUtils @Inject constructor(
         }
     }
 
-    suspend fun performFullSyncSuspend() {
+    suspend fun performFullSyncSuspend(manual: Boolean = false) {
         if (!isLoggedIn()) {
             Timber.w("Skipping full sync - user not logged in")
             return
         }
-        executeFullSync()
+        executeFullSync(manual)
     }
 
     fun tryAutoSync() {
@@ -345,11 +346,17 @@ class SyncUtils @Inject constructor(
         executeSyncArtistsSubscriptions()
     }
 
-    private suspend fun executeFullSync() = withContext(Dispatchers.IO) {
+    private suspend fun executeFullSync(manual: Boolean) = withContext(Dispatchers.IO) {
         if (!isLoggedIn()) {
             Timber.w("Skipping full sync - user not logged in")
             return@withContext
         }
+        if (!manual && context.dataStore.get(YtSyncHoldKey, false)) {
+            Timber.d("Skipping auto sync - an undo is holding YouTube pulls")
+            return@withContext
+        }
+
+        SyncUndo.begin(context, database)
 
         updateState { copy(overallStatus = SyncStatus.Syncing, currentOperation = "Starting full sync") }
 
@@ -380,6 +387,7 @@ class SyncUtils @Inject constructor(
 
             executeSyncAutoSyncPlaylists()
 
+            context.dataStore.edit { it[YtSyncSourcesTaggedKey] = true }
             updateState { copy(overallStatus = SyncStatus.Completed, currentOperation = "") }
             Timber.d("Full sync completed successfully")
         } catch (e: CancellationException) {
@@ -390,11 +398,29 @@ class SyncUtils @Inject constructor(
         }
     }
 
+    /** Songs imported from another service, when the user keeps those off YouTube. */
+    private fun excludedFromYouTube(): Set<String> {
+        if (!context.dataStore.get(YtExcludeImportsKey, false)) return emptySet()
+        return database.importedSongIdsExcept(ImportSource.YOUTUBE_MUSIC.key).toSet()
+    }
+
+    /** See [YtSyncSourcesTaggedKey]: until one full sync has run, everything YouTube has is marked. */
+    private fun sourcesTagged(): Boolean = context.dataStore.get(YtSyncSourcesTaggedKey, false)
+
+    /** Marks a song as one YouTube brought in, so the Library lists it under YouTube Music. */
+    private fun MusicDatabase.tagFromYouTube(songId: String, now: LocalDateTime) =
+        insert(ImportedSong(songId = songId, source = ImportSource.YOUTUBE_MUSIC.key, importedAt = now))
+
     private suspend fun executeLikeSong(s: SongEntity) = withContext(Dispatchers.IO) {
+        // before the YouTube check: a love on Last.fm or Libre.fm doesn't need a YouTube account
+        val artist = database.song(s.id).firstOrNull()?.artists?.firstOrNull()?.name
+        if (artist != null) scrobbler.love(artist, s.title, s.liked)
+
         if (!isLoggedIn()) {
             Timber.w("Skipping likeSong - user not logged in")
             return@withContext
         }
+        if (s.id in excludedFromYouTube()) return@withContext
 
         withRetry {
             YouTube.likeVideo(s.id, s.liked)
@@ -402,18 +428,6 @@ class SyncUtils @Inject constructor(
             Timber.e(e, "Failed to like song on YouTube: ${s.id}")
         }
 
-        if (lastfmSendLikes) {
-            try {
-                val dbSong = database.song(s.id).firstOrNull()
-                LastFM.setLoveStatus(
-                    artist = dbSong?.artists?.joinToString { a -> a.name } ?: "",
-                    track = s.title,
-                    love = s.liked
-                )
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to update LastFM love status")
-            }
-        }
     }
 
     private suspend fun executeSyncLikedSongs() = withContext(Dispatchers.IO) {
@@ -424,6 +438,10 @@ class SyncUtils @Inject constructor(
 
         updateState { copy(likedSongs = SyncStatus.Syncing, currentOperation = "Syncing liked songs") }
 
+        YouTubeLikesMemory.exclusive { pullLikedSongs() }
+    }
+
+    private suspend fun pullLikedSongs() {
         withRetry {
             YouTube.playlist("LM").completed()
         }.onSuccess { result ->
@@ -440,24 +458,24 @@ class SyncUtils @Inject constructor(
                     val keptLikes = mutableSetOf<String>()
                     if (pendingLikes.isNotEmpty()) {
                         val localIds = localSongs.map { it.id }.toSet()
+                        val excluded = excludedFromYouTube()
                         PendingYouTubeLikes.remove(context, pendingLikes.filter { it !in localIds || it in remoteIds })
                         localSongs.filter { it.id in pendingLikes && it.id !in remoteIds }.forEach { song ->
-                            if (YouTube.likeVideo(song.id, true).isSuccess) pushedLikes += song.id else keptLikes += song.id
+                            when {
+                                song.id in excluded -> keptLikes += song.id
+                                YouTube.likeVideo(song.id, true).isSuccess -> pushedLikes += song.id
+                                else -> keptLikes += song.id
+                            }
                             delay(150)
                         }
                         PendingYouTubeLikes.remove(context, pushedLikes)
+                        SyncUndo.recordPushedLikes(context, pushedLikes)
                     }
 
-                    localSongs.filterNot { it.id in remoteIds || it.id in pushedLikes || it.id in keptLikes }.forEach { song ->
-                        try {
-                            database.update(song.song.localToggleLike())
-                            delay(DB_OPERATION_DELAY_MS)
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to update song: ${song.id}")
-                        }
-                    }
+                    unlikeDroppedOnYouTube(localSongs, remoteIds, wholeList = page.songsContinuation == null, keep = pushedLikes + keptLikes)
 
                     val now = LocalDateTime.now()
+                    val tagAll = !sourcesTagged()
                     remoteSongs.forEachIndexed { index, song ->
                         try {
                             val dbSong = database.song(song.id).firstOrNull()
@@ -465,6 +483,9 @@ class SyncUtils @Inject constructor(
                             val isVideoSong = song.isVideoSong
 
                             database.transaction {
+                                // A like YouTube brought in goes under YouTube Music, not under the
+                                // songs liked here. One liked here already was pushed up from here.
+                                if (tagAll || dbSong == null || !dbSong.song.liked) tagFromYouTube(song.id, now)
                                 if (dbSong == null) {
                                     insert(song.toMediaMetadata()) {
                                         it.copy(liked = true, likedDate = timestamp, isVideo = isVideoSong)
@@ -495,6 +516,28 @@ class SyncUtils @Inject constructor(
         }
     }
 
+    // the sync used to unlike every song missing from youtube's list, so one short list wiped hundreds of likes
+    private suspend fun unlikeDroppedOnYouTube(localSongs: List<Song>, remoteIds: Set<String>, wholeList: Boolean, keep: Set<String>) {
+        val seen = YouTubeLikesMemory.seen(context)
+        val droppedIds = YouTubeLikesMemory.droppedOnYouTube(localSongs.map { it.id }, seen, remoteIds, wholeList, keep)
+        if (droppedIds == null) {
+            Timber.w("Liked songs list can't be trusted (${remoteIds.size} songs, whole list: $wholeList), keeping every like")
+            YouTubeLikesMemory.rememberSeen(context, seen.orEmpty() + remoteIds)
+            return
+        }
+        val dropped = localSongs.filter { it.id in droppedIds }
+        YouTubeLikesMemory.recordRemoved(context, dropped.associate { it.id to it.song.likedDate })
+        dropped.forEach { song ->
+            try {
+                database.update(song.song.localToggleLike())
+                delay(DB_OPERATION_DELAY_MS)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to update song: ${song.id}")
+            }
+        }
+        YouTubeLikesMemory.rememberSeen(context, remoteIds)
+    }
+
     private suspend fun executeSyncLibrarySongs() = withContext(Dispatchers.IO) {
         if (!isLoggedIn()) {
             Timber.w("Skipping syncLibrarySongs - user not logged in")
@@ -513,9 +556,19 @@ class SyncUtils @Inject constructor(
                     val localSongs = database.songsByNameAsc().first()
                     // Music brought in by an import is in the library on purpose and is not in the
                     // YouTube one: without this the sync would take each of those songs back out.
-                    val importedIds = database.importedSongIds().toSet()
+                    // What sync itself brought in is left out of that, so it can still leave again;
+                    // a YouTube import run through an import session stays protected.
+                    val importedIds = (
+                        database.importedSongIdsExcept(ImportSource.YOUTUBE_MUSIC.key) +
+                            database.importSessionSongIds()
+                        ).toSet()
 
-                    localSongs.filterNot { it.id in remoteIds || it.id in importedIds }.forEach { song ->
+                    // a short list from youtube would take every song past the cut out of the library, so that sync only adds
+                    val wholeList = page.continuation == null
+                    if (!wholeList) Timber.w("Library songs came back short (${remoteIds.size}), keeping every song")
+                    // Files imported from the phone are never in the YouTube library either.
+                    val leaving = if (wholeList) localSongs.filterNot { it.song.isLocal || it.id in remoteIds || it.id in importedIds } else emptyList()
+                    leaving.forEach { song ->
                         try {
                             database.update(song.song.toggleLibrary())
                             delay(DB_OPERATION_DELAY_MS)
@@ -524,14 +577,18 @@ class SyncUtils @Inject constructor(
                         }
                     }
 
+                    val now = LocalDateTime.now()
+                    val tagAll = !sourcesTagged()
                     remoteSongs.forEach { song ->
                         try {
                             val dbSong = database.song(song.id).firstOrNull()
                             database.transaction {
+                                if (tagAll || dbSong == null || dbSong.song.inLibrary == null) tagFromYouTube(song.id, now)
                                 if (dbSong == null) {
                                     insert(song.toMediaMetadata()) { it.toggleLibrary() }
                                 } else if (dbSong.song.inLibrary == null) {
-                                    update(dbSong.song.toggleLibrary())
+                                    // youtube puts every liked song in its library, those keep their album out like a like here does
+                                    update(dbSong.song.toggleLibrary(byLike = dbSong.song.liked))
                                 }
                             }
                             delay(DB_OPERATION_DELAY_MS)
@@ -883,9 +940,11 @@ class SyncUtils @Inject constructor(
                             }
                         }
 
+                    val tagAll = !sourcesTagged()
                     for (playlist in remotePlaylists) {
                         try {
                             var playlistEntity = localPlaylists.find { it.playlist.browseId == playlist.id }?.playlist
+                            val created = playlistEntity == null
 
                             if (playlistEntity == null) {
                                 playlistEntity = PlaylistEntity(
@@ -906,6 +965,17 @@ class SyncUtils @Inject constructor(
                             } else {
                                 database.update(playlistEntity, playlist)
                                 Timber.d("syncSavedPlaylists: Updated existing playlist ${playlist.title} (${playlist.id})")
+                            }
+
+                            if (created || tagAll) {
+                                database.insert(
+                                    ImportedPlaylist(
+                                        playlistId = playlistEntity.id,
+                                        source = ImportSource.YOUTUBE_MUSIC.key,
+                                        sessionId = null,
+                                        importedAt = LocalDateTime.now(),
+                                    ),
+                                )
                             }
 
                             executeSyncPlaylist(playlist.id, playlistEntity.id)
@@ -966,12 +1036,9 @@ class SyncUtils @Inject constructor(
                 try {
                     val songs = page.songs.map(SongItem::toMediaMetadata)
                     Timber.d("syncPlaylist: Fetched ${songs.size} songs from remote")
-
-                    if (songs.isEmpty()) {
-                        Timber.w("syncPlaylist: Remote playlist is empty, clearing local playlist")
-                        database.withTransaction {
-                            database.clearPlaylist(playlistId)
-                        }
+                    // a short list would cut every song past where paging stopped, so the playlist waits for a full read
+                    if (page.songsContinuation != null) {
+                        Timber.w("syncPlaylist: Remote list came back short, leaving the playlist as it is")
                         return@onSuccess
                     }
 
@@ -980,25 +1047,37 @@ class SyncUtils @Inject constructor(
                         .sortedBy { it.map.position }
                         .map { it.song.id }
 
-                    if (remoteIds == localIds) {
+                    // songs added in blossomtune stay on top through every sync, even when youtube never got them
+                    // (signed out, or someone else's playlist); the sync used to wipe them a few seconds later
+                    val addedHere = PlaylistAddedHere.added(context, playlistId).filter { it in localIds }
+                    val seen = PlaylistAddedHere.remoteSeen(context, playlistId)
+                    // from before this was kept: anything here youtube never had counts as added here too
+                    val olderAdds = localIds.filter { it !in remoteIds && it !in addedHere && (seen == null || it !in seen) }
+                    val top = addedHere + olderAdds
+                    val merged = top + remoteIds.filter { it !in top }
+                    PlaylistAddedHere.remember(context, playlistId, remoteIds, top)
+
+                    if (merged == localIds) {
                         Timber.d("syncPlaylist: Local and remote are in sync, no changes needed")
                         return@onSuccess
                     }
 
-                    Timber.d("syncPlaylist: Updating local playlist (remote: ${remoteIds.size}, local: ${localIds.size})")
+                    Timber.d("syncPlaylist: Updating local playlist (remote: ${remoteIds.size}, kept here: ${top.size}, local: ${localIds.size})")
 
+                    val remoteById = songs.associateBy { it.id }
                     database.withTransaction {
                         database.clearPlaylist(playlistId)
-                        songs.forEachIndexed { idx, song ->
-                            if (database.song(song.id).firstOrNull() == null) {
+                        merged.forEachIndexed { idx, id ->
+                            val song = remoteById[id]
+                            if (song != null && database.song(song.id).firstOrNull() == null) {
                                 database.insert(song)
                             }
                             database.insert(
                                 PlaylistSongMap(
-                                    songId = song.id,
+                                    songId = id,
                                     playlistId = playlistId,
                                     position = idx,
-                                    setVideoId = song.setVideoId
+                                    setVideoId = song?.setVideoId,
                                 )
                             )
                         }

@@ -1,52 +1,52 @@
 # BlossomTune
 
-> Pemutar musik Android: file lokal dan streaming YouTube Music.
+An Android music player for YouTube Music, built as a self-branded fork of
+[Mochy Music](https://github.com/realidkroo/Mochy-Music) (GPL-3.0).
 
-| | |
-|---|---|
-| Package | `dev.meowlabs.blossomtune` |
-| Versi | `0.5.11` (`versionCode` 16) |
-| Lisensi | GPL-3.0 (lihat [`LICENSE`](LICENSE) dan [`NOTICE.md`](NOTICE.md)) |
-| Min SDK | 26 (Android 8.0) |
-| Compile / Target SDK | 36 |
-| Stack | Kotlin 2.3, Jetpack Compose, Media3, Room 2.8, Hilt, KSP |
-| Rilis | [GitHub Releases](https://github.com/buanadahbisagorengnuggetsendiri/BlossomTune/releases) |
-| Compiler | GitHub Actions |
+- Package: `dev.meowlabs.blossomtune`
+- Kotlin + Jetpack Compose + Media3
+- License: GPL-3.0 — see [`LICENSE`](LICENSE) and [`NOTICE.md`](NOTICE.md)
 
-## Fitur
+## Lineage
 
-- Putar musik dari penyimpanan lokal dan dari YouTube Music.
-- Lirik dari beberapa sumber, termasuk lirik terjemahan dan romanisasi.
-- Unduhan offline, antrean, playlist, dan pemutaran latar lewat Media3.
-- Equalizer dan efek audio.
-- Widget layar utama.
-- Pemeriksaan pembaruan dari dalam app, membaca `changelog.json` pada aset rilis.
+BlossomTune ← Mochy (realidkroo) ← ViviMusic (vivizzz007Z) ← Metrolist
+(Mostafa Alagamy). YouTube access through the InnertubeX providers. All GPL-3.0
+obligations of those projects carry over; the code stays open.
+
+## Install
+
+Grab the APK from the [latest release](https://github.com/buanadahbisagorengnuggetsendiri/BlossomTune/releases/latest)
+and install it over an older BlossomTune. The package id is unchanged since
+0.5.x, so library, playlists and offline downloads survive the upgrade.
 
 ## Build
 
-Build tidak dijalankan di mesin pengembangan proyek ini (host bersama, RAM
-kecil, Gradle pernah mematikan proses lain). Compiler-nya GitHub Actions:
-
-- **Build** — `:app:lintUniversalFossDebug`, unit test app dan modul, APK debug
-  (`assembleUniversalFossDebug`), APK rilis (`assembleUniversalFossRelease`),
-  plus pemeriksaan "bukan debuggable" dan verifikasi tanda tangan.
-- **Release** — dipicu tag `v0.5.11`: memeriksa tag == `versionName` di
-  `app/build.gradle.kts`, membangun APK rilis, lalu menerbitkan GitHub Release
-  berisi APK, checksum `sha256`, dan `changelog.json`. Berkas terakhir itu yang
-  dibaca pemeriksa pembaruan di app.
+Requires JDK 21 and the Android SDK (compileSdk 36).
 
 ```bash
-git tag v0.5.11 && git push origin v0.5.11
+./gradlew :app:assembleUniversalFossDebug     # debug APK, all ABIs
+./gradlew :app:assembleUniversalFossRelease   # release APK (needs a keystore)
 ```
 
-Varian build: dua dimensi flavor (`abi` × `variant`), jadi nama task-nya
-panjang — CI memakai `universalFossDebug` dan `universalFossRelease`. Tanda
-tangan rilis memakai kunci sendiri bila `STORE_PASSWORD`, `KEY_ALIAS`,
-`KEY_PASSWORD`, dan `keystore/release.keystore` tersedia; kalau tidak,
-`app/build.gradle.kts` jatuh ke debug keystore.
+Flavors are two-dimensional: `foss | fdroid | gms` × `universal | arm64 | …`.
+CI builds `universalFoss`; the other variants are untested here.
 
-## Lisensi
+Release signing reads `app/keystore/release.keystore` (or `STORE_PASSWORD`,
+`KEY_ALIAS`, `KEY_PASSWORD` env vars); without it Gradle falls back to the debug
+keystore, and the release workflow rejects such an APK.
 
-GPL-3.0. Distribusi ulang wajib tetap GPL-3.0, menyertakan kode sumber, dan
-mempertahankan pemberitahuan hak cipta pada berkas terkait. Daftar komponen,
-pemegang hak cipta, dan rincian kewajibannya ada di [`NOTICE.md`](NOTICE.md).
+## Releases
+
+Published as GitHub Releases on
+[`buanadahbisagorengnuggetsendiri/BlossomTune`](https://github.com/buanadahbisagorengnuggetsendiri/BlossomTune).
+The in-app updater reads that release list.
+
+## What's changed from the base
+
+Brand, package, CI, repository. The 0.5.x light-theme palette and ink fixes are
+**not** ported to the Mochy 8.4.2 codebase yet — see `NOTICE.md`.
+
+## Status
+
+0.6.0 is the first release on the Mochy base. Not verified on a physical device
+yet; launcher icon, splash and palette are still the base's.
