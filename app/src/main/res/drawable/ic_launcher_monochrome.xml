@@ -1,32 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- themed icon layer, icon new - transparent 2.svg, android only reads its alpha -->
+<!-- BlossomTune mark: lima kelopak azure, ujung membulat, lubang es di pusat. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="292"
-    android:viewportHeight="292">
-    <group
-        android:translateX="28.5"
-        android:translateY="28.5">
-        <path
-            android:pathData="M163.5 96.3493C180.167 105.972 180.167 130.028 163.5 139.651L108 171.694C91.3333 181.316 70.5 169.288 70.5 150.043V85.9569C70.5 66.7119 91.3333 54.6838 108 64.3063L163.5 96.3493Z"
-            android:fillColor="#00000000"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="19"
-            android:strokeLineJoin="round" />
-        <path
-            android:pathData="M97 112L108.5 98L120 112"
-            android:fillColor="#00000000"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="11"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
-        <path
-            android:pathData="M110.325 125C111.871 133.439 121.868 148.704 142.944 149.92"
-            android:fillColor="#00000000"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="11"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:pivotX="54" android:pivotY="54" android:rotation="0">
+        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#FFFFFF"/>
     </group>
+    <group android:pivotX="54" android:pivotY="54" android:rotation="72">
+        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#FFFFFF"/>
+    </group>
+    <group android:pivotX="54" android:pivotY="54" android:rotation="144">
+        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#FFFFFF"/>
+    </group>
+    <group android:pivotX="54" android:pivotY="54" android:rotation="216">
+        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#FFFFFF"/>
+    </group>
+    <group android:pivotX="54" android:pivotY="54" android:rotation="288">
+        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#FFFFFF"/>
+    </group>
+    <path android:pathData="M54 57.4 A3.4 3.4 0 1 1 54 50.6 A3.4 3.4 0 1 1 54 57.4 Z" android:fillColor="#00000000"/>
 </vector>

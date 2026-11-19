@@ -554,7 +554,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val useDarkTheme = ForceDarkTheme
+        // AUTO ikut sistem, ON/OFF dipaksa. Toggle-nya di Settings.
+        val (darkModePref) = rememberPreference(DarkModeKey, defaultValue = DarkMode.AUTO.name)
+        val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+        val useDarkTheme = when (darkModePref) {
+            DarkMode.ON.name -> true
+            DarkMode.OFF.name -> false
+            else -> systemDark
+        }
 
         LaunchedEffect(useDarkTheme) {
             setSystemBarAppearance(useDarkTheme)

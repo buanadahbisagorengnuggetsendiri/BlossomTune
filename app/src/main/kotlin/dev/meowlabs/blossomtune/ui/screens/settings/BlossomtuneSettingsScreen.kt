@@ -3,6 +3,7 @@
 package dev.meowlabs.blossomtune.ui.screens.settings
 
 import androidx.compose.runtime.ReadOnlyComposable
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.component.navigateToTab
@@ -279,6 +280,45 @@ private val SettingsMarkSize = 32.dp
 internal val IconBgColor: Color
     @Composable @ReadOnlyComposable get() = BlossomSurface.row
 
+
+/**
+ * Tiga pilihan tema. AUTO ikut sistem, ON/OFF memaksa; nilainya pref `darkMode`
+ * yang dibaca MainActivity sebelum colorScheme dipilih.
+ */
+@Composable
+private fun AppearanceRow(modifier: Modifier = Modifier) {
+    val (pref, setPref) = rememberPreference(dev.meowlabs.blossomtune.constants.DarkModeKey, defaultValue = dev.meowlabs.blossomtune.ui.screens.DarkMode.AUTO.name)
+    val options = listOf(
+        dev.meowlabs.blossomtune.ui.screens.DarkMode.AUTO to "System",
+        dev.meowlabs.blossomtune.ui.screens.DarkMode.ON to "Dark",
+        dev.meowlabs.blossomtune.ui.screens.DarkMode.OFF to "Light",
+    )
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEach { (mode, label) ->
+            val selected = pref == mode.name
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(if (selected) BlossomColors.Azure else BlossomSurface.row)
+                    .clickable { setPref(mode.name) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    text = label,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selected) BlossomColors.OnNavy else BlossomInk.Primary,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? = null) {
     val focusManager = LocalFocusManager.current
@@ -356,6 +396,8 @@ fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? 
                 .verticalScroll(scrollState)
         ) {
             Spacer(modifier = Modifier.height(searchTopBarHeight(titleBlockHeight = SettingsTitleBlockHeight)))
+
+            AppearanceRow(modifier = Modifier.padding(bottom = 6.dp))
 
             // Search results view when user types
             AnimatedVisibility(
