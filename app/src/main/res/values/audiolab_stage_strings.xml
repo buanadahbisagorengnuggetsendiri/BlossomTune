@@ -67,9 +67,9 @@
     <string name="stage_output_hdmi">TV or HDMI</string>
     <string name="stage_kind_headphones">Headphones</string>
     <string name="stage_kind_speaker">Speaker</string>
-    <string name="stage_output_guessed">Mochy guessed this from the device. Wrong? Pick the right one.</string>
+    <string name="stage_output_guessed">BlossomTune guessed this from the device. Wrong? Pick the right one.</string>
     <string name="stage_output_set">You picked this for this device.</string>
-    <string name="stage_output_reset">Let Mochy guess</string>
+    <string name="stage_output_reset">Let BlossomTune guess</string>
     <string name="stage_on_speakers">On speakers</string>
     <string name="stage_speakers_off">Off</string>
     <string name="stage_speakers_stereo">Plain stereo</string>

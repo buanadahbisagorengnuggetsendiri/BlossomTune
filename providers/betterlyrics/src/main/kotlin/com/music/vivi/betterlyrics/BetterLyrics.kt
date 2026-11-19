@@ -1,6 +1,6 @@
-package com.mochyy.mochymusic.betterlyrics
+package dev.meowlabs.blossomtune.betterlyrics
 
-import com.mochyy.mochymusic.betterlyrics.models.TTMLResponse
+import dev.meowlabs.blossomtune.betterlyrics.models.TTMLResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
@@ -37,7 +37,7 @@ object BetterLyrics {
             }
 
             // says who's asking so the server owner can reach us instead of blocking us
-            install(UserAgent) { agent = "Mochy (+https://github.com/realidkroo/Mochy-Music)" }
+            install(UserAgent) { agent = "BlossomTune (+https://github.com/realidkroo/BlossomTune-Music)" }
 
             expectSuccess = false
         }

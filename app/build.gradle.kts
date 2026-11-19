@@ -19,16 +19,16 @@ plugins {
 }
 
 extensions.configure<ApplicationExtension> {
-    namespace = "com.mochyy.mochymusic"
+    namespace = "dev.meowlabs.blossomtune"
     compileSdk = 37
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
-        applicationId = "com.mochyy.mochymusic"
+        applicationId = "dev.meowlabs.blossomtune"
         minSdk = 24
         targetSdk = 37
-        versionCode = 73
-        versionName = "8.4.2 build#1268"
+        versionCode = 100
+        versionName = "0.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -52,14 +52,14 @@ extensions.configure<ApplicationExtension> {
         buildConfigField("String", "LIBREFM_API_KEY", "\"$libreFmKey\"")
         buildConfigField("String", "LIBREFM_SECRET", "\"$libreFmSecret\"")
 
-        // The Discord app Mochy signs in through (Developer Portal → your app → Application ID).
+        // The Discord app BlossomTune signs in through (Developer Portal → your app → Application ID).
         // Discord sends the login back to discord-<id>:/authorize/callback, so the manifest needs it too.
         // Without one, the Discord page says so instead of opening a login that can't come back.
         val discordClientId = localProperties.getProperty("DISCORD_CLIENT_ID")
             ?: System.getenv("DISCORD_CLIENT_ID") ?: ""
         buildConfigField("String", "DISCORD_CLIENT_ID", "\"$discordClientId\"")
         manifestPlaceholders["discordRedirectScheme"] =
-            if (discordClientId.isNotBlank()) "discord-$discordClientId" else "mochy-discord-unset"
+            if (discordClientId.isNotBlank()) "discord-$discordClientId" else "blossomtune-discord-unset"
 
 //add nightly build label support
         val isNightly = project.hasProperty("nightly") && project.property("nightly") == "true"
@@ -458,7 +458,7 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.json)
-    // finds song streams first, with mochy's own client walk as the backup (YTPlayerUtils)
+    // finds song streams first, with blossomtune's own client walk as the backup (YTPlayerUtils)
     implementation(libs.innertubex)
 
     // Protobuf for message serialization (lite version for Android)

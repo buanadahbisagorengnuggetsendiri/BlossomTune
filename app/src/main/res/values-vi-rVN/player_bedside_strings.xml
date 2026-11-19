@@ -24,6 +24,6 @@
     <string name="bedside_lock_screen">Hiện trên màn hình khóa</string>
     <string name="bedside_lock_screen_caption">Khóa máy khi đang mở chế độ này, màn hình sáng lên vẫn thấy nó ở đó</string>
     <string name="bedside_lock_blocked">Điện thoại đang chặn tính năng này</string>
-    <string name="bedside_lock_blocked_caption">Chạm để bật \"Hiện trên màn hình khóa\" cho Mochy</string>
+    <string name="bedside_lock_blocked_caption">Chạm để bật \"Hiện trên màn hình khóa\" cho BlossomTune</string>
     <string name="bedside_lock_blocked_tag">SỬA</string>
 </resources>

@@ -1,0 +1,41 @@
+name: Prune caches
+
+# Kuota penyimpanan Actions (cache ikut dihitung, bukan cuma artefak) di paket
+# gratis cuma 500 MB, sedangkan satu cache Gradle Android bisa ~90 MB. Jadi
+# membatasi umur saja tidak cukup: 3 hari aktivitas sudah 3,6 GB dan unggah
+# artefak ditolak dengan "Artifact storage quota has been hit" padahal build-nya
+# sendiri sehat.
+#
+# Aturannya: simpan cache terbaru sampai total <= 400 MB, hapus sisanya. Cache
+# yang dihapus selalu bisa dibangun ulang; build berikutnya hanya mengunduh
+# dependensinya sekali lagi.
+on:
+  schedule:
+    # 03:00 UTC tiap hari. Repo yang tidak aktif 60 hari kehilangan jadwal ini
+    # (aturan GitHub) - jalankan manual lewat workflow_dispatch kalau begitu.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep the newest caches up to 400 MB
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cap=$((400 * 1024 * 1024))
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | "\(.id) \(.size_in_bytes) \(.created_at)"' \
+          | sort -k3 -r \
+          | awk -v cap="$cap" '{ if (total + $2 <= cap) { total += $2 } else { print $1 } }' \
+          | while read -r id; do
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/caches/$id"
+              echo "dihapus: $id"
+            done
+          gh api "repos/$GITHUB_REPOSITORY/actions/cache/usage" \
+            --jq '"sisa: \(.active_caches_count) entri, \(.active_caches_size_in_bytes/1048576|floor) MB"'

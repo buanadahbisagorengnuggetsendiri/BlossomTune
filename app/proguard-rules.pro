@@ -6,20 +6,20 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # WEB_REMIX Streaming - WebView JavaScript interfaces
--keepclassmembers class com.mochyy.mochymusic.utils.sabr.EjsNTransformSolver$SolverWebView {
+-keepclassmembers class dev.meowlabs.blossomtune.utils.sabr.EjsNTransformSolver$SolverWebView {
     @android.webkit.JavascriptInterface public *;
 }
--keepclassmembers class com.mochyy.mochymusic.utils.cipher.CipherWebView {
+-keepclassmembers class dev.meowlabs.blossomtune.utils.cipher.CipherWebView {
     @android.webkit.JavascriptInterface public *;
 }
--keepclassmembers class com.mochyy.mochymusic.utils.potoken.PoTokenWebView {
+-keepclassmembers class dev.meowlabs.blossomtune.utils.potoken.PoTokenWebView {
     @android.webkit.JavascriptInterface public *;
 }
 
 # Keep streaming utility classes
--keep class com.mochyy.mochymusic.utils.cipher.** { *; }
--keep class com.mochyy.mochymusic.utils.sabr.** { *; }
--keep class com.mochyy.mochymusic.utils.potoken.** { *; }
+-keep class dev.meowlabs.blossomtune.utils.cipher.** { *; }
+-keep class dev.meowlabs.blossomtune.utils.sabr.** { *; }
+-keep class dev.meowlabs.blossomtune.utils.potoken.** { *; }
 
 # Keep coroutine continuation for WebView callbacks
 -keepclassmembers class * {
@@ -117,11 +117,11 @@
 
 ## Queue Persistence Rules
 # Keep queue-related classes to prevent serialization issues in release builds
--keep class com.mochyy.mochymusic.models.PersistQueue { *; }
--keep class com.mochyy.mochymusic.models.PersistPlayerState { *; }
--keep class com.mochyy.mochymusic.models.QueueData { *; }
--keep class com.mochyy.mochymusic.models.QueueType { *; }
--keep class com.mochyy.mochymusic.playback.queues.** { *; }
+-keep class dev.meowlabs.blossomtune.models.PersistQueue { *; }
+-keep class dev.meowlabs.blossomtune.models.PersistPlayerState { *; }
+-keep class dev.meowlabs.blossomtune.models.QueueData { *; }
+-keep class dev.meowlabs.blossomtune.models.QueueType { *; }
+-keep class dev.meowlabs.blossomtune.playback.queues.** { *; }
 
 # Keep serialization methods for queue persistence
 -keepclassmembers class * implements java.io.Serializable {
@@ -135,7 +135,7 @@
 -keep interface com.yalantis.ucrop** { *; }
 
 ## Google Cast Rules
--keep class com.mochyy.mochymusic.cast.** { *; }
+-keep class dev.meowlabs.blossomtune.cast.** { *; }
 -keep class com.google.android.gms.cast.** { *; }
 -keep class androidx.mediarouter.** { *; }
 
@@ -143,14 +143,14 @@
 -dontwarn com.google.re2j.**
 
 # Vibra fingerprint library
--keep class com.mochyy.mochymusic.recognition.VibraSignature { *; }
--keepclassmembers class com.mochyy.mochymusic.recognition.VibraSignature {
+-keep class dev.meowlabs.blossomtune.recognition.VibraSignature { *; }
+-keepclassmembers class dev.meowlabs.blossomtune.recognition.VibraSignature {
     native <methods>;
 }
 
 ## Modules from a zip
-# a zip module's own code reaches mochy only through these, by their original names
--keep class com.mochyy.mochymusic.module.bridge.shared.** { *; }
+# a zip module's own code reaches blossomtune only through these, by their original names
+-keep class dev.meowlabs.blossomtune.module.bridge.shared.** { *; }
 
 ## Kotlin Reflection Fix
 -keep class kotlin.Metadata { *; }

@@ -12,7 +12,7 @@ Engine* engineOf(jlong handle) { return reinterpret_cast<Engine*>(handle); }
 extern "C" {
 
 JNIEXPORT jboolean JNICALL
-Java_com_mochyy_mochymusic_eq_stage_StageNative_loadHrtf(JNIEnv* env, jobject, jbyteArray data) {
+Java_dev_meowlabs_blossomtune_eq_stage_StageNative_loadHrtf(JNIEnv* env, jobject, jbyteArray data) {
     jsize size = env->GetArrayLength(data);
     jbyte* bytes = env->GetByteArrayElements(data, nullptr);
     if (bytes == nullptr) return JNI_FALSE;
@@ -22,13 +22,13 @@ Java_com_mochyy_mochymusic_eq_stage_StageNative_loadHrtf(JNIEnv* env, jobject, j
 }
 
 JNIEXPORT jlong JNICALL
-Java_com_mochyy_mochymusic_eq_stage_StageNative_create(JNIEnv*, jobject, jint sampleRate, jint channels) {
+Java_dev_meowlabs_blossomtune_eq_stage_StageNative_create(JNIEnv*, jobject, jint sampleRate, jint channels) {
     if (sampleRate <= 0 || channels < 2 || channels > 8) return 0;
     return reinterpret_cast<jlong>(new Engine(sampleRate, channels));
 }
 
 JNIEXPORT void JNICALL
-Java_com_mochyy_mochymusic_eq_stage_StageNative_setParams(JNIEnv* env, jobject, jlong handle, jfloatArray params) {
+Java_dev_meowlabs_blossomtune_eq_stage_StageNative_setParams(JNIEnv* env, jobject, jlong handle, jfloatArray params) {
     Engine* engine = engineOf(handle);
     if (engine == nullptr) return;
     jsize count = env->GetArrayLength(params);
@@ -39,7 +39,7 @@ Java_com_mochyy_mochymusic_eq_stage_StageNative_setParams(JNIEnv* env, jobject, 
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_mochyy_mochymusic_eq_stage_StageNative_process(JNIEnv* env, jobject, jlong handle, jobject input, jint inputOffset,
+Java_dev_meowlabs_blossomtune_eq_stage_StageNative_process(JNIEnv* env, jobject, jlong handle, jobject input, jint inputOffset,
                                                        jobject output, jint frames) {
     Engine* engine = engineOf(handle);
     auto* in = static_cast<uint8_t*>(env->GetDirectBufferAddress(input));
@@ -49,7 +49,7 @@ Java_com_mochyy_mochymusic_eq_stage_StageNative_process(JNIEnv* env, jobject, jl
 }
 
 JNIEXPORT void JNICALL
-Java_com_mochyy_mochymusic_eq_stage_StageNative_levels(JNIEnv* env, jobject, jlong handle, jfloatArray out) {
+Java_dev_meowlabs_blossomtune_eq_stage_StageNative_levels(JNIEnv* env, jobject, jlong handle, jfloatArray out) {
     Engine* engine = engineOf(handle);
     if (engine == nullptr || env->GetArrayLength(out) < stage::KindCount) return;
     float values[stage::KindCount];
@@ -58,12 +58,12 @@ Java_com_mochyy_mochymusic_eq_stage_StageNative_levels(JNIEnv* env, jobject, jlo
 }
 
 JNIEXPORT void JNICALL
-Java_com_mochyy_mochymusic_eq_stage_StageNative_clear(JNIEnv*, jobject, jlong handle) {
+Java_dev_meowlabs_blossomtune_eq_stage_StageNative_clear(JNIEnv*, jobject, jlong handle) {
     if (Engine* engine = engineOf(handle)) engine->clear();
 }
 
 JNIEXPORT void JNICALL
-Java_com_mochyy_mochymusic_eq_stage_StageNative_destroy(JNIEnv*, jobject, jlong handle) {
+Java_dev_meowlabs_blossomtune_eq_stage_StageNative_destroy(JNIEnv*, jobject, jlong handle) {
     delete engineOf(handle);
 }
 

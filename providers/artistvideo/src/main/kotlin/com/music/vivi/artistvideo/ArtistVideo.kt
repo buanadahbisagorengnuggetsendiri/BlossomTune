@@ -1,4 +1,4 @@
-package com.mochyy.mochymusic.artistvideo
+package dev.meowlabs.blossomtune.artistvideo
 
 import android.view.TextureView
 import android.view.ViewGroup

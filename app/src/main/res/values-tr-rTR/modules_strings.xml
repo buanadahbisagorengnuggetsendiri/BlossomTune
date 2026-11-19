@@ -15,14 +15,14 @@
     <string name="module_by">%1$s · %2$s yapmış</string>
     <string name="modules_find_more">Daha fazla kaynak bul</string>
     <string name="modules_find_more_desc">Katalogdan ya da bir bağlantıdan modül ekle</string>
-    <string name="modules_find_more_body">Modül, başkasının işlettiği bir servis. Mochy ondan sadece şarkı, söz ya da görünüm ister, uygulamanın başka hiçbir yerine dokunamaz.</string>
+    <string name="modules_find_more_body">Modül, başkasının işlettiği bir servis. BlossomTune ondan sadece şarkı, söz ya da görünüm ister, uygulamanın başka hiçbir yerine dokunamaz.</string>
     <string name="modules_add_from_link">Bağlantıdan ekle</string>
     <string name="modules_link_hint">https://…</string>
     <string name="modules_link_check">Bağlantıyı kontrol et</string>
     <string name="modules_link_checking">Kontrol ediliyor…</string>
     <string name="modules_link_not_a_link">Bu bir bağlantıya benzemiyor. https:// ile başlaması lazım</string>
     <string name="modules_link_unreachable">Bu bağlantıya ulaşılamadı. Bağlantıya ve internetine bi bak, sonra tekrar dene.</string>
-    <string name="modules_link_not_a_module">Bağlantı cevap verdi ama Mochy\'nin kullanabileceği bir modül değil.</string>
+    <string name="modules_link_not_a_module">Bağlantı cevap verdi ama BlossomTune\'nin kullanabileceği bir modül değil.</string>
     <string name="modules_catalog">Katalogdan</string>
     <string name="modules_catalog_failed">Katalog yüklenemedi. İnternetini kontrol et ve burayı tekrar aç.</string>
     <string name="modules_catalog_empty">Katalogda henüz bir şey yok. Yukarıya bir modülün bağlantısını yapıştırıp ekleyebilirsin.</string>

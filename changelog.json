@@ -1,0 +1,243 @@
+[
+  {
+    "versionName": "0.5.11",
+    "publishedAt": "2026-11-01",
+    "summary": "Nama profil bisa diganti kapan saja, dan profil sekarang menyimpan musik kesukaanmu.",
+    "sections": [
+      {
+        "title": "Baru",
+        "items": [
+          "Layar Edit profile: ganti nama profil yang tampil di kartu ID, sapaan, dan recap.",
+          "Pilih sampai lima genre favorit, plus satu artis dan satu lagu favorit.",
+          "Kartu Profil di halaman profil menampilkan nama dan musik kesukaan; ketuk untuk mengedit.",
+          "Nama kosong atau lebih dari 24 karakter ditolak dengan pesan yang jelas, dan tidak ada yang tersimpan sebelum Simpan ditekan."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.10",
+    "publishedAt": "2026-10-29",
+    "summary": "Sheet sleep timer, kecepatan putar, dan output perangkat terbaca lagi di mode terang.",
+    "sections": [
+      {
+        "title": "Perbaikan",
+        "items": [
+          "Sleep timer: judul, durasi, input jam dan menit, baris end after this music ends, serta tombol SET TIMER dan CANCEL TIMER tidak lagi putih di atas putih.",
+          "Sheet kecepatan putar: judul, label, dan tombol RESET TO NORMAL memakai tinta tema.",
+          "Sheet output perangkat: nama perangkat, ikon volume, dan bulatan ikon terbaca.",
+          "Garis slider dan pegangan sheet sekarang terlihat di sheet putih.",
+          "Placeholder pencarian bahasa dan timestamp di alat lirik memakai abu tema."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.9",
+    "publishedAt": "2026-10-29",
+    "summary": "Sheet detail lagu terbaca lagi di mode terang.",
+    "sections": [
+      {
+        "title": "Perbaikan",
+        "items": [
+          "Sheet yang terbuka saat judul atau artis di player diketuk: baris View artis, View album, dan About song tidak lagi putih di atas putih.",
+          "Kotak ikon di tiap baris jadi gelap dengan ikon putih, tombol done jadi pill gelap.",
+          "Sheet About song: judul dan deskripsi memakai tinta tema.",
+          "Subjudul by ... on ... di menu aksi player memakai abu tema, bukan abu pucat."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.8",
+    "publishedAt": "2026-10-26",
+    "summary": "Teks yang hilang di mode terang terbaca lagi: menu, kartu hasil cari, picker Stats, urutan provider, Dev Spaces.",
+    "sections": [
+      {
+        "title": "Perbaikan",
+        "items": [
+          "Label di semua menu lagu, album, playlist, artis, dan antrean tidak lagi putih di atas baris pucat. Ikon hati di header menu ikut tinta gelap.",
+          "Kartu Top Result di hasil cari: judul, metadata, dan tombol putar sekarang putih di atas sampul yang digelapkan.",
+          "Lagu yang sedang diputar di hasil cari ditandai warna aksen, bukan biru muda yang nyaris tak terlihat di halaman es.",
+          "Kartu album di More by, halaman artis, dan playlist memakai teks putih di atas warna sampul.",
+          "Sheet Show by di Stats: judul, pilihan tahun dan bulan, serta tombol Done kembali terlihat.",
+          "Urutan provider di Audio Quality: baris tidak lagi hitam, nama provider terbaca.",
+          "Dev Spaces: judul kartu, judul issue, dan tombol kembali terbaca di kartu gelap.",
+          "Dialog Add to playlist, sisa waktu sleep timer, dan menu urutkan di playlist dan artis ikut tema terang."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.7",
+    "publishedAt": "2026-10-22",
+    "summary": "Sheet pembaruan terbaca lagi: tinta ikut tema terang dan gelap.",
+    "sections": [
+      {
+        "title": "Perbaikan",
+        "items": [
+          "Judul What changed, sub-judul, nama APK, dan label tombol di sheet pembaruan tidak lagi putih di atas kartu pucat.",
+          "Penyebabnya sheet ini masih memakai tinta palet gelap setelah app pindah ke palet es di 0.5.3. Sekarang warnanya diambil dari warna tema, jadi ikut mode terang maupun gelap.",
+          "Ikon mark di sheet ikut warna tema, tidak lagi putih di atas kartu es.",
+          "Label tombol jadi To be installed dan No thanks, remind me in 24 hours."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.6",
+    "publishedAt": "2026-10-22",
+    "summary": "Logo di dalam app pakai mark baru: lima kelopak dengan kepala not di tengah.",
+    "sections": [
+      {
+        "title": "Logo",
+        "items": [
+          "Header Home, Settings, Profile, sheet pembaruan, recap, dan AutoPlaylist menampilkan mark baru.",
+          "Splash dan animasi logo terbang ke header ikut mark baru: ink di layar splash, putih setelah mendarat.",
+          "Stamp logo di gambar share dan ikon notifikasi memakai siluet yang sama."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.5",
+    "publishedAt": "2026-10-21",
+    "summary": "Ikon app baru: bunga dan not, latar es.",
+    "sections": [
+      {
+        "title": "Ikon",
+        "items": [
+          "Ikon launcher baru di semua density, termasuk versi bulat dan themed icon Android 13+.",
+          "Latar ikon es putih, bukan hitam, jadi mark terbaca di launcher terang maupun gelap."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.4",
+    "publishedAt": "2026-10-21",
+    "summary": "Nama pembuat di sheet versi jadi buana, plus link Instagram.",
+    "sections": [
+      {
+        "title": "Identitas",
+        "items": [
+          "Sheet versi menulis \"BlossomTune 0.5.4 by buana\", bukan \"by roo\".",
+          "Baris @buanabeneran dengan ikon Instagram, membuka instagram.com/buanabeneran."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.3",
+    "publishedAt": "2026-10-20",
+    "summary": "Palet es/azure: halaman biru muda, kartu putih, aksen cyan.",
+    "sections": [
+      {
+        "title": "Tema",
+        "items": [
+          "Halaman terang sekarang es biru #E8F3FE dengan kartu putih dan aksen azure #2368D8, bukan putih–navy lagi.",
+          "Scrim bawah dan gradient top bar ikut warna halaman, bukan hitam.",
+          "Logo dan judul Home terbaca saat hero kosong; greeting Profile putih di header biru."
+        ]
+      },
+      {
+        "title": "Keterbacaan",
+        "items": [
+          "Placeholder Search, label Audio Lab, dan chip Equalizer naik ke kontras WCAG AA.",
+          "Palet dikunci PaletteContrastTest; azure mockup digelapkan sedikit karena gagal AA."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.2",
+    "publishedAt": "2026-10-19",
+    "summary": "Warna tema default navy, bukan biru.",
+    "sections": [
+      {
+        "title": "Warna tema",
+        "items": [
+          "Warna tema default (seed pemutar dan slider) navy, bukan biru — biru cuma dipakai mode gelap."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.1",
+    "publishedAt": "2026-10-19",
+    "summary": "Tombol navbar aktif biru yang mendominasi.",
+    "sections": [
+      {
+        "title": "Navbar",
+        "items": [
+          "Item aktif sekarang pill biru dengan ikon putih, bukan lagi putih di atas kaca putih yang tidak terbaca.",
+          "Item nonaktif memakai ikon navy supaya terlihat di bar putih."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.5.0",
+    "publishedAt": "2026-10-19",
+    "summary": "Tema terang monokrom: navy, abu, putih.",
+    "sections": [
+      {
+        "title": "Palet",
+        "items": [
+          "Aksen utama bukan biru lagi, tapi navy; tombol, ikon aktif, dan judul pakai warna yang sama.",
+          "Latar halaman jadi putih penuh; panel dan state terpilih pakai abu netral.",
+          "Teks sekunder digelapkan sedikit dari warna spec supaya tetap terbaca di atas putih; hasilnya lolos uji kontras WCAG AA.",
+          "Pill hero memakai kaca buram dengan ikon dan teks navy."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.2.0",
+    "publishedAt": "2026-10-19",
+    "summary": "Nama aplikasi berganti jadi BlossomTune dan warnanya jadi hitam, biru, putih.",
+    "sections": [
+      {
+        "title": "Nama dan paket",
+        "items": [
+          "Aplikasi ini sekarang bernama BlossomTune.",
+          "Paket berubah jadi dev.meowlabs.blossomtune. Pemasangan versi lama tidak bisa ditimpa versi ini, jadi perlu dipasang ulang.",
+          "Nama repositori GitHub ikut berganti jadi BlossomTune."
+        ]
+      },
+      {
+        "title": "Palet",
+        "items": [
+          "Latar jadi hitam, aksen biru, teks putih. Sebelumnya seluruh antarmuka abu-abu.",
+          "Aksen biru dipakai dua nada: biru yang enak dibaca di atas hitam terlalu terang untuk latar tombol, dan sebaliknya.",
+          "Kontras setiap pasangan teks dan latar diuji otomatis (WCAG AA) di mode gelap maupun terang, termasuk keadaan latar hitam penuh.",
+          "Bagian yang meniru benda nyata sengaja tidak diwarnai ulang: piringan hitam, meja putar, gradien kartu ID, dan sampul layanan musik."
+        ]
+      }
+    ]
+  },
+  {
+    "versionName": "0.1.0",
+    "publishedAt": "2026-10-17",
+    "summary": "Rilis pertama BlossomTune: pemutar musik Android.",
+    "sections": [
+      {
+        "title": "Dasar",
+        "items": [
+          "Paket aplikasi dev.meowlabs.blossomtune, versi dimulai dari 0.1.0.",
+          "Build lewat GitHub Actions: lint, unit test, APK debug dan APK rilis.",
+          "Rilis ditandai tag, APK dan changelog.json diunggah sebagai aset rilis."
+        ]
+      },
+      {
+        "title": "Belum dikerjakan",
+        "items": [
+          "Ikon aplikasi belum diganti.",
+          "Palet dan tipografi belum diganti.",
+          "Avatar di kartu Tentang belum diganti.",
+          "Belum pernah diuji di perangkat."
+        ]
+      }
+    ]
+  }
+]
