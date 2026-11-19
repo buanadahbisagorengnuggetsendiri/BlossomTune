@@ -2154,7 +2154,7 @@ private fun GachaDie(spinning: Boolean) {
             .size(21.dp)
             .graphicsLayer { rotationZ = rotation.value }
     ) {
-        drawRoundRect(color = BlossomInk.Primary, cornerRadius = CornerRadius(4.5.dp.toPx()))
+        drawRoundRect(color = Color.White, cornerRadius = CornerRadius(4.5.dp.toPx()))
         val pip = 2.1.dp.toPx()
         val near = size.width * 0.28f
         val far = size.width * 0.72f

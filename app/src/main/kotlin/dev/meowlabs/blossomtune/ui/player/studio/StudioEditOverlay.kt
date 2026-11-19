@@ -482,7 +482,7 @@ private fun CoverEditor(
                         },
                 ) {
                     val stroke = Stroke(width = TileStroke.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 12f)))
-                    val color = BlossomInk.Primary.copy(alpha = 0.8f * beat)
+                    val color = Color.White.copy(alpha = 0.8f * beat)
                     if (card != null) {
                         // just inside the card's own rounded corners
                         val inset = TileStroke.toPx() * 2f

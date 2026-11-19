@@ -57,6 +57,7 @@ import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.utils.resize
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 
 /**
  * what the playlist top bar shows instead of back and the dots while a song list is in a mode.
@@ -308,12 +309,12 @@ fun PlaylistSelectTick(checked: Boolean, modifier: Modifier = Modifier) {
                     val p = progress.coerceIn(0f, 1f)
                     val ring = 1.5.dp.toPx()
                     drawCircle(
-                        color = BlossomInk.Primary.copy(alpha = 0.55f * (1f - p)),
+                        color = Color.White.copy(alpha = 0.55f * (1f - p)),
                         radius = (size.minDimension - ring) / 2f,
                         style = Stroke(ring),
                     )
                     // the spring overshoots, so the disc swells a hair past its size and settles
-                    drawCircle(color = BlossomInk.Primary, radius = size.minDimension / 2f * progress.coerceAtLeast(0f))
+                    drawCircle(color = Color.White, radius = size.minDimension / 2f * progress.coerceAtLeast(0f))
                 },
         ) {
             Icon(
@@ -339,7 +340,7 @@ internal fun Modifier.selectedRowBand(progress: () -> Float): Modifier = drawBeh
     if (p <= 0f) return@drawBehind
     val inset = 14.dp.toPx()
     drawRoundRect(
-        color = BlossomInk.Primary.copy(alpha = 0.08f * p.coerceAtMost(1f)),
+        color = BlossomColors.Azure.copy(alpha = 0.10f * p.coerceAtMost(1f)),
         topLeft = Offset(inset, 0f),
         size = Size(size.width - inset * 2f, size.height),
         cornerRadius = CornerRadius(14.dp.toPx()),

@@ -152,6 +152,7 @@ import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 
 // geometry and type from the Figma playlist frames (16:1162 open, 16:1354 scrolled). internal so
 // the album, artist and generated pages line up on the same inset and type
@@ -1598,7 +1599,7 @@ private fun ReceiptRule() {
             .height(1.dp)
             .drawBehind {
                 drawLine(
-                    color = BlossomInk.Primary.copy(alpha = 0.24f),
+                    color = BlossomColors.Hairline,
                     start = Offset(0f, size.height / 2f),
                     end = Offset(size.width, size.height / 2f),
                     strokeWidth = 0.75.dp.toPx(),

@@ -69,6 +69,7 @@ object BlossomColors {
     val InkMuted = Color(0xFF4E6C8A)     // metadata: 4.87 di halaman, 5.47 di putih
     val Paper = Color(0xFFFFFFFF)        // kartu
     val Line = Color(0xFFCFE3F7)
+    val Hairline = Color(0xFF8A8F98)     // garis rambut: terbaca di hitam dan di putih
     val LineSoft = Color(0xFFE3F0FE)
     val Error = Color(0xFFDC2626)        // destructive di atas permukaan terang
     val ErrorOnDark = Color(0xFFFFB4AB)  // #DC2626 cuma 4.35 di atas hitam

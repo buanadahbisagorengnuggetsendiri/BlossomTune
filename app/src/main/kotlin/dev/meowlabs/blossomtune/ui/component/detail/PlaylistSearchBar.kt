@@ -54,7 +54,7 @@ private val FieldText = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 15.sp,
     letterSpacing = (-0.2).sp,
-    color = BlossomInk.Primary,
+    color = Color.White,   // kolom pencarian selalu kapsul gelap
 )
 
 // the list's own song search across the top of a playlist or album: the field in a pill and a round close beside it, the cover softened behind

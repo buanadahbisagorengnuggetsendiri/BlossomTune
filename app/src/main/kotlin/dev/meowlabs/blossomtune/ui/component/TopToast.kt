@@ -127,7 +127,7 @@ private val ToastTitle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 17.sp,
     letterSpacing = (-0.6).sp,
-    color = BlossomInk.Primary,
+    color = Color.White,   // di atas kartu toast yang selalu gelap
 )
 
 /** Draws the current toast over everything in its parent; touches elsewhere pass straight through. */

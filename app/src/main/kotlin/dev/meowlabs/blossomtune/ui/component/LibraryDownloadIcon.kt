@@ -171,12 +171,12 @@ fun LibraryDownloadIcon(icon: @Composable () -> Unit) {
                     val inset = stroke / 2f
                     val arcSize = Size(size.width - stroke, size.height - stroke)
                     drawCircle(
-                        color = BlossomInk.Primary.copy(alpha = 0.32f),
+                        color = Color.White.copy(alpha = 0.32f),
                         radius = size.minDimension / 2f - inset,
                         style = Stroke(stroke),
                     )
                     drawArc(
-                        color = BlossomInk.Primary,
+                        color = Color.White,
                         startAngle = -90f,
                         sweepAngle = 360f * progress.coerceIn(0f, 1f),
                         useCenter = false,

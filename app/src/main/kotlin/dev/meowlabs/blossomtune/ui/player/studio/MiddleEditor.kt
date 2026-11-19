@@ -47,7 +47,7 @@ private val MenuLabelStyle = TextStyle(
     fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
     fontSize = 14.sp,
     fontWeight = FontWeight.SemiBold,
-    color = BlossomInk.Primary,
+    color = Color.White,
     shadow = Shadow(color = Color.Black.copy(alpha = 0.75f), offset = Offset(0f, 2f), blurRadius = 8f),
 )
 

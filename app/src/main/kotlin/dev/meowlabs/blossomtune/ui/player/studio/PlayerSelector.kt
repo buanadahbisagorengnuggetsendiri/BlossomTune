@@ -372,7 +372,7 @@ fun PlayerSelectorOverlay(
                     val cx = g.centerX(column, position)
                     val cy = g.centerY(row, rowPosition)
                     drawRoundRect(
-                        color = BlossomInk.Primary.copy(alpha = 0.16f * e * rowLeaving(row, rowPosition) * variantFade(column, row, studio, e)),
+                        color = Color.White.copy(alpha = 0.16f * e * rowLeaving(row, rowPosition) * variantFade(column, row, studio, e)),
                         topLeft = Offset(cx - g.cardW / 2f + stroke / 2f, cy - g.cardH / 2f + stroke / 2f),
                         size = Size(g.cardW - stroke, g.cardH - stroke),
                         cornerRadius = CornerRadius(radius),
@@ -393,7 +393,7 @@ fun PlayerSelectorOverlay(
                     repeat(count) { i ->
                         val near = (1f - abs(rowPosition - i)).coerceIn(0f, 1f)
                         drawCircle(
-                            color = BlossomInk.Primary.copy(alpha = (0.32f + 0.6f * near) * settled * e),
+                            color = Color.White.copy(alpha = (0.32f + 0.6f * near) * settled * e),
                             radius = dot / 2f,
                             center = Offset(x, top + i * step),
                         )

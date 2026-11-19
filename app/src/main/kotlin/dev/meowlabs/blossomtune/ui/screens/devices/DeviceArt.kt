@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import dev.meowlabs.blossomtune.link.DeviceKind
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 
 private val Body = Color(0xFF3A3A3D)
 private val Edge = Color.White.copy(alpha = 0.55f)
@@ -81,7 +82,7 @@ private fun DrawScope.drawTv(topLeft: Offset, screen: Size) {
 }
 
 private fun DrawScope.drawArrow(from: Offset, to: Offset, width: Float, dash: Float) {
-    val color = BlossomInk.Primary.copy(alpha = 0.8f)
+    val color = BlossomColors.Azure.copy(alpha = 0.9f)
     val head = width * 4f
     drawLine(color, from, Offset(to.x - width, to.y), width, StrokeCap.Round, PathEffect.dashPathEffect(floatArrayOf(dash, dash * 0.8f)))
     drawLine(color, Offset(to.x - head, to.y - head), to, width, StrokeCap.Round)

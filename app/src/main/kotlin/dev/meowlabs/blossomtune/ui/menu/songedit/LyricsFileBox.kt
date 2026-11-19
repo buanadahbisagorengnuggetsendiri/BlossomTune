@@ -45,6 +45,7 @@ import dev.meowlabs.blossomtune.ui.component.SheetIcon
 import dev.meowlabs.blossomtune.ui.component.TopToaster
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 
 // .lrc and .ttml files often come without a proper type, so the picker also lets plain binary files through
 private val LyricsFileTypes = arrayOf("text/*", "application/octet-stream", "application/xml", "application/ttml+xml", "application/x-subrip")
@@ -78,7 +79,7 @@ fun LyricsFileBox(
             .fillMaxWidth()
             .drawBehind {
                 drawRoundRect(
-                    color = BlossomInk.Primary.copy(alpha = 0.35f),
+                    color = BlossomColors.Azure.copy(alpha = 0.55f),
                     cornerRadius = CornerRadius(18.dp.toPx()),
                     style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f))),
                 )

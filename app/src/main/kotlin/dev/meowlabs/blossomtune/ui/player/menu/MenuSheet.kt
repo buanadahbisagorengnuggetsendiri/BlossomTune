@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.ReadOnlyComposable
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first

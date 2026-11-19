@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 
 /** the pressed row from the Figma: #1E1E1E on the black pages, and the same lift on any darker colour */
 val HighlightColor = Color.White.copy(alpha = 0.12f)
@@ -147,10 +148,10 @@ private class RemoteFocusNode(private val interactionSource: InteractionSource) 
         if (s <= 0f) return
         // round enough to hug a circle icon, capped so a big card keeps roughly its own corners
         val corner = CornerRadius(minOf(size.minDimension / 2f, RemoteFocusCorner.toPx()))
-        drawRoundRect(color = BlossomInk.Primary.copy(alpha = 0.16f * s), cornerRadius = corner)
+        drawRoundRect(color = BlossomColors.Azure.copy(alpha = 0.16f * s), cornerRadius = corner)
         val stroke = RemoteFocusStroke.toPx()
         drawRoundRect(
-            color = BlossomInk.Primary.copy(alpha = 0.85f * s),
+            color = BlossomColors.Azure.copy(alpha = 0.85f * s),
             topLeft = Offset(stroke / 2f, stroke / 2f),
             size = Size(size.width - stroke, size.height - stroke),
             cornerRadius = corner,
