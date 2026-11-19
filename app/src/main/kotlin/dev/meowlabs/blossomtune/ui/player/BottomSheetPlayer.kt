@@ -129,6 +129,7 @@ import kotlin.math.abs
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 /**
  * How far the controls are pulled up over the artwork.
@@ -1523,8 +1524,8 @@ private fun PlayerSheet(
                             // at its final spot while the other faded out, which read as a jump.
                             PressScaleActionButton(
                                 icon = R.drawable.expand_less,
-                                tint = Color.White.copy(alpha = 0.90f),
-                                containerColor = Color.White.copy(alpha = 0.15f),
+                                tint = PlayerInk.copy(alpha = 0.90f),
+                                containerColor = PlayerInk.copy(alpha = 0.15f),
                                 onClick = { showExpandMenu = !showExpandMenu },
                                 hasShadow = false,
                                 modifier = Modifier
@@ -1563,8 +1564,8 @@ private fun PlayerSheet(
                                         } else {
                                             lyricsSideAction.icon
                                         },
-                                        tint = if (lyricsSideActive) Color.White else Color.White.copy(alpha = 0.85f),
-                                        containerColor = if (lyricsSideActive) Color.White.copy(alpha = 0.30f) else Color.White.copy(alpha = 0.15f),
+                                        tint = if (lyricsSideActive) PlayerInk else PlayerInk.copy(alpha = 0.85f),
+                                        containerColor = if (lyricsSideActive) PlayerInk.copy(alpha = 0.30f) else PlayerInk.copy(alpha = 0.15f),
                                         onClick = {
                                             if (lyricsSideIsLike) {
                                                 likeBurst.likeFromButton(LikeSlot.LYRICS, trackInfo.liked, playerConnection::toggleLike)
@@ -1600,8 +1601,8 @@ private fun PlayerSheet(
                                     val shuffleOn = transportState.shuffleModeEnabled
                                     PressScaleActionButton(
                                         icon = R.drawable.shuffle,
-                                        tint = if (shuffleOn) Color.White else Color.White.copy(alpha = 0.85f),
-                                        containerColor = if (shuffleOn) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.15f),
+                                        tint = if (shuffleOn) PlayerInk else PlayerInk.copy(alpha = 0.85f),
+                                        containerColor = if (shuffleOn) PlayerInk.copy(alpha = 0.32f) else PlayerInk.copy(alpha = 0.15f),
                                         onClick = { playerConnection.player.shuffleModeEnabled = !shuffleOn },
                                         hasShadow = false,
                                         modifier = Modifier.graphicsLayer {
@@ -1621,8 +1622,8 @@ private fun PlayerSheet(
                                 ) {
                                     PressScaleActionButton(
                                         icon = R.drawable.all_inclusive,
-                                        tint = if (infiniteQueue) Color.White else Color.White.copy(alpha = 0.85f),
-                                        containerColor = if (infiniteQueue) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.15f),
+                                        tint = if (infiniteQueue) PlayerInk else PlayerInk.copy(alpha = 0.85f),
+                                        containerColor = if (infiniteQueue) PlayerInk.copy(alpha = 0.32f) else PlayerInk.copy(alpha = 0.15f),
                                         onClick = { playerConnection.setInfiniteQueueEnabled(!infiniteQueue) },
                                         hasShadow = false,
                                         // its slot grows as it opens, so it starts further down
@@ -2114,12 +2115,12 @@ private fun ExpandMenuOverlay(
             animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 380f)
         )
         val overlayChevronBgColor by animateColorAsState(
-            targetValue = if (visible) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.15f),
+            targetValue = if (visible) PlayerInk.copy(alpha = 0.32f) else PlayerInk.copy(alpha = 0.15f),
             label = "overlayChevronBgColor",
             animationSpec = androidx.compose.animation.core.tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing)
         )
         val overlayChevronTint by animateColorAsState(
-            targetValue = if (visible) Color.White else Color.White.copy(alpha = 0.90f),
+            targetValue = if (visible) PlayerInk else PlayerInk.copy(alpha = 0.90f),
             label = "overlayChevronTint",
             animationSpec = androidx.compose.animation.core.tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing)
         )
@@ -2201,13 +2202,13 @@ private fun ExpandMenuOverlay(
                             val label: @Composable () -> Unit = {
                             androidx.compose.material3.Text(
                                 text = labelText,
-                                style = chevronMenuLabelStyle(Color.White, 14.sp),
+                                style = chevronMenuLabelStyle(PlayerInk, 14.sp),
                                 modifier = Modifier.padding(start = if (fromLeft) 4.dp else 0.dp, end = if (fromLeft) 0.dp else 4.dp)
                             )
                             }
 
-                            val iconTint = if (isToggled) Color.White else Color.White.copy(alpha = 0.85f)
-                            val containerColor = if (isToggled) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.16f)
+                            val iconTint = if (isToggled) PlayerInk else PlayerInk.copy(alpha = 0.85f)
+                            val containerColor = if (isToggled) PlayerInk.copy(alpha = 0.32f) else PlayerInk.copy(alpha = 0.16f)
 
                             if (!fromLeft) label()
                             PressScaleActionButton(

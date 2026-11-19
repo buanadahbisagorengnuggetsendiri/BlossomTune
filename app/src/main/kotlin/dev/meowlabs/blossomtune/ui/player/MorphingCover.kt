@@ -1918,7 +1918,13 @@ private fun SheetBackdrop(
         }
     }
     if (!composed) return
-    val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+    // mode terang: pemutar es — latar rata warna halaman, artwork tidak dipakai sebagai backdrop
+    val icy = !dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark.current
+    val containerColor = when {
+        pureBlack -> Color.Black
+        icy -> dev.meowlabs.blossomtune.ui.theme.BlossomColors.Ice
+        else -> MaterialTheme.colorScheme.surfaceContainer
+    }
     Box(
         modifier = Modifier
             .morphLayout(
@@ -1935,7 +1941,7 @@ private fun SheetBackdrop(
     ) {
         // A song without art has no cover gradient: the crossfade would hold the last song's
         // picture, so it gets the plain surface.
-        if (!alternateStyle && (trackInfo.thumbnailUrl != null || backgroundStyle != PlayerBackgroundStyle.COVER_GRADIENT)) {
+        if (!icy && !alternateStyle && (trackInfo.thumbnailUrl != null || backgroundStyle != PlayerBackgroundStyle.COVER_GRADIENT)) {
             PlayerBackdropCrossfade(
                 trackInfo = trackInfo,
                 backgroundStyle = backgroundStyle,

@@ -50,6 +50,7 @@ import dev.meowlabs.blossomtune.ui.component.SeekBarStyle
 import dev.meowlabs.blossomtune.ui.component.SeekBarTrack
 import dev.meowlabs.blossomtune.ui.player.studio.PlayerMenuAction
 import kotlin.math.roundToInt
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 /** the bar's own height, from the volume line to the bottom of its buttons */
 internal val PlayerVolumeBarHeight = 76.dp
@@ -110,8 +111,8 @@ internal fun PlayerVolumeBar(
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
                     PressScaleActionButton(
                         icon = action.icon,
-                        tint = if (on) Color.White else Color.White.copy(alpha = 0.85f),
-                        containerColor = if (on) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.15f),
+                        tint = if (on) PlayerInk else PlayerInk.copy(alpha = 0.85f),
+                        containerColor = if (on) PlayerInk.copy(alpha = 0.32f) else PlayerInk.copy(alpha = 0.15f),
                         onClick = { onAction(action) },
                         hasShadow = false,
                     )
@@ -147,7 +148,7 @@ private fun VolumeRow(listening: Boolean) {
         Icon(
             painter = painterResource(if (volume.shown <= 0f) R.drawable.volume_off else R.drawable.volume_down),
             contentDescription = null,
-            tint = Color.White,
+            tint = PlayerInk,
             modifier = Modifier
                 .size(18.dp)
                 .speakerLight(held),
@@ -162,8 +163,8 @@ private fun VolumeRow(listening: Boolean) {
                 SeekBarTrack(
                     style = SeekBarStyle.DEFAULT,
                     fraction = volume.shown,
-                    activeColor = Color.White,
-                    inactiveColor = Color.White.copy(alpha = 0.24f),
+                    activeColor = PlayerInk,
+                    inactiveColor = PlayerInk.copy(alpha = 0.24f),
                     animateWave = false,
                     active = dragged || pressed,
                 )
@@ -176,7 +177,7 @@ private fun VolumeRow(listening: Boolean) {
         Icon(
             painter = painterResource(R.drawable.volume_up),
             contentDescription = null,
-            tint = Color.White,
+            tint = PlayerInk,
             modifier = Modifier
                 .size(18.dp)
                 .speakerLight(held),

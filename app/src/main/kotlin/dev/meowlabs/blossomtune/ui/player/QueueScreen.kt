@@ -70,6 +70,7 @@ import kotlinx.coroutines.delay
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 private val RowArtSize = 44.dp
 
@@ -275,8 +276,8 @@ fun QueueScreen(
             Spacer(modifier = Modifier.weight(1f))
             PressScaleActionButton(
                 icon = if (trackInfo.liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-                tint = if (trackInfo.liked) Color.White else Color.White.copy(alpha = 0.85f),
-                containerColor = if (trackInfo.liked) Color.White.copy(alpha = 0.30f) else Color.White.copy(alpha = 0.15f),
+                tint = if (trackInfo.liked) PlayerInk else PlayerInk.copy(alpha = 0.85f),
+                containerColor = if (trackInfo.liked) PlayerInk.copy(alpha = 0.30f) else PlayerInk.copy(alpha = 0.15f),
                 onClick = {
                     if (likeBurst != null) {
                         likeBurst.likeFromButton(LikeSlot.QUEUE, trackInfo.liked, playerConnection::toggleLike)
@@ -381,7 +382,7 @@ fun QueueScreen(
                     QueueRow.Empty -> Text(
                         text = stringResource(R.string.pc_queue_empty),
                         fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = PlayerInk.copy(alpha = 0.45f),
                         modifier = Modifier
                             .animateItem()
                             .then(enter)
@@ -448,7 +449,7 @@ fun QueueScreen(
                                             Icon(
                                                 painter = painterResource(R.drawable.queue_drag_handle),
                                                 contentDescription = null,
-                                                tint = Color.White.copy(alpha = if (isDragging) 0.9f else 0.5f),
+                                                tint = PlayerInk.copy(alpha = if (isDragging) 0.9f else 0.5f),
                                                 modifier = Modifier.size(22.dp),
                                             )
                                         }
@@ -595,14 +596,14 @@ private fun QueueSectionHeader(
                 fontSize = 17.sp,
                 lineHeight = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = PlayerInk,
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     fontSize = 13.sp,
                     lineHeight = 17.sp,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = PlayerInk.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -613,10 +614,10 @@ private fun QueueSectionHeader(
                 text = stringResource(R.string.clear),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.85f),
+                color = PlayerInk.copy(alpha = 0.85f),
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.12f))
+                    .background(PlayerInk.copy(alpha = 0.12f))
                     .clickable(onClick = onClearHistory)
                     .padding(horizontal = 12.dp, vertical = 5.dp),
             )
@@ -653,15 +654,15 @@ private fun QueueSongRow(
             .clip(RowHighlightShape)
             .background(
                 when {
-                    isDragging -> Color.White.copy(alpha = 0.12f)
-                    nowPlaying -> Color.White.copy(alpha = 0.07f)
+                    isDragging -> PlayerInk.copy(alpha = 0.12f)
+                    nowPlaying -> PlayerInk.copy(alpha = 0.07f)
                     else -> Color.Transparent
                 }
             )
             .clickable(
                 enabled = !isDragging,
                 interactionSource = interactionSource,
-                indication = ripple(color = Color.White),
+                indication = ripple(color = PlayerInk),
                 onClick = onClick,
             )
             .padding(start = LyricsHeaderArtX - RowHighlightInset, end = RowEndPadding - RowHighlightInset),
@@ -674,7 +675,7 @@ private fun QueueSongRow(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RowArtShape)
-                    .background(Color.White.copy(alpha = 0.10f))
+                    .background(PlayerInk.copy(alpha = 0.10f))
                     .graphicsLayer { alpha = if (dimmed) 0.6f else 1f },
             )
             if (nowPlaying) NowPlayingIndicator()
@@ -690,7 +691,7 @@ private fun QueueSongRow(
                 fontSize = 15.sp,
                 lineHeight = 19.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+                color = PlayerInk,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -699,7 +700,7 @@ private fun QueueSongRow(
                     text = item.artist,
                     fontSize = 13.sp,
                     lineHeight = 17.sp,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = PlayerInk.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

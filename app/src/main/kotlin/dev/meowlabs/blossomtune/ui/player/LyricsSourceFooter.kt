@@ -52,12 +52,13 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.safeOpenUri
 import dev.meowlabs.blossomtune.viewmodels.LyricsMenuViewModel
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
-private val LabelColor = Color.White.copy(alpha = 0.55f)
-private val ValueColor = Color.White.copy(alpha = 0.38f)
+private val LabelColor: Color @Composable @androidx.compose.runtime.ReadOnlyComposable get() = PlayerInk.copy(alpha = 0.55f)
+private val ValueColor: Color @Composable @androidx.compose.runtime.ReadOnlyComposable get() = PlayerInk.copy(alpha = 0.38f)
 private val StarColor = Color(0xFFFFD60A)
 
-private val FooterTextStyle = TextStyle(
+private val FooterTextStyle: TextStyle @Composable @androidx.compose.runtime.ReadOnlyComposable get() = TextStyle(
     fontFamily = InterFontFamily,
     fontSize = 17.sp,
     letterSpacing = (-0.01).em,
@@ -140,7 +141,7 @@ private fun SwitchSourceButton(onClick: () -> Unit) {
     FooterButton(
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
-        background = Color.White.copy(alpha = 0.08f),
+        background = PlayerInk.copy(alpha = 0.08f),
     ) {
         FooterIcon(Icons.Rounded.SwapVert, tint = LabelColor)
         Text(text = stringResource(R.string.pc_lyrics_switch), style = ButtonTextStyle.copy(color = LabelColor))
@@ -153,15 +154,15 @@ private fun StarOnGitHubButton(onClick: () -> Unit) {
     FooterButton(
         onClick = onClick,
         shape = CircleShape,
-        background = Color.White.copy(alpha = 0.12f),
+        background = PlayerInk.copy(alpha = 0.12f),
     ) {
         Icon(
             painter = painterResource(R.drawable.github),
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.85f),
+            tint = PlayerInk.copy(alpha = 0.85f),
             modifier = Modifier.size(15.dp),
         )
-        Text(text = stringResource(R.string.pc_star_github), style = ButtonTextStyle.copy(color = Color.White.copy(alpha = 0.85f)))
+        Text(text = stringResource(R.string.pc_star_github), style = ButtonTextStyle.copy(color = PlayerInk.copy(alpha = 0.85f)))
         FooterIcon(Icons.Rounded.Star, tint = StarColor)
     }
 }

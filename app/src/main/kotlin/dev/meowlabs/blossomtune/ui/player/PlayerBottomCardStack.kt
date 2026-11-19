@@ -73,6 +73,7 @@ import dev.meowlabs.blossomtune.viewmodels.LyricsScreenViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 /** The card's visible height. Its body carries on below the screen edge - see [BottomBleed]. */
 internal val PlayerCardHeight = 54.dp
@@ -389,6 +390,9 @@ private fun BoxScope.DeckCard(
     fun frontness(): Float =
         if (flightProgress() > 0.0005f) 1f else frontnessProvider().coerceIn(0f, 1f)
 
+    // dibaca di sini: drawBehind bukan scope composable
+    val ink = PlayerInk
+
     val density = LocalDensity.current
 
     // Behind a taller card, a card is lifted by the difference, so it still peeks over the top of
@@ -433,7 +437,7 @@ private fun BoxScope.DeckCard(
                     val topLeft = Offset(inset, 0f)
                     val cardSize = Size(size.width - inset * 2f, bottom)
                     drawRoundRect(
-                        color = Color.White.copy(alpha = mixF(look.backFill, look.frontFill, f)),
+                        color = ink.copy(alpha = mixF(look.backFill, look.frontFill, f)),
                         topLeft = topLeft,
                         size = cardSize,
                         cornerRadius = CornerRadius(corner, corner),
@@ -441,7 +445,7 @@ private fun BoxScope.DeckCard(
                     // The border runs down the sides and off the screen with the body, so there's
                     // no line along the bottom (unless the editor has closed the card off).
                     drawRoundRect(
-                        color = Color.White.copy(alpha = mixF(look.backBorder, look.frontBorder, f)),
+                        color = ink.copy(alpha = mixF(look.backBorder, look.frontBorder, f)),
                         topLeft = topLeft,
                         size = cardSize,
                         cornerRadius = CornerRadius(corner, corner),
@@ -544,6 +548,7 @@ private fun QueueCardContent(
 // the deck as the player shows it at rest, for the selector's cards: the front card running off the bottom edge and the one behind peeking over it
 @Composable
 internal fun PlayerDeckPreview(look: PlayerCardLook, modifier: Modifier = Modifier) {
+    val ink = PlayerInk
     androidx.compose.foundation.Canvas(
         modifier = modifier
             .fillMaxWidth()
@@ -561,11 +566,11 @@ internal fun PlayerDeckPreview(look: PlayerCardLook, modifier: Modifier = Modifi
             val left = inset * BackCardScale + (size.width - size.width * BackCardScale) / 2f
             val width = (size.width - inset * 2f) * BackCardScale
             val backCorner = CornerRadius(look.corner.toPx() * BackCardScale)
-            drawRoundRect(Color.White.copy(alpha = look.backFill), Offset(left, backTop), Size(width, cardHeight + bleed), backCorner)
-            drawRoundRect(Color.White.copy(alpha = look.backBorder), Offset(left, backTop), Size(width, cardHeight + bleed), backCorner, style = Stroke(border * BackCardScale))
+            drawRoundRect(ink.copy(alpha = look.backFill), Offset(left, backTop), Size(width, cardHeight + bleed), backCorner)
+            drawRoundRect(ink.copy(alpha = look.backBorder), Offset(left, backTop), Size(width, cardHeight + bleed), backCorner, style = Stroke(border * BackCardScale))
         }
-        drawRoundRect(Color.White.copy(alpha = look.frontFill), Offset(0f, frontTop), Size(size.width, cardHeight + bleed), corner)
-        drawRoundRect(Color.White.copy(alpha = look.frontBorder), Offset(0f, frontTop), Size(size.width, cardHeight + bleed), corner, style = Stroke(border))
+        drawRoundRect(ink.copy(alpha = look.frontFill), Offset(0f, frontTop), Size(size.width, cardHeight + bleed), corner)
+        drawRoundRect(ink.copy(alpha = look.frontBorder), Offset(0f, frontTop), Size(size.width, cardHeight + bleed), corner, style = Stroke(border))
     }
 }
 
@@ -597,7 +602,7 @@ private fun NextSongRow(
                 modifier = Modifier
                     .size(ArtworkSize)
                     .clip(ArtworkShape)
-                    .background(Color.White.copy(alpha = 0.10f))
+                    .background(PlayerInk.copy(alpha = 0.10f))
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
@@ -606,7 +611,7 @@ private fun NextSongRow(
             Text(
                 text = stringResource(R.string.pc_next_song),
                 style = MaterialTheme.typography.labelSmall.copy(lineHeight = 11.sp),
-                color = Color.White.copy(alpha = 0.5f),
+                color = PlayerInk.copy(alpha = 0.5f),
             )
             Text(
                 text = if (nextTitle != null) {
@@ -617,7 +622,7 @@ private fun NextSongRow(
                 },
                 style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 15.sp),
                 fontWeight = FontWeight.SemiBold,
-                color = if (nextTitle != null) Color.White else Color.White.copy(alpha = 0.55f),
+                color = if (nextTitle != null) PlayerInk else PlayerInk.copy(alpha = 0.55f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 softWrap = false,

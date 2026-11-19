@@ -64,6 +64,8 @@ import dev.meowlabs.blossomtune.ui.player.HoldSpeed
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 // the design's phone is this many of its units across; one unit of every shape is the screen's width over this
 private const val DesignWidth = 1172f
@@ -257,7 +259,8 @@ private fun PlayButton(
     val press = pressScale(source)
     val glyph = rememberPlayGlyph(playing)
     val description = stringResource(if (playing) R.string.flagship_pause else R.string.flagship_play)
-    val glyphColor = if (circle) Color.Black else Color.White
+    // cakram play biru: glifnya putih di kedua tema
+    val glyphColor = if (circle) BlossomColors.White else PlayerInk
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -279,7 +282,7 @@ private fun PlayButton(
                 .size(if (circle) circleSize else ButtonTouch)
                 .then(
                     if (circle) {
-                        // the white circle squashes and bounces along with its glyph
+                        // the blue disc squashes and bounces along with its glyph
                         Modifier
                             .graphicsLayer {
                                 val s = glyph.squash.value
@@ -287,7 +290,7 @@ private fun PlayButton(
                                 scaleY = 0.85f + 0.15f * s
                             }
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(BlossomColors.Azure)
                     } else Modifier
                 ),
         ) {
@@ -326,6 +329,7 @@ private fun SkipButton(
 ) {
     val scope = rememberCoroutineScope()
     val cycle = remember { SkipCycleState() }
+    val ink = PlayerInk
     val source = remember { MutableInteractionSource() }
     val press = pressScale(source)
     var holding by remember { mutableStateOf(false) }
@@ -375,7 +379,7 @@ private fun SkipButton(
         Spacer(
             modifier = Modifier
                 .fillMaxSize()
-                .drawBehind { drawSkipGlyph(shapes, cycle.phase(), unit.toPx(), Color.White, backwards) },
+                .drawBehind { drawSkipGlyph(shapes, cycle.phase(), unit.toPx(), ink, backwards) },
         )
         if (badge > 0.01f) {
             Text(
@@ -393,7 +397,7 @@ private fun SkipButton(
                         translationY = -(4.dp.toPx() + 12.dp.toPx() * badge)
                     }
                     .clip(RoundedCornerShape(50))
-                    .background(Color.White.copy(alpha = 0.92f))
+                    .background(PlayerInk.copy(alpha = 0.92f))
                     .padding(horizontal = 9.dp, vertical = 2.dp),
             )
         }
@@ -542,11 +546,11 @@ private fun RepeatButton(
                             scaleY = s
                         }
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(BlossomColors.Azure),
                 ) {
                     Text(
                         text = "1",
-                        color = Color.Black,
+                        color = BlossomColors.White,
                         fontSize = 8.sp,
                         lineHeight = 8.sp,
                         fontWeight = FontWeight.Bold,
@@ -571,7 +575,7 @@ private fun ActiveDot(lit: () -> Float, offsetY: Dp) {
                 scaleX = a
                 scaleY = a
             }
-            .background(Color.White, CircleShape),
+            .background(PlayerInk, CircleShape),
     )
 }
 
@@ -589,7 +593,7 @@ private fun RepeatIcon(size: DpSize, spin: () -> Float = { 0f }) {
     Image(
         painter = painterResource(R.drawable.repeat),
         contentDescription = null,
-        colorFilter = ColorFilter.tint(Color.White),
+        colorFilter = ColorFilter.tint(PlayerInk),
         modifier = Modifier
             .size(size)
             .graphicsLayer { rotationZ = spin() },
@@ -602,6 +606,7 @@ fun TransportLayoutPreview(layout: FlagshipTransportLayout, modifier: Modifier =
     val five = layout != FlagshipTransportLayout.THREE
     val shapes = rememberTransportShapes(small = five)
     val still = remember { PlayGlyphState(playing = false) }
+    val ink = PlayerInk
     val unit = 0.2.dp
     Row(
         horizontalArrangement = Arrangement.spacedBy(if (five) 12.dp else 22.dp),
@@ -619,14 +624,14 @@ fun TransportLayoutPreview(layout: FlagshipTransportLayout, modifier: Modifier =
                 modifier = Modifier
                     .size(unit * TenCircle)
                     .clip(CircleShape)
-                    .background(Color.White)
-                    .drawBehind { drawPlayGlyph(shapes, still, unit.toPx(), Color.Black) },
+                    .background(BlossomColors.Azure)
+                    .drawBehind { drawPlayGlyph(shapes, still, unit.toPx(), BlossomColors.White) },
             )
         } else {
             Spacer(
                 modifier = Modifier
                     .size(unit * shapes.playSize.height)
-                    .drawBehind { drawPlayGlyph(shapes, still, unit.toPx(), Color.White) },
+                    .drawBehind { drawPlayGlyph(shapes, still, unit.toPx(), ink) },
             )
         }
         StillSkip(shapes, unit, backwards = false)
@@ -640,9 +645,10 @@ fun TransportLayoutPreview(layout: FlagshipTransportLayout, modifier: Modifier =
 
 @Composable
 private fun StillSkip(shapes: TransportShapes, unit: Dp, backwards: Boolean) {
+    val ink = PlayerInk
     Spacer(
         modifier = Modifier
             .size(width = unit * shapes.pairWidth + 2.dp, height = unit * shapes.skipSize.height + 2.dp)
-            .drawBehind { drawSkipGlyph(shapes, 1f, unit.toPx(), Color.White, backwards) },
+            .drawBehind { drawSkipGlyph(shapes, 1f, unit.toPx(), ink, backwards) },
     )
 }

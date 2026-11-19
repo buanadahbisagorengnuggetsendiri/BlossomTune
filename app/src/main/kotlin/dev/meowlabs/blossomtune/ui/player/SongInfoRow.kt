@@ -64,6 +64,7 @@ import dev.meowlabs.blossomtune.constants.ShowFormatBadgeKey
 import dev.meowlabs.blossomtune.constants.ShowFormatSampleRateKey
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 @Composable
 fun SongInfoRow(
@@ -211,8 +212,8 @@ fun SongInfoRow(
             if (sideAction == dev.meowlabs.blossomtune.ui.player.studio.PlayerMenuAction.LIKE) {
                 PressScaleActionButton(
                     icon = if (trackInfo.liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-                    tint = if (trackInfo.liked) Color.White else Color.White.copy(alpha = 0.85f),
-                    containerColor = if (trackInfo.liked) Color.White.copy(alpha = 0.30f) else Color.White.copy(alpha = 0.15f),
+                    tint = if (trackInfo.liked) PlayerInk else PlayerInk.copy(alpha = 0.85f),
+                    containerColor = if (trackInfo.liked) PlayerInk.copy(alpha = 0.30f) else PlayerInk.copy(alpha = 0.15f),
                     onClick = {
                         if (likeBurst != null) {
                             likeBurst.likeFromButton(LikeSlot.PLAYER, trackInfo.liked, playerConnection::toggleLike)
@@ -226,8 +227,8 @@ fun SongInfoRow(
             } else {
                 PressScaleActionButton(
                     icon = sideAction.icon,
-                    tint = if (sideActive) Color.White else Color.White.copy(alpha = 0.85f),
-                    containerColor = if (sideActive) Color.White.copy(alpha = 0.30f) else Color.White.copy(alpha = 0.15f),
+                    tint = if (sideActive) PlayerInk else PlayerInk.copy(alpha = 0.85f),
+                    containerColor = if (sideActive) PlayerInk.copy(alpha = 0.30f) else PlayerInk.copy(alpha = 0.15f),
                     onClick = { onSideAction(sideAction) },
                     hasShadow = false,
                     modifier = sidePlaced,
@@ -244,12 +245,12 @@ fun SongInfoRow(
                 animationSpec = spring(dampingRatio = 0.55f, stiffness = 380f)
             )
             val chevronBgColor by animateColorAsState(
-                targetValue = if (isExpandMenuOpen) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.15f),
+                targetValue = if (isExpandMenuOpen) PlayerInk.copy(alpha = 0.32f) else PlayerInk.copy(alpha = 0.15f),
                 label = "chevronBgColor",
                 animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
             )
             val chevronTint by animateColorAsState(
-                targetValue = if (isExpandMenuOpen) Color.White else Color.White.copy(alpha = 0.90f),
+                targetValue = if (isExpandMenuOpen) PlayerInk else PlayerInk.copy(alpha = 0.90f),
                 label = "chevronTint",
                 animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
             )
@@ -314,7 +315,7 @@ private fun SongLines(
             FadingOverflowText(
                 text = title,
                 style = androidx.compose.material3.MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = Color.White,
+                color = PlayerInk,
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .graphicsLayer { alpha = infoAlpha() },
@@ -344,7 +345,7 @@ private fun SongLines(
                 style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = Color.White.copy(alpha = 0.7f),
+                color = PlayerInk.copy(alpha = 0.7f),
                 modifier = Modifier
                     .fillMaxWidth()
                     .graphicsLayer { alpha = infoAlpha() }

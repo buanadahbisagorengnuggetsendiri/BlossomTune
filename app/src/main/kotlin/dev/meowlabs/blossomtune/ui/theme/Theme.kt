@@ -215,6 +215,14 @@ val LocalBlossomInk = staticCompositionLocalOf { DarkInk }
 /** Mode gelap aktif? Dipakai kit warna per-fitur yang tidak memakai colorScheme. */
 val LocalBlossomDark = staticCompositionLocalOf { true }
 
+/**
+ * Tinta pemutar. Dulu pemutar selalu di atas artwork, jadi seluruh ikon dan
+ * teksnya putih mati. Sekarang pemutar ikut mode: di mode terang permukaannya es,
+ * jadi tintanya tinta halaman. Nama sendiri supaya niatnya kebaca di ui/player.
+ */
+val LocalPlayerInk = staticCompositionLocalOf { BlossomColors.White }
+val PlayerInk: Color @Composable @ReadOnlyComposable get() = LocalPlayerInk.current
+
 object BlossomInk {
     val Primary: Color @Composable @ReadOnlyComposable get() = LocalBlossomInk.current.primary
     val Muted: Color @Composable @ReadOnlyComposable get() = LocalBlossomInk.current.muted
@@ -228,8 +236,8 @@ object BlossomInk {
  * gelap; sekarang permukaan (`BlossomSurfaces`) dan tinta sheet (`BlossomInk`)
  * ikut mode, jadi palet terang benar-benar dirender.
  *
- * Yang sengaja tetap gelap: pemutar, video, TV, dan semua yang duduk di atas
- * artwork (kaca mengambang, sorotan, tepi sampul) — itu desain, bukan sisa.
+ * Yang sengaja tetap gelap: video, TV, dan badge di atas artwork. Pemutar ikut
+ * es kecuali bagian yang memang duduk di atas video/artwork.
  */
 const val ForceDarkTheme = false
 
@@ -268,6 +276,7 @@ fun BlossomTuneTheme(
                 LocalBlossomSurfaces provides if (darkTheme) DarkSurfaces else LightSurfaces,
                 LocalBlossomInk provides if (darkTheme) DarkInk else LightInk,
                 LocalBlossomDark provides darkTheme,
+                LocalPlayerInk provides if (darkTheme) BlossomColors.White else BlossomColors.Ink,
                 content = content,
             )
         }
