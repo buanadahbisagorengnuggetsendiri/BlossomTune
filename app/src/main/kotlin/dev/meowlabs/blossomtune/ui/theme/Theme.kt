@@ -221,15 +221,14 @@ object BlossomInk {
 }
 
 /**
- * BlossomTune masih dirender gelap di basis Mochy.
+ * Ikut mode sistem. Dulu dipaku `true` karena sheet basis Mochy hardcode kaca
+ * gelap; sekarang permukaan (`BlossomSurfaces`) dan tinta sheet (`BlossomInk`)
+ * ikut mode, jadi palet terang benar-benar dirender.
  *
- * Di 0.5.x switch ini `false` karena seluruh sheet dan bilah kaca sudah ikut mode
- * (`BlossomSurfaces`/`BlossomInk`). Basis Mochy punya UI sendiri yang hardcode kaca
- * gelap, jadi palet terang di bawah masih dorman: benar dan teruji, tapi belum
- * dirender. Menyalakannya (`false`) sebelum sweep tinta selesai = teks putih di
- * atas sheet putih.
+ * Yang sengaja tetap gelap: pemutar, video, TV, dan semua yang duduk di atas
+ * artwork (kaca mengambang, sorotan, tepi sampul) — itu desain, bukan sisa.
  */
-const val ForceDarkTheme = true
+const val ForceDarkTheme = false
 
 @Composable
 fun BlossomTuneTheme(

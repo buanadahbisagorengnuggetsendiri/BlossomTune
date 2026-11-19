@@ -3,6 +3,7 @@ package dev.meowlabs.blossomtune.ui.theme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -13,8 +14,8 @@ import org.junit.Test
  * kelihatan sebagai teks yang tidak terbaca di HP orang. Tes ini menahan itu: setiap
  * pasangan teks/latar harus lolos WCAG AA (>= 4.5) sebelum boleh masuk rilis.
  *
- * Dua palet diuji, bukan satu: yang dirender sekarang memang gelap (`ForceDarkTheme`),
- * tapi palet terang tetap ada di kode dan tetap harus benar sebelum switch-nya dibalik.
+ * Dua palet diuji, bukan satu: `ForceDarkTheme` sudah `false`, jadi keduanya benar-benar
+ * dirender tergantung mode sistem, dan keduanya harus lolos AA.
  */
 class PaletteContrastTest {
 
@@ -86,9 +87,14 @@ class PaletteContrastTest {
      * (4.14), jadi yang dirender #2368D8 (4.62 / 5.19). Nilai spec tetap
      * disimpan di [BlossomColors.AzureSpec] sebagai rujukan desain.
      *
-     * Palet ini belum dirender: `ForceDarkTheme` masih `true` karena UI basis Mochy
-     * hardcode kaca gelap. Nilainya dikunci sekarang supaya aman saat switch dibalik.
+     * Palet ini dirender saat perangkat dalam mode terang (`ForceDarkTheme` = false).
      */
+    @Test
+    fun theme_followsSystem() {
+        // dijaga: kalau ada yang memaku ulang ke true, mode terang mati tanpa error
+        assertFalse(ForceDarkTheme)
+    }
+
     @Test
     fun lightPalette_isAzureOnIce() {
         assertEquals(Color(0xFF2368D8), LightPalette.primary)

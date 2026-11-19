@@ -496,7 +496,7 @@ fun PlayerSelectorOverlay(
                         // the dot in view is white, its neighbours fade in as a swipe reaches them
                         val near = (1f - abs(position - i)).coerceIn(0f, 1f)
                         drawCircle(
-                            color = BlossomInk.Primary.copy(alpha = 0.32f + 0.68f * near),
+                            color = Color.White.copy(alpha = 0.32f + 0.68f * near),
                             radius = dot / 2f,
                             center = Offset(start + i * step + dot / 2f, size.height / 2f),
                         )
