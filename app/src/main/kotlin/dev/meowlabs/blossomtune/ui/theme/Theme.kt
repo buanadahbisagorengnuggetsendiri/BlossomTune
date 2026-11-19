@@ -212,6 +212,9 @@ val LightInk = BlossomInkSet(
 
 val LocalBlossomInk = staticCompositionLocalOf { DarkInk }
 
+/** Mode gelap aktif? Dipakai kit warna per-fitur yang tidak memakai colorScheme. */
+val LocalBlossomDark = staticCompositionLocalOf { true }
+
 object BlossomInk {
     val Primary: Color @Composable @ReadOnlyComposable get() = LocalBlossomInk.current.primary
     val Muted: Color @Composable @ReadOnlyComposable get() = LocalBlossomInk.current.muted
@@ -264,6 +267,7 @@ fun BlossomTuneTheme(
             CompositionLocalProvider(
                 LocalBlossomSurfaces provides if (darkTheme) DarkSurfaces else LightSurfaces,
                 LocalBlossomInk provides if (darkTheme) DarkInk else LightInk,
+                LocalBlossomDark provides darkTheme,
                 content = content,
             )
         }

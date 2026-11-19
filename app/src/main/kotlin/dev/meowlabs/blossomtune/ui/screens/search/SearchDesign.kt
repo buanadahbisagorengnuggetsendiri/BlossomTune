@@ -38,6 +38,9 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -98,16 +101,26 @@ val SearchTitleBlockHeight = 62.dp
 val SearchTopClearance = 18.dp
 
 object SearchColors {
-    val Field = Color(0xFF141416)
-    val FieldFocused = Color(0xFF1E1E21)
-    val Tile = Color(0xFF121214)
-    val TileHigh = Color(0xFF1C1C1F)
-    val Divider = Color(0xFF232326)
-    val Primary = Color.White
-    val Secondary = Color(0xFF9A9AA0)
-    val Placeholder = Color(0xFF77777D)
+    // Dua mode: nilai gelap tetap persis basis Mochy, nilai terang memakai palet es/azure.
+    val Field: Color @Composable @ReadOnlyComposable
+        get() = if (LocalBlossomDark.current) Color(0xFF141416) else BlossomColors.Paper
+    val FieldFocused: Color @Composable @ReadOnlyComposable
+        get() = if (LocalBlossomDark.current) Color(0xFF1E1E21) else BlossomColors.IcePanel
+    val Tile: Color @Composable @ReadOnlyComposable
+        get() = if (LocalBlossomDark.current) Color(0xFF121214) else BlossomColors.Paper
+    val TileHigh: Color @Composable @ReadOnlyComposable
+        get() = if (LocalBlossomDark.current) Color(0xFF1C1C1F) else Color(0xFFF4FAFF)
+    val Divider: Color @Composable @ReadOnlyComposable
+        get() = if (LocalBlossomDark.current) Color(0xFF232326) else BlossomColors.LineSoft
+    val Primary: Color @Composable @ReadOnlyComposable
+        get() = if (LocalBlossomDark.current) Color.White else BlossomColors.Ink
+    val Secondary: Color @Composable @ReadOnlyComposable
+        get() = if (LocalBlossomDark.current) Color(0xFF9A9AA0) else BlossomColors.InkMuted
+    val Placeholder: Color @Composable @ReadOnlyComposable
+        get() = if (LocalBlossomDark.current) Color(0xFF77777D) else BlossomColors.InkMuted
 
-    fun page(pureBlack: Boolean): Color = Color.Black
+    @Composable @ReadOnlyComposable
+    fun page(pureBlack: Boolean): Color = if (LocalBlossomDark.current) Color.Black else BlossomColors.Ice
 }
 
 val SearchCollapseEasing = CubicBezierEasing(0.57f, 0.53f, 0f, 1f)
@@ -597,11 +610,12 @@ fun MoodTile(
 
     var titleWraps by remember(title) { mutableStateOf(false) }
 
-    val tileBrush = remember(tint) {
+    val tileSurface = SearchColors.Tile
+    val tileBrush = remember(tint, tileSurface) {
         Brush.linearGradient(
             colors = listOf(
-                blendOver(tint.copy(alpha = 0.55f), SearchColors.Tile),
-                blendOver(tint.copy(alpha = 0.16f), SearchColors.Tile),
+                blendOver(tint.copy(alpha = 0.55f), tileSurface),
+                blendOver(tint.copy(alpha = 0.16f), tileSurface),
             )
         )
     }

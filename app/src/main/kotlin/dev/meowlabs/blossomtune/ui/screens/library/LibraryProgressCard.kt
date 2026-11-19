@@ -179,6 +179,7 @@ internal fun TransferRing(state: TransferState, progress: Float, modifier: Modif
         animationSpec = tween(300),
         label = "transferRingSweep",
     )
+    val failedInk = SearchColors.Secondary
     Canvas(modifier = modifier.size(22.dp)) {
         val stroke = 2.6.dp.toPx()
         val inset = stroke / 2f
@@ -211,7 +212,7 @@ internal fun TransferRing(state: TransferState, progress: Float, modifier: Modif
                 style = mark,
             )
             TransferState.Failed -> {
-                val color = SearchColors.Secondary
+                val color = failedInk
                 drawLine(color, Offset(w * 0.36f, w * 0.36f), Offset(w * 0.64f, w * 0.64f), mark.width, StrokeCap.Round)
                 drawLine(color, Offset(w * 0.64f, w * 0.36f), Offset(w * 0.36f, w * 0.64f), mark.width, StrokeCap.Round)
             }

@@ -61,6 +61,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -180,6 +181,8 @@ import dev.meowlabs.blossomtune.ui.screens.update.UpdateHeadline
 import dev.meowlabs.blossomtune.ui.screens.update.rememberUpdateState
 import dev.meowlabs.blossomtune.ui.screens.update.showAboutSheet
 import dev.meowlabs.blossomtune.ui.screens.update.showUpdateSheet
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.BlossomSurfaces
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
 import dev.meowlabs.blossomtune.utils.rememberPreference
@@ -230,7 +233,8 @@ private object BlossomTuneGreeting {
 /** Where the header is in its pull-down / scratch / recap life. */
 private enum class HeaderStage { Collapsed, Pulling, Expanding, Expanded, Scanning, Invalid, Story }
 
-private val PageCard = Color(0xFF0F0F0F)
+private val PageCard: Color
+    @Composable @ReadOnlyComposable get() = BlossomSurfaces.sheet
 
 @Composable
 fun ProfileScreen(navController: NavController) {
@@ -448,11 +452,11 @@ fun ProfileScreen(navController: NavController) {
     val bottomBarInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
 
     // the BlossomTune page, and over it the profile page when the card has been tapped
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Box(modifier = Modifier.fillMaxSize().background(BlossomSurfaces.page)) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(BlossomSurfaces.page)
                 .onGloballyPositioned { rootOnScreen = it.positionOnScreen() }
                 .pointerInput(Unit) {
                     // a new touch is "in the header" only if the header itself says so (it sees it next)
@@ -705,7 +709,7 @@ fun ProfileScreen(navController: NavController) {
                             Icon(
                                 painter = painterResource(R.drawable.expand_more),
                                 contentDescription = stringResource(R.string.profile_pull_down_cd),
-                                tint = Color.White.copy(alpha = 0.35f),
+                                tint = BlossomInk.Muted,
                                 modifier = Modifier
                                     .size(30.dp)
                                     .graphicsLayer {
@@ -719,7 +723,7 @@ fun ProfileScreen(navController: NavController) {
                             if (recapWaiting) {
                                 Text(
                                     text = if (landscape) stringResource(R.string.recap_tap_hint) else stringResource(R.string.profile_swipe_down_hint),
-                                    style = MonoSmall.copy(color = Color.White.copy(alpha = 0.6f)),
+                                    style = MonoSmall.copy(color = BlossomInk.Muted),
                                     maxLines = 1,
                                     modifier = Modifier.graphicsLayer {
                                         val w = hintWords.value
@@ -755,12 +759,12 @@ fun ProfileScreen(navController: NavController) {
                             if (invalid) {
                                 Text(
                                     text = (recap as? RecapAvailability.NotYet)?.comeBack.orEmpty(),
-                                    style = PageTitle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, color = Color.White.copy(alpha = 0.6f)),
+                                    style = PageTitle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, color = BlossomInk.Muted),
                                     modifier = Modifier.padding(top = 6.dp),
                                 )
                                 Text(
                                     text = stringResource(R.string.profile_swipe_up_to_close),
-                                    style = MonoSmall.copy(color = Color.White.copy(alpha = 0.35f)),
+                                    style = MonoSmall.copy(color = BlossomInk.Muted),
                                     modifier = Modifier.padding(top = 26.dp),
                                 )
                             }
@@ -859,7 +863,7 @@ fun ProfileScreen(navController: NavController) {
             Icon(
                 painter = painterResource(R.drawable.ic_blossomtune_mark),
                 contentDescription = "BlossomTune",
-                tint = Color.White,
+                tint = BlossomInk.Primary,
                 modifier = Modifier
                     .padding(start = HomeContentInset, top = statusBarTop + TopBarLogoTop)
                     .size(width = 31.dp, height = 34.dp)
@@ -1010,7 +1014,7 @@ private val PageTitle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 23.sp,
     letterSpacing = (-0.6).sp,
-    color = Color.White,
+    color = BlossomInk.Primary,
 )
 
 private val MonoSmall = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)
@@ -1044,23 +1048,23 @@ private fun ListeningTimeCard(totalMs: Long, onViewStats: () -> Unit) {
                         .padding(horizontal = (14 * k).dp)
                         .width(1.dp)
                         .height((34 * k).dp)
-                        .background(Color.White.copy(alpha = 0.4f)),
+                        .background(BlossomInk.Divider),
                 )
                 TimeValue((totalMinutes % 60).toString(), stringResource(R.string.profile_unit_minute_short), k)
                 Spacer(Modifier.width(10.dp))
                 Text(
                     stringResource(R.string.profile_total_listening_time),
-                    style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 18.sp, color = Color(0xFF8A8A8A), textAlign = TextAlign.End),
+                    style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 18.sp, color = BlossomInk.Muted, textAlign = TextAlign.End),
                     modifier = Modifier.weight(1f),
                 )
             }
         }
         Spacer(Modifier.height(14.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF474747)))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(BlossomInk.Divider))
         Spacer(Modifier.height(12.dp))
         Text(
             stringResource(R.string.profile_view_stats),
-            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF8A8A8A)),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = BlossomInk.Muted),
         )
     }
 }
@@ -1073,12 +1077,12 @@ private fun TimeValue(value: String, unit: String, k: Float) {
             fontSize = figureSp(44f * k),
             fontWeight = FontWeight.Bold,
             fontFamily = InterFontFamily,
-            color = Color.White,
+            color = BlossomInk.Primary,
             letterSpacing = (-2).sp,
         )
         Text(
             unit,
-            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(18f * k), color = Color.White),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(18f * k), color = BlossomInk.Primary),
             modifier = Modifier.padding(start = 1.dp, bottom = (6 * k).dp),
         )
     }
@@ -1102,11 +1106,11 @@ private fun VersionCard(
                 .padding(CardPadding),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.profile_version_about_app), style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF9A9A9A)))
+                Text(stringResource(R.string.profile_version_about_app), style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = BlossomInk.Muted))
                 Text(
                     // "7.1.1 build#1093" -> "7.1.1"
                     BuildConfig.VERSION_NAME.substringBefore(' '),
-                    style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(44f * k), letterSpacing = (-2).sp, color = Color.White),
+                    style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = figureSp(44f * k), letterSpacing = (-2).sp, color = BlossomInk.Primary),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1150,7 +1154,7 @@ private fun VersionCapsule(update: Boolean, onAbout: () -> Unit) {
                 scaleY = pop.value
             }
             .clip(CircleShape)
-            .background(Color(0xFF4D4D4D))
+            .background(BlossomInk.Muted)
             .clickable(onClick = onAbout)
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
@@ -1180,7 +1184,7 @@ private fun VersionCapsule(update: Boolean, onAbout: () -> Unit) {
         ) { label ->
             Text(
                 label,
-                style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White),
+                style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = BlossomInk.Primary),
                 maxLines = 1,
                 softWrap = false,
             )
@@ -1222,7 +1226,7 @@ private fun DeveloperCard(onClick: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Text(
             stringResource(R.string.profile_meet_dev_contributors),
-            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = (-0.6).sp, color = Color(0xFF9A9A9A)),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = (-0.6).sp, color = BlossomInk.Muted),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -1249,12 +1253,12 @@ private fun DiscordCard(onClick: () -> Unit) {
             modifier = Modifier
                 .size(face)
                 .clip(CircleShape)
-                .background(Color.White),
+                .background(BlossomInk.Primary),
         )
         Spacer(Modifier.width(12.dp))
         Text(
             stringResource(R.string.profile_join_discord),
-            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = (-0.6).sp, color = Color.White),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = (-0.6).sp, color = BlossomInk.Primary),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
