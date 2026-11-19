@@ -1,7 +1,7 @@
-package com.mochyy.mochymusic.crossmix
+package dev.meowlabs.blossomtune.crossmix
 
-import com.mochyy.mochymusic.constants.CrossmixLength
-import com.mochyy.mochymusic.lyrics.LyricsUtils
+import dev.meowlabs.blossomtune.constants.CrossmixLength
+import dev.meowlabs.blossomtune.lyrics.LyricsUtils
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.max
