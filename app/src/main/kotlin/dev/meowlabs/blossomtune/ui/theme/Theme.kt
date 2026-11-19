@@ -11,6 +11,9 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
@@ -140,6 +143,83 @@ val LightPalette: ColorScheme = lightColorScheme(
 )
 
 /**
+ * Permukaan sheet dan bilah kaca — yang di basis Mochy masih hardcode gelap
+ * (`MenuSurface` `#0B0B0C`, `MenuRowSurface` `#161619`, `GlassChromeColor`
+ * `#131313`).
+ *
+ * "Kaca gelap" di atas halaman es jadi kotak hitam, dan tinta putih di atasnya
+ * hilang. Jadi permukaannya ikut mode; nilai gelap diambil apa adanya dari basis
+ * supaya mode gelap tidak berubah sama sekali.
+ */
+data class BlossomSurfaces(
+    val chrome: Color,   // bilah kaca: bottom bar, mini player, toolbar
+    val sheet: Color,    // latar sheet
+    val row: Color,      // baris/kartu di dalam sheet
+    val page: Color,     // latar layar yang melukis sendiri
+)
+
+val DarkSurfaces = BlossomSurfaces(
+    chrome = Color(0xFF131313),
+    sheet = Color(0xFF0B0B0C),
+    row = Color(0xFF161619),
+    page = BlossomColors.Black,
+)
+
+val LightSurfaces = BlossomSurfaces(
+    chrome = Color(0xFFFFFFFF),   // kaca putih di atas halaman es
+    sheet = Color(0xFFFFFFFF),    // kartu putih
+    row = Color(0xFFF4FAFF),      // baris = es muda
+    page = BlossomColors.Ice,
+)
+
+val LocalBlossomSurfaces = staticCompositionLocalOf { DarkSurfaces }
+
+/** Permukaan untuk mode yang sedang aktif. Harus dibaca di scope `@Composable`. */
+val BlossomSurface: BlossomSurfaces
+    @Composable @ReadOnlyComposable get() = LocalBlossomSurfaces.current
+
+/**
+ * Tinta di atas [BlossomSurfaces.sheet] dan `.row`.
+ *
+ * Di basis Mochy semua layar sheet menulis `Color.White` langsung karena sheet-nya
+ * kaca gelap hardcode. Begitu sheet ikut mode, tinta putih itu hilang di sheet
+ * putih — jadi tintanya dipusatkan di sini, satu tempat, bukan tersebar.
+ */
+data class BlossomInkSet(
+    val primary: Color,
+    val muted: Color,
+    val divider: Color,
+    val chip: Color,
+    val onChip: Color,
+)
+
+val DarkInk = BlossomInkSet(
+    primary = BlossomColors.White,
+    muted = Color(0xFFA7AFBF),
+    divider = BlossomColors.White.copy(alpha = 0.08f),
+    chip = BlossomColors.White,
+    onChip = BlossomColors.Black,
+)
+
+val LightInk = BlossomInkSet(
+    primary = BlossomColors.Ink,
+    muted = BlossomColors.InkMuted,
+    divider = BlossomColors.Ink.copy(alpha = 0.08f),
+    chip = BlossomColors.Ink,
+    onChip = BlossomColors.White,
+)
+
+val LocalBlossomInk = staticCompositionLocalOf { DarkInk }
+
+object BlossomInk {
+    val Primary: Color @Composable @ReadOnlyComposable get() = LocalBlossomInk.current.primary
+    val Muted: Color @Composable @ReadOnlyComposable get() = LocalBlossomInk.current.muted
+    val Divider: Color @Composable @ReadOnlyComposable get() = LocalBlossomInk.current.divider
+    val Chip: Color @Composable @ReadOnlyComposable get() = LocalBlossomInk.current.chip
+    val OnChip: Color @Composable @ReadOnlyComposable get() = LocalBlossomInk.current.onChip
+}
+
+/**
  * BlossomTune masih dirender gelap di basis Mochy.
  *
  * Di 0.5.x switch ini `false` karena seluruh sheet dan bilah kaca sudah ikut mode
@@ -180,8 +260,13 @@ fun BlossomTuneTheme(
     ) {
         ProvideTextStyle(
             value = typography.bodyLarge,
-            content = content
-        )
+        ) {
+            CompositionLocalProvider(
+                LocalBlossomSurfaces provides if (darkTheme) DarkSurfaces else LightSurfaces,
+                LocalBlossomInk provides if (darkTheme) DarkInk else LightInk,
+                content = content,
+            )
+        }
     }
 }
 

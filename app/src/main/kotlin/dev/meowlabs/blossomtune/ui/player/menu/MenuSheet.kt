@@ -60,14 +60,20 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
-val MenuSurface = Color(0xFF0B0B0C)
-val MenuRowSurface = Color(0xFF161619)
+/** Latar sheet — ikut mode lewat [BlossomSurface]; gelap = `#0B0B0C` seperti basis. */
+val MenuSurface: Color
+    @Composable @ReadOnlyComposable get() = BlossomSurface.sheet
+val MenuRowSurface: Color
+    @Composable @ReadOnlyComposable get() = BlossomSurface.row
 
 internal val MenuEasing = CubicBezierEasing(0.57f, 0.53f, 0f, 1f)
 
