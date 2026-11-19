@@ -174,7 +174,7 @@ fun HomeSectionTitle(
                 Text(
                     text = label,
                     style = HomeCardSubtitleStyle,
-                    color = BlossomInk.Primary.copy(alpha = 0.45f),
+                    color = BlossomInk.Muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -274,7 +274,7 @@ fun HomeCoverCard(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle,
-                    color = BlossomInk.Primary.copy(alpha = 0.5f),
+                    color = BlossomInk.Muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -480,7 +480,7 @@ fun HomeTrackRow(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle,
-                    color = BlossomInk.Primary.copy(alpha = 0.5f),
+                    color = BlossomInk.Muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -610,7 +610,7 @@ fun HomeHopInCard(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle.copy(fontSize = 11.sp, lineHeight = 13.sp),
-                    color = BlossomInk.Primary.copy(alpha = 0.5f),
+                    color = BlossomInk.Muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
