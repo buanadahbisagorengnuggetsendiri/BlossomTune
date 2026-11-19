@@ -67,7 +67,9 @@ object BlossomColors {
     val Paper = Color(0xFFFFFFFF)        // kartu
     val Line = Color(0xFFCFE3F7)
     val LineSoft = Color(0xFFE3F0FE)
-    val Error = Color(0xFFDC2626)        // destructive (mode gelap)
+    val Error = Color(0xFFDC2626)        // destructive di atas permukaan terang
+    val ErrorOnDark = Color(0xFFFFB4AB)  // #DC2626 cuma 4.35 di atas hitam
+    val OnErrorOnDark = Color(0xFF690005)
     val ErrorPale = Color(0xFFFEE2E2)
     val ErrorInk = Color(0xFF7F1D1D)
     val InverseSurface = Color(0xFF0E1B2C)
@@ -93,8 +95,8 @@ val DarkPalette: ColorScheme = darkColorScheme(
     surfaceVariant = BlossomColors.NightCard,
     onSurfaceVariant = BlossomColors.OnNightCard,
     surfaceTint = BlossomColors.Black,
-    error = BlossomColors.Error,
-    onError = BlossomColors.White
+    error = BlossomColors.ErrorOnDark,
+    onError = BlossomColors.OnErrorOnDark
 )
 
 val LightPalette: ColorScheme = lightColorScheme(
