@@ -7,6 +7,7 @@
 
 package dev.meowlabs.blossomtune.ui.screens.settings
 
+import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import dev.meowlabs.blossomtune.ui.component.BlurEffectCache
 import dev.meowlabs.blossomtune.ui.component.rememberDeviceTilt
 import androidx.activity.compose.BackHandler
@@ -182,7 +183,6 @@ import dev.meowlabs.blossomtune.ui.screens.update.rememberUpdateState
 import dev.meowlabs.blossomtune.ui.screens.update.showAboutSheet
 import dev.meowlabs.blossomtune.ui.screens.update.showUpdateSheet
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
-import dev.meowlabs.blossomtune.ui.theme.BlossomSurfaces
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
 import dev.meowlabs.blossomtune.utils.rememberPreference
@@ -234,7 +234,7 @@ private object BlossomTuneGreeting {
 private enum class HeaderStage { Collapsed, Pulling, Expanding, Expanded, Scanning, Invalid, Story }
 
 private val PageCard: Color
-    @Composable @ReadOnlyComposable get() = BlossomSurfaces.sheet
+    @Composable @ReadOnlyComposable get() = BlossomSurface.sheet
 
 @Composable
 fun ProfileScreen(navController: NavController) {
@@ -452,11 +452,11 @@ fun ProfileScreen(navController: NavController) {
     val bottomBarInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
 
     // the BlossomTune page, and over it the profile page when the card has been tapped
-    Box(modifier = Modifier.fillMaxSize().background(BlossomSurfaces.page)) {
+    Box(modifier = Modifier.fillMaxSize().background(BlossomSurface.page)) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BlossomSurfaces.page)
+                .background(BlossomSurface.page)
                 .onGloballyPositioned { rootOnScreen = it.positionOnScreen() }
                 .pointerInput(Unit) {
                     // a new touch is "in the header" only if the header itself says so (it sees it next)
@@ -1009,7 +1009,8 @@ private fun Modifier.clipBottomRounded(radius: () -> Float): Modifier = drawWith
     }
 }
 
-private val PageTitle = TextStyle(
+private val PageTitle: TextStyle
+    @Composable @ReadOnlyComposable get() = TextStyle(
     fontFamily = InterFontFamily,
     fontWeight = FontWeight.Bold,
     fontSize = 23.sp,

@@ -2,6 +2,9 @@
 
 package dev.meowlabs.blossomtune.ui.screens.settings
 
+import androidx.compose.runtime.ReadOnlyComposable
+import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.component.navigateToTab
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -265,13 +268,16 @@ private val SettingsIndex = listOf(
     SettingsEntry("Force playback", "Experimental", "experimental_settings", "fallback skip error stream failed youtube"),
 )
 
-internal val BubbleColor = Color(0xFF1C1C1E)
-private val SelectedBubbleColor = Color(0xFF3A3A3E)
+internal val BubbleColor: Color
+    @Composable @ReadOnlyComposable get() = BlossomSurface.sheet
+private val SelectedBubbleColor: Color
+    @Composable @ReadOnlyComposable get() = BlossomSurface.row
 
 // the header holds the blossomtune mark with the big "Settings" under it, taller than search's title-only header
 private val SettingsTitleBlockHeight = 88.dp
 private val SettingsMarkSize = 32.dp
-internal val IconBgColor = Color(0xFF333338)
+internal val IconBgColor: Color
+    @Composable @ReadOnlyComposable get() = BlossomSurface.row
 
 @Composable
 fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? = null) {
@@ -337,7 +343,7 @@ fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(BlossomSurface.page),
     ) {
         Box(
             modifier = Modifier
@@ -369,7 +375,7 @@ fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? 
                             text = stringResource(R.string.settings_nothing_matches, query.text),
                             fontFamily = InterFontFamily,
                             fontSize = 15.sp,
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = BlossomInk.Primary.copy(alpha = 0.6f),
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp)
                         )
                     } else {
@@ -396,7 +402,7 @@ fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? 
                                         Icon(
                                             painter = painterResource(R.drawable.settings),
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = BlossomInk.Primary,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -407,13 +413,13 @@ fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? 
                                             fontFamily = InterFontFamily,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 16.sp,
-                                            color = Color.White
+                                            color = BlossomInk.Primary
                                         )
                                         Text(
                                             text = (entry.pageRes ?: LocalizedSettingsPages[entry.page])?.let { stringResource(it) } ?: entry.page,
                                             fontFamily = InterFontFamily,
                                             fontSize = 12.sp,
-                                            color = Color.White.copy(alpha = 0.55f)
+                                            color = BlossomInk.Primary.copy(alpha = 0.55f)
                                         )
                                     }
                                 }
@@ -440,7 +446,7 @@ fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? 
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp)
                             .height(0.8.dp)
-                            .background(Color.White.copy(alpha = 0.1f))
+                            .background(BlossomInk.Primary.copy(alpha = 0.1f))
                     )
 
                     Spacer(modifier = Modifier.height(18.dp))
@@ -545,7 +551,7 @@ fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? 
                     Icon(
                         painter = painterResource(R.drawable.ic_blossomtune_mark),
                         contentDescription = "BlossomTune",
-                        tint = Color.White,
+                        tint = BlossomInk.Primary,
                         modifier = Modifier.size(SettingsMarkSize),
                     )
                     Text(
@@ -554,7 +560,7 @@ fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? 
                         fontWeight = FontWeight.Bold,
                         fontSize = 34.sp,
                         lineHeight = 40.sp,
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                         maxLines = 1,
                     )
                 }
@@ -586,7 +592,7 @@ fun BlossomTuneSettingsScreen(navController: NavController, pane: SettingsPane? 
                         Icon(
                             painter = painterResource(R.drawable.close),
                             contentDescription = stringResource(R.string.settings_clear_search),
-                            tint = Color.White.copy(alpha = 0.7f),
+                            tint = BlossomInk.Primary.copy(alpha = 0.7f),
                             modifier = Modifier
                                 .size(20.dp)
                                 .clip(CircleShape)
@@ -633,7 +639,7 @@ internal fun CategoryBubble(
                 Icon(
                     painter = painterResource(iconRes),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -643,7 +649,7 @@ internal fun CategoryBubble(
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 17.sp,
-                color = Color.White,
+                color = BlossomInk.Primary,
             )
         }
     }

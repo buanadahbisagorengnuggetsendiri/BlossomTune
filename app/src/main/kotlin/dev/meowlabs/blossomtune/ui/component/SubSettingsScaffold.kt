@@ -2,6 +2,8 @@
 
 package dev.meowlabs.blossomtune.ui.component
 
+import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
@@ -216,14 +218,14 @@ fun SubSettingsScaffold(
                     .padding(top = HeaderTopPadding)
                     .size(BackButtonSize)
                     .clip(CircleShape)
-                    .background(Color(0xFF2C2C2E))
+                    .background(BlossomSurface.row)
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
                     contentDescription = stringResource(R.string.back_content_desc),
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -234,7 +236,7 @@ fun SubSettingsScaffold(
                     text = backLabel,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     maxLines = 1,
                     modifier = Modifier
                         .padding(top = HeaderTopPadding, start = BackButtonSize + 10.dp)
@@ -315,7 +317,7 @@ fun SubSettingsScaffold(
                         shape = RoundedCornerShape(lerpDp(26.dp, BackButtonSize / 2, collapse.value))
                         clip = true
                     }
-                    .background(Color(0xFF2C2C2E))
+                    .background(BlossomSurface.row)
             ) {
                 if (!iconTappable && !searchOverlayVisible) {
                     Box(
@@ -349,7 +351,7 @@ fun SubSettingsScaffold(
                             rememberAsyncImagePainter(model = R.raw.search)
                         },
                         contentDescription = stringResource(if (searchOverlayVisible) R.string.pc_hide_search else R.string.search),
-                        tint = Color.White,
+                        tint = BlossomInk.Primary,
                         modifier = Modifier.size(if (searchOverlayVisible) 18.dp else 16.dp)
                     )
                 }
@@ -387,7 +389,7 @@ fun SubSettingsSearchBar(
             .fillMaxWidth()
             .height(52.dp)
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
-            .background(Color(0xFF1C1C1E))
+            .background(BlossomSurface.sheet)
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -402,10 +404,10 @@ fun SubSettingsSearchBar(
                 textStyle = androidx.compose.ui.text.TextStyle(
                     fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
                     fontSize = 16.sp,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontWeight = FontWeight.Normal
                 ),
-                cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(BlossomInk.Primary),
                 modifier = Modifier.weight(1f),
                 decorationBox = { innerTextField ->
                     if (query.isEmpty()) {
@@ -413,7 +415,7 @@ fun SubSettingsSearchBar(
                             text = stringResource(R.string.settings_search_placeholder),
                             fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
                             fontSize = 16.sp,
-                            color = Color.White.copy(alpha = 0.5f)
+                            color = BlossomInk.Primary.copy(alpha = 0.5f)
                         )
                     }
                     innerTextField()
@@ -425,7 +427,7 @@ fun SubSettingsSearchBar(
                 Icon(
                     painter = painterResource(R.drawable.close),
                     contentDescription = stringResource(R.string.settings_clear_search),
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = BlossomInk.Primary.copy(alpha = 0.7f),
                     modifier = Modifier
                         .size(20.dp)
                         .clip(CircleShape)

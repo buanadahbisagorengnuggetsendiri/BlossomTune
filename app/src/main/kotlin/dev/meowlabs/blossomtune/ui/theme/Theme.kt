@@ -180,7 +180,7 @@ val BlossomSurface: BlossomSurfaces
     @Composable @ReadOnlyComposable get() = LocalBlossomSurfaces.current
 
 /**
- * Tinta di atas [BlossomSurfaces.sheet] dan `.row`.
+ * Tinta di atas [BlossomSurface.sheet] dan `.row`.
  *
  * Di basis Mochy semua layar sheet menulis `Color.White` langsung karena sheet-nya
  * kaca gelap hardcode. Begitu sheet ikut mode, tinta putih itu hilang di sheet

@@ -1,5 +1,7 @@
 package dev.meowlabs.blossomtune.ui.screens.settings
 
+import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -105,7 +107,7 @@ fun SettingsListPane(navController: NavController, selectedRoute: String?, modif
                 .align(Alignment.CenterEnd)
                 .width(0.8.dp)
                 .fillMaxHeight()
-                .background(Color.White.copy(alpha = 0.1f)),
+                .background(BlossomInk.Primary.copy(alpha = 0.1f)),
         )
     }
 }
@@ -116,7 +118,7 @@ fun SettingsPanePlaceholder() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(BlossomSurface.page),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -127,7 +129,7 @@ fun SettingsPanePlaceholder() {
             Icon(
                 painter = painterResource(R.drawable.ic_blossomtune_mark),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.35f),
+                tint = BlossomInk.Primary.copy(alpha = 0.35f),
                 modifier = Modifier.size(40.dp),
             )
             Text(
@@ -135,7 +137,7 @@ fun SettingsPanePlaceholder() {
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.Medium,
                 fontSize = 15.sp,
-                color = Color.White.copy(alpha = 0.5f),
+                color = BlossomInk.Primary.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center,
             )
         }
