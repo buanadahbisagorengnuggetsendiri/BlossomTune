@@ -1183,7 +1183,7 @@ fun MorphingCover(
                 }
         ) {
             MiniPlayerButton(onClick = { playerConnection?.togglePlayPause() }) {
-                val tint = MaterialTheme.colorScheme.onSurface
+                val tint = Color.White
                 // replay pops in for a finished song; play and pause swap with the flagship's squash
                 AnimatedContent(
                     targetState = playbackState == Player.STATE_ENDED,
@@ -1234,7 +1234,7 @@ fun MorphingCover(
                     }
                 },
             ) {
-                AnimatedSkipGlyph(cycle = skipCycle, backwards = false, color = MaterialTheme.colorScheme.onSurface, width = MiniSkipWidth)
+                AnimatedSkipGlyph(cycle = skipCycle, backwards = false, color = Color.White, width = MiniSkipWidth)
             }
         }
     }
@@ -1269,7 +1269,7 @@ private fun MiniPreviousButton(progressProvider: () -> Float, endpointsPx: Morph
                 playerConnection?.seekToPrevious()
             },
         ) {
-            AnimatedSkipGlyph(cycle = cycle, backwards = true, color = MaterialTheme.colorScheme.onSurface, width = MiniSkipWidth)
+            AnimatedSkipGlyph(cycle = cycle, backwards = true, color = Color.White, width = MiniSkipWidth)
         }
     }
 }
@@ -1383,7 +1383,7 @@ private fun MiniSongLines(title: String, artist: String, album: String, modifier
             text = title,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = Color.White,
             maxLines = 1,
             softWrap = false,
         )
@@ -1394,7 +1394,7 @@ private fun MiniSongLines(title: String, artist: String, album: String, modifier
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.72f),
                 maxLines = 1,
                 softWrap = false,
             )

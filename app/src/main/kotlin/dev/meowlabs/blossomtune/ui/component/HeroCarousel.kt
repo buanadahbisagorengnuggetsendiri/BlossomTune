@@ -212,7 +212,7 @@ private const val HeroAdvanceMillis = 5500L
 private val HeroPillContent = Color(0xFF2F2F2F)
 private val HeroPillFill = Color.White.copy(alpha = 0.64f)
 private val HeroLabelColor: Color
-    @Composable @ReadOnlyComposable get() = BlossomInk.Muted
+    @Composable @ReadOnlyComposable get() = Color.White.copy(alpha = 0.69f)
 
 // once the hero starts scrolling away its video holds still and the carousel stops turning, so
 // the scroll's blur only ever sees a still frame
@@ -1191,7 +1191,7 @@ private fun HeroText(
             Text(
                 text = text,
                 style = HomeTitleStyle,
-                color = BlossomInk.Primary,
+                color = Color.White,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1369,7 +1369,7 @@ private fun QuietHero(modifier: Modifier = Modifier) {
                 .align(Alignment.BottomStart)
                 .padding(start = HomeContentInset, end = HomeContentInset, bottom = 64.dp)
         ) {
-            Text(text = stringResource(R.string.pc_hero_nothing_yet), style = HomeLabelStyle, color = HeroLabelColor, maxLines = 1)
+            Text(text = stringResource(R.string.pc_hero_nothing_yet), style = HomeLabelStyle, color = BlossomInk.Muted, maxLines = 1)
             Text(
                 text = stringResource(R.string.pc_hero_play_something),
                 style = HomeTitleStyle,
