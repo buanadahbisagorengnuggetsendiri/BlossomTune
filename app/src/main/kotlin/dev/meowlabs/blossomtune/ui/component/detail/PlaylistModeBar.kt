@@ -56,6 +56,7 @@ import dev.meowlabs.blossomtune.ui.component.GlassState
 import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.utils.resize
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /**
  * what the playlist top bar shows instead of back and the dots while a song list is in a mode.
@@ -151,7 +152,7 @@ private fun SelectTitle(count: Int, modifier: Modifier = Modifier) {
         Text(
             text = if (shown == 0) stringResource(R.string.pc_mode_select) else stringResource(R.string.pc_mode_n_selected, shown),
             style = PlaylistTitleStyle,
-            color = Color.White,
+            color = BlossomInk.Primary,
             maxLines = 1,
         )
     }
@@ -182,7 +183,7 @@ private fun SelectAllPill(allSelected: Boolean, onClick: () -> Unit) {
             Text(
                 text = stringResource(if (all) R.string.pc_mode_deselect_all else R.string.pc_mode_select_all),
                 style = PillLabelStyle.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 1,
             )
         }
@@ -233,7 +234,7 @@ private fun BoxScope.EditOrderGlass(glassState: GlassState, tint: State<Color>) 
     GlassPillBackground(
         state = glassState,
         blurRadius = { 28f },
-        tint = Color.White.copy(alpha = 0.12f),
+        tint = BlossomInk.Primary.copy(alpha = 0.12f),
         foundationColor = tint.value,
         shape = ModePillShape,
         modifier = Modifier.matchParentSize(),
@@ -276,7 +277,7 @@ private fun EditOrderPill(
             Text(
                 text = stringResource(R.string.pc_mode_edit_order),
                 style = PillLabelStyle,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 1,
                 modifier = Modifier.padding(start = 9.dp),
             )
@@ -307,12 +308,12 @@ fun PlaylistSelectTick(checked: Boolean, modifier: Modifier = Modifier) {
                     val p = progress.coerceIn(0f, 1f)
                     val ring = 1.5.dp.toPx()
                     drawCircle(
-                        color = Color.White.copy(alpha = 0.55f * (1f - p)),
+                        color = BlossomInk.Primary.copy(alpha = 0.55f * (1f - p)),
                         radius = (size.minDimension - ring) / 2f,
                         style = Stroke(ring),
                     )
                     // the spring overshoots, so the disc swells a hair past its size and settles
-                    drawCircle(color = Color.White, radius = size.minDimension / 2f * progress.coerceAtLeast(0f))
+                    drawCircle(color = BlossomInk.Primary, radius = size.minDimension / 2f * progress.coerceAtLeast(0f))
                 },
         ) {
             Icon(
@@ -338,7 +339,7 @@ internal fun Modifier.selectedRowBand(progress: () -> Float): Modifier = drawBeh
     if (p <= 0f) return@drawBehind
     val inset = 14.dp.toPx()
     drawRoundRect(
-        color = Color.White.copy(alpha = 0.08f * p.coerceAtMost(1f)),
+        color = BlossomInk.Primary.copy(alpha = 0.08f * p.coerceAtMost(1f)),
         topLeft = Offset(inset, 0f),
         size = Size(size.width - inset * 2f, size.height),
         cornerRadius = CornerRadius(14.dp.toPx()),

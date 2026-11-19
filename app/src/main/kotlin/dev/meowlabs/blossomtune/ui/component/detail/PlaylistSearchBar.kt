@@ -44,6 +44,7 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val BarHeight = 44.dp
 private val BarFill = Color(0xFF3A3D42).copy(alpha = 0.78f)
@@ -53,7 +54,7 @@ private val FieldText = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 15.sp,
     letterSpacing = (-0.2).sp,
-    color = Color.White,
+    color = BlossomInk.Primary,
 )
 
 // the list's own song search across the top of a playlist or album: the field in a pill and a round close beside it, the cover softened behind
@@ -122,7 +123,7 @@ fun PlaylistSearchBar(
             Icon(
                 painter = painterResource(R.drawable.close),
                 contentDescription = stringResource(R.string.close_search),
-                tint = Color.White,
+                tint = BlossomInk.Primary,
                 modifier = Modifier.size(20.dp),
             )
         }

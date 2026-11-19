@@ -24,6 +24,7 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.modules.skin.ActiveSkin
 import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleOptions
 import dev.meowlabs.blossomtune.viewmodels.ModulesViewModel
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun SkinCustomiseSheet(onDismiss: () -> Unit) {
@@ -47,14 +48,14 @@ fun SkinCustomiseSheet(onDismiss: () -> Unit) {
         ) {
             Text(
                 text = customise?.title ?: stringResource(R.string.skin_customise_title),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 text = if (entry == null || fields.isEmpty()) stringResource(R.string.skin_customise_empty) else stringResource(R.string.skin_customise_body, name),
-                color = Color.White.copy(alpha = 0.6f),
+                color = BlossomInk.Primary.copy(alpha = 0.6f),
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
             )

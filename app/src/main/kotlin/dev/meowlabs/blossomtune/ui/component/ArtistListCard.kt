@@ -37,6 +37,7 @@ import coil3.compose.AsyncImage
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.models.ArtistGroup
 import com.music.innertube.models.YTItem
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun ArtistListCard(
@@ -97,7 +98,7 @@ fun ArtistListCard(
                         text = group.artistName,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         fontSize = 24.sp,
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

@@ -40,6 +40,7 @@ import dev.meowlabs.blossomtune.ui.screens.search.searchRoute
 import dev.meowlabs.blossomtune.ui.screens.settings.devspace.openDevUrl
 import dev.meowlabs.blossomtune.ui.screens.settings.modules.modulePageRoute
 import java.net.URLEncoder
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 internal fun ModuleMenuRows(song: MediaMetadata?, onDismiss: () -> Unit, onOpenRoute: ((String) -> Unit)?, onCustomise: (() -> Unit)? = null) {
@@ -94,11 +95,11 @@ private fun ModuleMenuRow(title: String, picture: Any?, enabled: Boolean, onClic
                 alpha = alpha,
             )
         } else {
-            SheetIcon(R.drawable.puzzle, tint = Color.White.copy(alpha = alpha))
+            SheetIcon(R.drawable.puzzle, tint = BlossomInk.Primary.copy(alpha = alpha))
         }
         Spacer(Modifier.width(14.dp))
         Text(
-            title, color = Color.White.copy(alpha = alpha), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+            title, color = BlossomInk.Primary.copy(alpha = alpha), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
         )
     }

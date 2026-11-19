@@ -71,6 +71,7 @@ import dev.meowlabs.blossomtune.ui.screens.search.rememberScrollCollapseProgress
 import kotlin.math.PI
 import kotlin.math.sin
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val PagePadding = 20.dp
 private val BackButtonSize = 40.dp
@@ -223,7 +224,7 @@ fun SubSettingsScaffold(
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
                     contentDescription = stringResource(R.string.back_content_desc),
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -234,7 +235,7 @@ fun SubSettingsScaffold(
                     text = backLabel,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     maxLines = 1,
                     modifier = Modifier
                         .padding(top = HeaderTopPadding, start = BackButtonSize + 10.dp)
@@ -349,7 +350,7 @@ fun SubSettingsScaffold(
                             rememberAsyncImagePainter(model = R.raw.search)
                         },
                         contentDescription = stringResource(if (searchOverlayVisible) R.string.pc_hide_search else R.string.search),
-                        tint = Color.White,
+                        tint = BlossomInk.Primary,
                         modifier = Modifier.size(if (searchOverlayVisible) 18.dp else 16.dp)
                     )
                 }
@@ -402,7 +403,7 @@ fun SubSettingsSearchBar(
                 textStyle = androidx.compose.ui.text.TextStyle(
                     fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
                     fontSize = 16.sp,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontWeight = FontWeight.Normal
                 ),
                 cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White),
@@ -413,7 +414,7 @@ fun SubSettingsSearchBar(
                             text = stringResource(R.string.settings_search_placeholder),
                             fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
                             fontSize = 16.sp,
-                            color = Color.White.copy(alpha = 0.5f)
+                            color = BlossomInk.Primary.copy(alpha = 0.5f)
                         )
                     }
                     innerTextField()
@@ -425,7 +426,7 @@ fun SubSettingsSearchBar(
                 Icon(
                     painter = painterResource(R.drawable.close),
                     contentDescription = stringResource(R.string.settings_clear_search),
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = BlossomInk.Primary.copy(alpha = 0.7f),
                     modifier = Modifier
                         .size(20.dp)
                         .clip(CircleShape)

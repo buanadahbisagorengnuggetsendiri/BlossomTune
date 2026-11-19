@@ -53,6 +53,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -110,7 +111,7 @@ internal fun SheetTitle(text: String, modifier: Modifier = Modifier) {
         fontSize = 30.sp,
         lineHeight = 32.sp,
         letterSpacing = (-0.03).em,
-        color = Color.White,
+        color = BlossomInk.Primary,
         modifier = modifier.padding(start = 2.dp, top = 4.dp),
     )
 }
@@ -188,7 +189,7 @@ internal fun ToggleRow(
     ) {
         if (icon != null) {
             Box(Modifier.size(30.dp).clip(CircleShape).background(Faint), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = Color.White.copy(alpha = if (enabled) 1f else 0.4f), modifier = Modifier.size(16.dp))
+                Icon(icon, contentDescription = null, tint = BlossomInk.Primary.copy(alpha = if (enabled) 1f else 0.4f), modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(12.dp))
         }
@@ -198,7 +199,7 @@ internal fun ToggleRow(
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
+                color = BlossomInk.Primary.copy(alpha = if (enabled) 1f else 0.4f),
             )
             if (detail != null) {
                 Text(detail, fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 16.sp, color = Muted.copy(alpha = if (enabled) 0.6f else 0.3f))

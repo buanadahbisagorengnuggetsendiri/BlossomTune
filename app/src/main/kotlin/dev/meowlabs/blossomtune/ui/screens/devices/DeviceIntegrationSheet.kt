@@ -58,6 +58,7 @@ import dev.meowlabs.blossomtune.ui.component.PopupSheetState
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.delay
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // settings, the import page and the link's notification all open this; it isn't a page of its own any more
 const val DeviceIntegrationRoute = "device_integration"
@@ -175,7 +176,7 @@ private fun HeroCard() {
             fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp,
             lineHeight = 18.sp,
-            color = Color.White,
+            color = BlossomInk.Primary,
         )
     }
 }
@@ -199,7 +200,7 @@ private fun DeviceRow(
             .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(device.kind.icon, contentDescription = device.kind.label(), tint = Color.White, modifier = Modifier.size(24.dp))
+        Icon(device.kind.icon, contentDescription = device.kind.label(), tint = BlossomInk.Primary, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(
@@ -207,7 +208,7 @@ private fun DeviceRow(
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -242,7 +243,7 @@ private fun DeviceRow(
                 .clickable(onClick = onOpen),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.MoreHoriz, contentDescription = stringResource(R.string.devices_device_settings), tint = Color.White, modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.MoreHoriz, contentDescription = stringResource(R.string.devices_device_settings), tint = BlossomInk.Primary, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -283,14 +284,14 @@ private fun AddDevicesBox(full: Boolean, onClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(Icons.Rounded.Add, contentDescription = null, tint = Color.White.copy(alpha = if (full) 0.3f else 0.8f), modifier = Modifier.size(22.dp))
+        Icon(Icons.Rounded.Add, contentDescription = null, tint = BlossomInk.Primary.copy(alpha = if (full) 0.3f else 0.8f), modifier = Modifier.size(22.dp))
         Spacer(Modifier.height(4.dp))
         Text(
             stringResource(if (full) R.string.devices_full else R.string.devices_add_more),
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp,
-            color = Color.White.copy(alpha = if (full) 0.4f else 0.8f),
+            color = BlossomInk.Primary.copy(alpha = if (full) 0.4f else 0.8f),
         )
     }
 }

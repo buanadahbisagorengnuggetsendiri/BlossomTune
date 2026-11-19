@@ -56,6 +56,7 @@ import dev.meowlabs.blossomtune.lyrics.LyricsUtils
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** The slider and the typed value both stop here: 10 seconds either way, shown in ms. */
 private const val MaxOffsetMs = 10_000
@@ -121,7 +122,7 @@ fun LyricsOffsetSheet(onDismiss: () -> Unit) {
         ) {
             Text(
                 text = stringResource(R.string.ps_offset_title),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
             )
@@ -201,14 +202,14 @@ private fun AutoSyncStatus(state: LyricsAutoSync.State?, timed: Boolean, onUndo:
     }
     Text(
         text = text,
-        color = Color.White.copy(alpha = 0.6f),
+        color = BlossomInk.Primary.copy(alpha = 0.6f),
         fontSize = 13.sp,
         lineHeight = 18.sp,
     )
     if (state is LyricsAutoSync.State.Synced && state.previousOffsetMs != state.offsetMs) {
         Text(
             text = stringResource(R.string.undo),
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
@@ -256,7 +257,7 @@ private fun OffsetValueBox(
             onValueChange = onTextChange,
             singleLine = true,
             textStyle = TextStyle(
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 44.sp,
                 fontWeight = FontWeight.Bold,
             ),
@@ -270,7 +271,7 @@ private fun OffsetValueBox(
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = "ms",
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 6.dp),
@@ -282,7 +283,7 @@ private fun OffsetValueBox(
 private fun NudgeLabel(symbol: String, onClick: () -> Unit) {
     Text(
         text = symbol,
-        color = Color.White,
+        color = BlossomInk.Primary,
         fontSize = 26.sp,
         fontWeight = FontWeight.Bold,
         modifier = Modifier

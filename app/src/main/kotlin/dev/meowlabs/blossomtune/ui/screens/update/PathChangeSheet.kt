@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.component.PopupSheetHandleHeight
 import dev.meowlabs.blossomtune.ui.component.PopupSheetState
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // the concept's grey, a touch lighter than the version sheet under it
 private val PathSurface = Color(0xFF1F1F1F)
@@ -105,7 +106,7 @@ private fun PathChangeContent(toNightly: Boolean) {
                     lineHeight = 38.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-1.4).sp,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -123,7 +124,7 @@ private fun PathChangeContent(toNightly: Boolean) {
                 lineHeight = 38.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-1.4).sp,
-                color = Color.White,
+                color = BlossomInk.Primary,
             )
             Spacer(Modifier.height(14.dp))
             Text(

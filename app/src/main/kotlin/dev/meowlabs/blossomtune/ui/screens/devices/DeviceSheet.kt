@@ -47,6 +47,7 @@ import dev.meowlabs.blossomtune.ui.component.TopToaster
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // one paired device up close: what it is, whether it's around, and the switches for what this phone does with it
 fun PopupSheetState.showDeviceSheet(link: DevicesLink, deviceId: String) {
@@ -87,7 +88,7 @@ private fun ColumnScope.DeviceSheetContent(link: DevicesLink, deviceId: String, 
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
             letterSpacing = (-0.02).em,
-            color = Color.White,
+            color = BlossomInk.Primary,
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,

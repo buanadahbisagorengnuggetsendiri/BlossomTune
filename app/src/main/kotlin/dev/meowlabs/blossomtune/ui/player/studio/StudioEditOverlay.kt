@@ -98,6 +98,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 internal val PlayerBackgroundStyle.studioName: String
     @Composable get() = when (this) {
@@ -263,7 +264,7 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
                     contentDescription = stringResource(R.string.back_button_desc),
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(16.dp).offset(x = 2.dp),
                 )
             }
@@ -277,7 +278,7 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
                     },
                     label = "studioTitle",
                 ) { text ->
-                    Text(text, color = Color.White, style = inter(StudioType.Title))
+                    Text(text, color = BlossomInk.Primary, style = inter(StudioType.Title))
                 }
                 // what the first page's tiles are for; it goes as a tile opens
                 val onTiles = studio.stage == StudioStage.EDIT
@@ -286,7 +287,7 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
                     enter = fadeIn(tween(240)) + androidx.compose.animation.expandVertically(tween(300)),
                     exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(260)),
                 ) {
-                    Text(stringResource(R.string.ps_studio_hold_to_adjust), color = Color.White.copy(alpha = 0.7f), style = inter(StudioType.Subtitle, FontWeight.Medium))
+                    Text(stringResource(R.string.ps_studio_hold_to_adjust), color = BlossomInk.Primary.copy(alpha = 0.7f), style = inter(StudioType.Subtitle, FontWeight.Medium))
                 }
             }
         }
@@ -481,7 +482,7 @@ private fun CoverEditor(
                         },
                 ) {
                     val stroke = Stroke(width = TileStroke.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 12f)))
-                    val color = Color.White.copy(alpha = 0.8f * beat)
+                    val color = BlossomInk.Primary.copy(alpha = 0.8f * beat)
                     if (card != null) {
                         // just inside the card's own rounded corners
                         val inset = TileStroke.toPx() * 2f
@@ -530,7 +531,7 @@ private fun CoverEditor(
                 transitionSpec = { (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut()) },
                 label = "studioStyleNumber",
             ) { label ->
-                Text(label, color = Color.White.copy(alpha = 0.6f), style = inter(StudioType.Label, FontWeight.SemiBold))
+                Text(label, color = BlossomInk.Primary.copy(alpha = 0.6f), style = inter(StudioType.Label, FontWeight.SemiBold))
             }
             AnimatedContent(
                 targetState = if (inBackdrop) {
@@ -541,7 +542,7 @@ private fun CoverEditor(
                 transitionSpec = { (slideInVertically { it / 2 } + fadeIn()) togetherWith (slideOutVertically { -it / 2 } + fadeOut()) },
                 label = "studioStyleName",
             ) { name ->
-                Text(name, color = Color.White, style = inter(StudioType.Name).copy(lineHeight = 24.sp))
+                Text(name, color = BlossomInk.Primary, style = inter(StudioType.Name).copy(lineHeight = 24.sp))
             }
             Spacer(Modifier.height(12.dp))
             Row(
@@ -558,7 +559,7 @@ private fun CoverEditor(
                     Icon(painterResource(R.drawable.tune), null, tint = Color.Black, modifier = Modifier.size(14.dp))
                 }
                 Spacer(Modifier.width(14.dp))
-                Text(stringResource(R.string.ps_studio_more_options), color = Color.White, style = inter(StudioType.Body, FontWeight.SemiBold))
+                Text(stringResource(R.string.ps_studio_more_options), color = BlossomInk.Primary, style = inter(StudioType.Body, FontWeight.SemiBold))
             }
         }
 
@@ -568,7 +569,7 @@ private fun CoverEditor(
         Icon(
             painter = painterResource(R.drawable.expand_more),
             contentDescription = stringResource(if (inBackdrop) R.string.ps_studio_back_to_covers else R.string.ps_studio_backgrounds),
-            tint = Color.White.copy(alpha = 0.7f),
+            tint = BlossomInk.Primary.copy(alpha = 0.7f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = navBottom + 14.dp)

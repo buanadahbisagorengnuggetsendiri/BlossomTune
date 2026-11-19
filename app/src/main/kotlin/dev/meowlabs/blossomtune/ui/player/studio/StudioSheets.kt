@@ -63,6 +63,7 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** the sheet the editor has open, if any */
 @Composable
@@ -116,7 +117,7 @@ fun StudioSheets(
                         if (style == ButtonStyle.DEFAULT) {
                             Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
                                 listOf(R.drawable.skip_previous, R.drawable.pause, R.drawable.skip_next).forEach { icon ->
-                                    Icon(painterResource(icon), null, tint = Color.White, modifier = Modifier.size(if (icon == R.drawable.pause) 30.dp else 26.dp))
+                                    Icon(painterResource(icon), null, tint = BlossomInk.Primary, modifier = Modifier.size(if (icon == R.drawable.pause) 30.dp else 26.dp))
                                 }
                             }
                         } else {
@@ -178,9 +179,9 @@ fun StudioSheets(
                             compact = true,
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(painterResource(action.icon), null, tint = Color.White, modifier = Modifier.size(22.dp))
+                                Icon(painterResource(action.icon), null, tint = BlossomInk.Primary, modifier = Modifier.size(22.dp))
                                 Spacer(Modifier.width(14.dp))
-                                Text(stringResource(action.labelRes), color = Color.White, style = studioText(StudioType.Body))
+                                Text(stringResource(action.labelRes), color = BlossomInk.Primary, style = studioText(StudioType.Body))
                             }
                         }
                     }
@@ -193,7 +194,7 @@ fun StudioSheets(
             ) {
                 val options = coverStyle.options
                 if (options.isEmpty()) {
-                    Text(stringResource(R.string.ps_studio_cover_nothing), color = Color.White.copy(alpha = 0.6f), style = studioText(StudioType.Body, FontWeight.Normal), modifier = Modifier.padding(vertical = 8.dp))
+                    Text(stringResource(R.string.ps_studio_cover_nothing), color = BlossomInk.Primary.copy(alpha = 0.6f), style = studioText(StudioType.Body, FontWeight.Normal), modifier = Modifier.padding(vertical = 8.dp))
                 }
                 options.forEach { option ->
                     when (option) {
@@ -290,9 +291,9 @@ internal fun ColumnScope.OptionSheet(
     val close = LocalMenuSheetClose.current
     Column(modifier = Modifier.padding(horizontal = 24.dp).navigationBarsPadding()) {
         Spacer(Modifier.height(10.dp))
-        Text(stringResource(R.string.ps_studio_what_to_change), color = Color.White, style = studioText(StudioType.Title, FontWeight.Bold))
+        Text(stringResource(R.string.ps_studio_what_to_change), color = BlossomInk.Primary, style = studioText(StudioType.Title, FontWeight.Bold))
         Spacer(Modifier.height(4.dp))
-        Text(subtitle ?: title, color = Color.White.copy(alpha = 0.55f), style = studioText(StudioType.Subtitle, FontWeight.Medium))
+        Text(subtitle ?: title, color = BlossomInk.Primary.copy(alpha = 0.55f), style = studioText(StudioType.Subtitle, FontWeight.Medium))
         Spacer(Modifier.height(18.dp))
         Column(
             modifier = Modifier
@@ -311,7 +312,7 @@ internal fun ColumnScope.OptionSheet(
                 .clickable { close() },
             contentAlignment = Alignment.Center,
         ) {
-            Text(stringResource(R.string.done), color = Color.White, style = studioText(StudioType.Button))
+            Text(stringResource(R.string.done), color = BlossomInk.Primary, style = studioText(StudioType.Button))
         }
         Spacer(Modifier.height(16.dp))
     }
@@ -329,7 +330,7 @@ internal fun OptionRow(
 ) {
     Column {
         if (caption != null) {
-            Text(caption, color = Color.White.copy(alpha = 0.55f), style = studioText(StudioType.Caption, FontWeight.Medium), modifier = Modifier.padding(start = 6.dp, bottom = 6.dp))
+            Text(caption, color = BlossomInk.Primary.copy(alpha = 0.55f), style = studioText(StudioType.Caption, FontWeight.Medium), modifier = Modifier.padding(start = 6.dp, bottom = 6.dp))
         }
         Row(
             modifier = Modifier
@@ -345,7 +346,7 @@ internal fun OptionRow(
             val label = if (selected) stringResource(R.string.ps_studio_selected) else tag
             if (label != null) {
                 Spacer(Modifier.width(12.dp))
-                Text(label, color = Color.White.copy(alpha = if (selected) 0.45f else 0.3f), style = studioText(StudioType.Label, FontWeight.Bold))
+                Text(label, color = BlossomInk.Primary.copy(alpha = if (selected) 0.45f else 0.3f), style = studioText(StudioType.Label, FontWeight.Bold))
             }
         }
     }
@@ -354,8 +355,8 @@ internal fun OptionRow(
 @Composable
 internal fun TwoLines(title: String, body: String) {
     Column {
-        Text(title, color = Color.White, style = studioText(StudioType.Body))
-        if (body.isNotBlank()) Text(body, color = Color.White.copy(alpha = 0.65f), style = studioText(StudioType.Caption, FontWeight.Normal), maxLines = 2)
+        Text(title, color = BlossomInk.Primary, style = studioText(StudioType.Body))
+        if (body.isNotBlank()) Text(body, color = BlossomInk.Primary.copy(alpha = 0.65f), style = studioText(StudioType.Caption, FontWeight.Normal), maxLines = 2)
     }
 }
 
@@ -374,7 +375,7 @@ internal fun SwitchRow(option: CoverOption.Switch) {
             .padding(horizontal = 22.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(painterResource(option.icon), null, tint = Color.White.copy(alpha = if (parentOn) 1f else 0.4f), modifier = Modifier.size(20.dp))
+        Icon(painterResource(option.icon), null, tint = BlossomInk.Primary.copy(alpha = if (parentOn) 1f else 0.4f), modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(16.dp))
         Box(Modifier.weight(1f)) { TwoLines(option.title, option.description) }
         AppSwitch(checked = checked, onCheckedChange = { stored = if (option.inverted) !it else it }, enabled = parentOn)
@@ -417,7 +418,7 @@ private fun LabelField(key: androidx.datastore.preferences.core.Preferences.Key<
             .background(Color.White.copy(alpha = 0.08f))
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        if (field.text.isEmpty()) Text(placeholder, color = Color.White.copy(alpha = 0.4f), style = studioText(StudioType.Body))
+        if (field.text.isEmpty()) Text(placeholder, color = BlossomInk.Primary.copy(alpha = 0.4f), style = studioText(StudioType.Body))
         BasicTextField(
             value = field,
             onValueChange = { next ->
@@ -426,7 +427,7 @@ private fun LabelField(key: androidx.datastore.preferences.core.Preferences.Key<
                 if (text != stored) stored = text
             },
             singleLine = true,
-            textStyle = studioText(StudioType.Body).copy(color = Color.White),
+            textStyle = studioText(StudioType.Body).copy(color = BlossomInk.Primary),
             cursorBrush = SolidColor(Color.White),
             modifier = Modifier
                 .fillMaxWidth()

@@ -52,6 +52,7 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val CardSurface: Color
     @Composable @ReadOnlyComposable get() = MenuRowSurface
@@ -116,7 +117,7 @@ fun UpdatePromptSheet(
                 Icon(
                     painter = painterResource(R.drawable.ic_blossomtune_mark),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(52.dp),
                 )
             }
@@ -125,7 +126,7 @@ fun UpdatePromptSheet(
 
             Text(
                 text = if (userName.isBlank()) "Update available!" else "Update available, $userName!",
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
@@ -143,7 +144,7 @@ fun UpdatePromptSheet(
             ) {
                 Text(
                     text = "What changed on ${release.version}",
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -179,7 +180,7 @@ fun UpdatePromptSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = release.apkName ?: "blossomtune.apk",
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -295,7 +296,7 @@ private fun PromptButton(
         }
         Text(
             text = label,
-            color = Color.White.copy(alpha = if (dimmed) 0.5f else 1f),
+            color = BlossomInk.Primary.copy(alpha = if (dimmed) 0.5f else 1f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
         )

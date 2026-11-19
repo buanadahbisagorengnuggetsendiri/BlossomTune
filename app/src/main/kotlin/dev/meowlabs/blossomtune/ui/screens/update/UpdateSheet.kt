@@ -101,6 +101,7 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuSurface
 import dev.meowlabs.blossomtune.ui.screens.donate.showSupportSheet
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun rememberUpdateState(): androidx.compose.runtime.State<UpdateState> {
@@ -229,7 +230,7 @@ private fun ColumnScope.UpdateSheetContent(
                 Icon(
                     painter = painterResource(R.drawable.ic_blossomtune_mark),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(38.dp),
                 )
             }
@@ -494,13 +495,13 @@ private fun ActionRow(
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = (-0.5).sp,
-            color = Color.White.copy(alpha = contentAlpha),
+            color = BlossomInk.Primary.copy(alpha = contentAlpha),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
         if (hint != null) {
-            Text(hint, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.4f))
+            Text(hint, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = BlossomInk.Primary.copy(alpha = 0.4f))
         }
     }
 }

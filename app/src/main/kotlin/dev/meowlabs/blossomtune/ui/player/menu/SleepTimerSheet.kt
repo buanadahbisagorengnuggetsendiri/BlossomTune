@@ -65,6 +65,7 @@ import dev.meowlabs.blossomtune.ui.component.AppSwitch
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.SheetIcon
 import kotlinx.coroutines.delay
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val CardSurface: Color
     @Composable @ReadOnlyComposable get() = MenuRowSurface
@@ -91,7 +92,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
         ) {
             Text(
                 text = stringResource(R.string.sleep_timer),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -132,7 +133,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.width(14.dp))
                 Text(
                     text = stringResource(R.string.sleep_timer_end_after_song),
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -245,7 +246,7 @@ private fun rememberSecondTick(triggerTime: Long?): State<Long> {
 private fun ClockDigits(value: Long) {
     Text(
         text = "%02d".format(value),
-        color = Color.White,
+        color = BlossomInk.Primary,
         fontSize = 54.sp,
         fontWeight = FontWeight.Light,
         style = TextStyle(fontFeatureSettings = "tnum"),
@@ -272,7 +273,7 @@ private fun ClockColon(pulsing: Boolean) {
 private fun ColonText(modifier: Modifier) {
     Text(
         text = ":",
-        color = Color.White,
+        color = BlossomInk.Primary,
         fontSize = 54.sp,
         fontWeight = FontWeight.Light,
         modifier = modifier.padding(horizontal = 4.dp),
@@ -345,7 +346,7 @@ private fun OutlinePill(label: String, onClick: () -> Unit) {
             )
             .padding(horizontal = 16.dp)
     ) {
-        Text(label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = BlossomInk.Primary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -427,7 +428,7 @@ private fun CustomTimeCard(onSet: (Long) -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.sleep_timer_custom),
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -519,7 +520,7 @@ private fun TimeField(value: String, onValueChange: (String) -> Unit, label: Str
                     onValueChange(if (number != null && number > max) max.toString() else digits)
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = TextStyle(color = Color.White, fontSize = 24.sp, textAlign = TextAlign.Center),
+                textStyle = TextStyle(color = BlossomInk.Primary, fontSize = 24.sp, textAlign = TextAlign.Center),
                 cursorBrush = SolidColor(Color.White),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -551,7 +552,7 @@ private fun SheetButton(label: String, enabled: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             text = label,
-            color = Color.White.copy(alpha = if (enabled) 1f else 0.35f),
+            color = BlossomInk.Primary.copy(alpha = if (enabled) 1f else 0.35f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,

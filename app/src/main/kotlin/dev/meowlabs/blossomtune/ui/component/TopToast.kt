@@ -73,6 +73,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.roundToInt
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @androidx.compose.runtime.Immutable
 data class TopToast(
@@ -126,7 +127,7 @@ private val ToastTitle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 17.sp,
     letterSpacing = (-0.6).sp,
-    color = Color.White,
+    color = BlossomInk.Primary,
 )
 
 /** Draws the current toast over everything in its parent; touches elsewhere pass straight through. */

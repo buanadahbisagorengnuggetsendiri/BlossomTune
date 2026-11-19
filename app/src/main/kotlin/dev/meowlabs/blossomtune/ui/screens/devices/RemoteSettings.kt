@@ -38,6 +38,7 @@ import dev.meowlabs.blossomtune.ui.component.TopToaster
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // the steered device's settings as it described them: a phone gets everything, a tv only what a tv has
 @Composable
@@ -92,7 +93,7 @@ internal fun RemoteSettingsSection(link: DevicesLink, target: RemoteTarget) {
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 modifier = Modifier.padding(start = 2.dp, top = 4.dp, bottom = 8.dp),
             )
             Card {
@@ -126,7 +127,7 @@ private fun SettingRow(setting: RemoteSetting, onChange: (Any) -> Unit) {
 @Composable
 private fun ChoiceRow(setting: RemoteSetting, onPick: (String) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text(setting.title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White)
+        Text(setting.title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = BlossomInk.Primary)
         Spacer(Modifier.height(8.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             setting.options.forEach { (value, label) ->
@@ -144,7 +145,7 @@ private fun SecondsRow(setting: RemoteSetting, onPick: (Float) -> Unit) {
     val steps = ((setting.max - setting.min) / setting.step).roundToInt() - 1
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(setting.title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White, modifier = Modifier.weight(1f))
+            Text(setting.title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = BlossomInk.Primary, modifier = Modifier.weight(1f))
             Text(stringResource(R.string.remote_seconds, dragged.roundToInt()), fontFamily = InterFontFamily, fontSize = 13.sp, color = Muted)
         }
         Slider(

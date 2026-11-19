@@ -150,6 +150,7 @@ import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.LocalDateTime
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -705,7 +706,7 @@ fun LocalPlaylistScreen(
                                         Icon(
                                             painter = painterResource(R.drawable.drag_handle),
                                             contentDescription = stringResource(R.string.playlist_drag_to_move),
-                                            tint = Color.White.copy(alpha = 0.78f),
+                                            tint = BlossomInk.Primary.copy(alpha = 0.78f),
                                         )
                                     }
                                 }
@@ -759,7 +760,7 @@ fun LocalPlaylistScreen(
                         Icon(
                             painter = painterResource(R.drawable.add),
                             contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.85f),
+                            tint = BlossomInk.Primary.copy(alpha = 0.85f),
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -767,7 +768,7 @@ fun LocalPlaylistScreen(
                         text = stringResource(R.string.add_music),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = BlossomInk.Primary.copy(alpha = 0.9f),
                         modifier = Modifier.padding(horizontal = 11.dp),
                     )
                 }
@@ -838,7 +839,7 @@ fun LocalPlaylistScreen(
                                             Icon(
                                                 painter = painterResource(R.drawable.music_note),
                                                 contentDescription = null,
-                                                tint = Color.White.copy(alpha = 0.6f),
+                                                tint = BlossomInk.Primary.copy(alpha = 0.6f),
                                                 modifier = Modifier
                                                     .size(44.dp)
                                                     .align(Alignment.Center)
@@ -850,14 +851,14 @@ fun LocalPlaylistScreen(
                                         text = related.playlist.name,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.White.copy(alpha = 0.92f),
+                                        color = BlossomInk.Primary.copy(alpha = 0.92f),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = pluralStringResource(R.plurals.n_song, related.songCount, related.songCount),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = BlossomInk.Primary.copy(alpha = 0.5f),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )

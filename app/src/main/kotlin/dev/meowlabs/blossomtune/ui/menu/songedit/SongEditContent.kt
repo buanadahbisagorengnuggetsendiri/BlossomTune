@@ -57,6 +57,7 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.viewmodels.LyricsMenuViewModel
 import java.util.Locale
 import kotlin.math.roundToInt
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // the popup sheet pads its content by this much, the cover row and the artist row reach past it to the edges
 private val SheetSidePadding = 20.dp
@@ -80,7 +81,7 @@ internal fun SongEditContent(state: SongEditState, audioLab: AudioLabStore) {
     ) {
         Text(
             text = stringResource(R.string.edit_song),
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontFamily = InterFontFamily,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
@@ -238,7 +239,7 @@ private fun SpeedSection(state: SongEditState) {
     )
     RangeLabels(stringResource(R.string.song_edit_speed_min), stringResource(R.string.song_edit_speed_max))
     Spacer(Modifier.height(6.dp))
-    Text(text = stringResource(R.string.song_edit_speed_hint), color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+    Text(text = stringResource(R.string.song_edit_speed_hint), color = BlossomInk.Primary.copy(alpha = 0.5f), fontSize = 12.sp)
 }
 
 @Composable
@@ -263,8 +264,8 @@ private fun ValuePill(text: String, description: String?, onClick: () -> Unit) {
 @Composable
 private fun RangeLabels(start: String, end: String) {
     Row(modifier = Modifier.fillMaxWidth()) {
-        Text(text = start, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-        Text(text = end, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text(text = start, color = BlossomInk.Primary.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Text(text = end, color = BlossomInk.Primary.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -289,7 +290,7 @@ private fun EqPresetSelect(state: SongEditState, audioLab: AudioLabStore) {
 private fun MoreDetails(state: SongEditState) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.weight(2f)) {
-            Text(text = stringResource(R.string.song_edit_album), color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+            Text(text = stringResource(R.string.song_edit_album), color = BlossomInk.Primary.copy(alpha = 0.6f), fontSize = 12.sp)
             Spacer(Modifier.height(6.dp))
             SheetTextField(
                 value = state.album,
@@ -299,7 +300,7 @@ private fun MoreDetails(state: SongEditState) {
             )
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = stringResource(R.string.song_edit_year), color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+            Text(text = stringResource(R.string.song_edit_year), color = BlossomInk.Primary.copy(alpha = 0.6f), fontSize = 12.sp)
             Spacer(Modifier.height(6.dp))
             SheetTextField(
                 value = state.year,
@@ -338,11 +339,11 @@ private fun VideoRow(songId: String, onClick: () -> Unit) {
         Spacer(Modifier.width(14.dp))
         Text(
             text = stringResource(R.string.video_pick_title),
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
         )
-        Text(text = stringResource(status), color = Color.White.copy(alpha = 0.55f), fontSize = 12.sp)
+        Text(text = stringResource(status), color = BlossomInk.Primary.copy(alpha = 0.55f), fontSize = 12.sp)
     }
 }

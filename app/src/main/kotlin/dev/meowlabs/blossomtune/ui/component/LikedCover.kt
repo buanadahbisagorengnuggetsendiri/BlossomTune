@@ -48,6 +48,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 object LikedCoverColors {
     /** before anything is liked, or a cover can't be read: the cover from the design */
@@ -169,7 +170,7 @@ fun LikedCover(
         Icon(
             painter = painterResource(R.drawable.favorite_border),
             contentDescription = null,
-            tint = Color.White,
+            tint = BlossomInk.Primary,
             modifier = Modifier
                 .fillMaxWidth(heartSize)
                 .aspectRatio(1f),

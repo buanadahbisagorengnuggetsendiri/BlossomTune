@@ -61,6 +61,7 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private const val CustomPage = 0
 private const val CurrentPage = 1
@@ -158,7 +159,7 @@ internal fun SongCoverCarousel(state: SongEditState, modifier: Modifier = Modifi
             Spacer(Modifier.height(6.dp))
             Text(
                 text = stringResource(R.string.song_edit_cover_looking),
-                color = Color.White.copy(alpha = 0.45f),
+                color = BlossomInk.Primary.copy(alpha = 0.45f),
                 fontSize = 11.sp,
             )
         }
@@ -220,7 +221,7 @@ private fun CoverPage(
                     Icon(
                         painter = painterResource(R.drawable.add),
                         contentDescription = stringResource(R.string.song_edit_cover_pick),
-                        tint = Color.White,
+                        tint = BlossomInk.Primary,
                         modifier = Modifier.size(size * 0.12f),
                     )
                 }
@@ -229,7 +230,7 @@ private fun CoverPage(
         Spacer(Modifier.height(8.dp))
         Text(
             text = label,
-            color = Color.White.copy(alpha = 0.8f),
+            color = BlossomInk.Primary.copy(alpha = 0.8f),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,

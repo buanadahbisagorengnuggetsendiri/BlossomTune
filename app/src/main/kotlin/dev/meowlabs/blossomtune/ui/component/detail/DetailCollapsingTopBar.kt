@@ -57,6 +57,7 @@ import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val DetailCollapseEasing = androidx.compose.animation.core.CubicBezierEasing(0.59f, 0.53f, 0f, 1f)
 private const val DetailMorphDurationMs = 1000
@@ -176,7 +177,7 @@ fun DetailCollapsingTopBar(
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
                     contentDescription = stringResource(R.string.back_button_desc),
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -202,7 +203,7 @@ fun DetailCollapsingTopBar(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -210,7 +211,7 @@ fun DetailCollapsingTopBar(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = BlossomInk.Primary.copy(alpha = 0.7f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

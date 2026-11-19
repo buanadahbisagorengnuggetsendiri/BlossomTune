@@ -19,6 +19,7 @@ import dev.meowlabs.blossomtune.ui.player.video.QualityRow
 import dev.meowlabs.blossomtune.ui.screens.settings.videoSizeName
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // what the animated cover row reads as: "Best · 4K", the pick and the size really playing
 @Composable
@@ -41,7 +42,7 @@ internal fun CanvasQualitySheet(onDismiss: () -> Unit) {
         ) {
             Text(
                 text = stringResource(R.string.canvas_quality),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontFamily = InterFontFamily,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,

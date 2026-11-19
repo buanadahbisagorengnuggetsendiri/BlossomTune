@@ -63,6 +63,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** tapping the player's title opens this: the song, a few lines about it, its artists and album, then about song and stream info */
 @Composable
@@ -194,7 +195,7 @@ internal fun SongHeader(song: MediaMetadata) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 16.sp,
                 lineHeight = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -246,7 +247,7 @@ private fun DetailRow(
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = title,
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
@@ -318,7 +319,7 @@ private fun DoneButton(onClick: () -> Unit) {
                 onClick = onClick,
             ),
     ) {
-        Text(text = stringResource(R.string.ps_offset_done), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text = stringResource(R.string.ps_offset_done), color = BlossomInk.Primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 

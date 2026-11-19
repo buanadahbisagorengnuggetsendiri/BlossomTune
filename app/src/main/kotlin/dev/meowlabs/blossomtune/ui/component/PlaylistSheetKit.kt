@@ -56,6 +56,7 @@ import coil3.compose.AsyncImage
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.utils.resize
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /*
  * The small pieces the sheets are built from, taken from the reference mocks: a labelled field, a
@@ -75,7 +76,7 @@ internal fun SheetLabel(text: String, modifier: Modifier = Modifier) {
         text = text,
         fontSize = 17.sp,
         fontWeight = FontWeight.Bold,
-        color = Color.White,
+        color = BlossomInk.Primary,
         modifier = modifier,
     )
 }
@@ -103,7 +104,7 @@ internal fun SheetTextField(
         keyboardActions = keyboardActions,
         visualTransformation = visualTransformation,
         textStyle = TextStyle(
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontFamily = InterFontFamily,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
@@ -131,7 +132,7 @@ internal fun SheetTextField(
                             text = placeholder,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White.copy(alpha = 0.4f),
+                            color = BlossomInk.Primary.copy(alpha = 0.4f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -193,7 +194,7 @@ internal fun SheetPillButton(
             text = text,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White,
+            color = BlossomInk.Primary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -241,7 +242,7 @@ internal fun SheetOptionRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -250,7 +251,7 @@ internal fun SheetOptionRow(
             if (subtitle != null) {
                 Text(
                     text = subtitle,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = BlossomInk.Primary.copy(alpha = 0.55f),
                     fontSize = 12.sp,
                     maxLines = subtitleLines,
                     overflow = TextOverflow.Ellipsis,
@@ -323,7 +324,7 @@ internal fun SheetHeader(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -332,7 +333,7 @@ internal fun SheetHeader(
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     text = subtitle,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = BlossomInk.Primary.copy(alpha = 0.6f),
                     fontSize = 13.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -445,7 +446,7 @@ internal fun SheetActionCard(
         Spacer(Modifier.height(16.dp))
         Text(
             text = title,
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
@@ -476,7 +477,7 @@ internal fun SheetDownloadCard(
         Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> SheetActionCard(
             icon = {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     strokeWidth = 2.dp,
                     modifier = Modifier.size(24.dp),
                 )
@@ -522,7 +523,7 @@ internal fun SheetSearchLauncher(
             text = placeholder,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.White.copy(alpha = 0.4f),
+            color = BlossomInk.Primary.copy(alpha = 0.4f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

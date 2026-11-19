@@ -44,6 +44,7 @@ import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.SheetIcon
 import dev.meowlabs.blossomtune.ui.component.TopToaster
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // .lrc and .ttml files often come without a proper type, so the picker also lets plain binary files through
 private val LyricsFileTypes = arrayOf("text/*", "application/octet-stream", "application/xml", "application/ttml+xml", "application/x-subrip")
@@ -77,7 +78,7 @@ fun LyricsFileBox(
             .fillMaxWidth()
             .drawBehind {
                 drawRoundRect(
-                    color = Color.White.copy(alpha = 0.35f),
+                    color = BlossomInk.Primary.copy(alpha = 0.35f),
                     cornerRadius = CornerRadius(18.dp.toPx()),
                     style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f))),
                 )
@@ -95,19 +96,19 @@ fun LyricsFileBox(
                 Icon(
                     painter = painterResource(R.drawable.add),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(24.dp),
                 )
                 Spacer(Modifier.height(4.dp))
-                Text(text = stringResource(R.string.song_edit_lyrics_add), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Text(text = stringResource(R.string.song_edit_lyrics_add_hint), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                Text(text = stringResource(R.string.song_edit_lyrics_add), color = BlossomInk.Primary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = stringResource(R.string.song_edit_lyrics_add_hint), color = BlossomInk.Primary.copy(alpha = 0.5f), fontSize = 11.sp)
             }
         } else {
             SheetIcon(R.drawable.lyrics)
             Spacer(Modifier.width(12.dp))
             Text(
                 text = pluralStringResource(R.plurals.song_edit_lyrics_lines, picked.lines, picked.fileName, picked.lines),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -117,7 +118,7 @@ fun LyricsFileBox(
             Icon(
                 painter = painterResource(R.drawable.close),
                 contentDescription = stringResource(R.string.song_edit_lyrics_remove),
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = BlossomInk.Primary.copy(alpha = 0.7f),
                 modifier = Modifier
                     .size(32.dp)
                     .clip(RoundedCornerShape(50))

@@ -189,6 +189,7 @@ private fun limitText(session: LyricsShareSession): String {
  */
 @Composable
 private fun WordMeter(session: LyricsShareSession) {
+    val rowSurface = MenuRowSurface   // read here: .drawBehind is not a composable context
     val words by animateFloatAsState(session.wordCount.toFloat(), spring(dampingRatio = 0.8f, stiffness = 300f), label = "shareWords")
     Spacer(
         Modifier

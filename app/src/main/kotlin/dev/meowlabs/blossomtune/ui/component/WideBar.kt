@@ -51,6 +51,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.media3.common.Player
 import dev.meowlabs.blossomtune.ui.screens.Screens
 import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // where the mini player's pill sits across the screen, and whether the wide bar's one glass already lies under it
 @Immutable
@@ -300,7 +301,7 @@ private fun RowScope.WideBarToggle(icon: Int, on: Boolean, label: String, onClic
         Icon(
             painter = painterResource(icon),
             contentDescription = label,
-            tint = Color.White,
+            tint = BlossomInk.Primary,
             modifier = Modifier
                 .size(21.dp)
                 .graphicsLayer { alpha = 0.5f + 0.5f * lit },

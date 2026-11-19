@@ -47,6 +47,7 @@ import dev.meowlabs.blossomtune.ui.component.BonesHost
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.utils.resize
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /*
  * The pieces the "Add music" sheet is drawn from: a song row with its tick box, the two chips
@@ -99,7 +100,7 @@ internal fun PickRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -107,7 +108,7 @@ internal fun PickRow(
             )
             Text(
                 text = if (inPlaylist) "In this playlist · $artists" else artists,
-                color = Color.White.copy(alpha = 0.55f),
+                color = BlossomInk.Primary.copy(alpha = 0.55f),
                 fontSize = 12.5.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -199,7 +200,7 @@ internal fun PickRowBones(rows: Int = 6) {
 internal fun SheetNote(text: String) {
     Text(
         text = text,
-        color = Color.White.copy(alpha = 0.55f),
+        color = BlossomInk.Primary.copy(alpha = 0.55f),
         fontSize = 14.sp,
         textAlign = TextAlign.Center,
         modifier = Modifier

@@ -64,6 +64,7 @@ import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.SheetIcon
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import kotlinx.coroutines.flow.MutableStateFlow
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** "change playback": both volumes, then every output; picking one moves the song there, cast receivers play it themselves */
 @Composable
@@ -319,11 +320,11 @@ private fun VolumeCard(
                 .padding(horizontal = 14.dp, vertical = 14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SheetIcon(icon, tint = Color.White)
+            SheetIcon(icon, tint = BlossomInk.Primary)
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = title,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -338,7 +339,7 @@ private fun VolumeCard(
             Icon(
                 painter = painterResource(R.drawable.volume_down),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = BlossomInk.Primary.copy(alpha = 0.7f),
                 modifier = Modifier.size(16.dp),
             )
             LineSlider(
@@ -349,7 +350,7 @@ private fun VolumeCard(
             Icon(
                 painter = painterResource(R.drawable.volume_up),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = BlossomInk.Primary.copy(alpha = 0.7f),
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -379,12 +380,12 @@ private fun DeviceRow(
                     onClick = onClick,
                 ).padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+        Icon(imageVector = icon, contentDescription = null, tint = BlossomInk.Primary, modifier = Modifier.size(22.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 lineHeight = 18.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -395,7 +396,7 @@ private fun DeviceRow(
                 // a dac's line (kind, rates, bit depth, passthrough) runs long: it wraps instead of losing its end
                 Text(
                     text = detail,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = BlossomInk.Primary.copy(alpha = 0.5f),
                     fontSize = 12.sp,
                     lineHeight = 16.sp,
                 )

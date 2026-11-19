@@ -151,6 +151,7 @@ import java.util.concurrent.ConcurrentHashMap
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // geometry and type from the Figma playlist frames (16:1162 open, 16:1354 scrolled). internal so
 // the album, artist and generated pages line up on the same inset and type
@@ -829,7 +830,7 @@ private fun PlaylistNormalBarRow(
                 Icon(
                     painter = painterResource(R.drawable.more_horiz),
                     contentDescription = stringResource(R.string.options),
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -899,7 +900,7 @@ private fun BackPill(
             Icon(
                 painter = painterResource(R.drawable.arrow_back_ios),
                 contentDescription = stringResource(R.string.back_button_desc),
-                tint = Color.White,
+                tint = BlossomInk.Primary,
                 modifier = Modifier
                     .size(16.dp)
                     .offset(x = 2.dp),
@@ -945,7 +946,7 @@ private fun BoxScope.BackPillGlass(glassState: GlassState, tint: State<Color>, s
     GlassPillBackground(
         state = glassState,
         blurRadius = { 28f },
-        tint = Color.White.copy(alpha = 0.12f),
+        tint = BlossomInk.Primary.copy(alpha = 0.12f),
         foundationColor = tint.value,
         shape = shape,
         modifier = Modifier.matchParentSize()
@@ -1022,7 +1023,7 @@ fun PlaylistHeader(
             Text(
                 text = title,
                 style = if (useMinimal) PlaylistCompactTitleStyle else PlaylistTitleStyle,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1039,7 +1040,7 @@ fun PlaylistHeader(
                 Text(
                     text = stats,
                     style = PlaylistStatsStyle,
-                    color = Color.White.copy(alpha = 0.62f),
+                    color = BlossomInk.Primary.copy(alpha = 0.62f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1146,7 +1147,7 @@ internal fun PlaylistDescription(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = PlaylistStatsStyle.copy(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium),
-        color = Color.White.copy(alpha = 0.74f),
+        color = BlossomInk.Primary.copy(alpha = 0.74f),
         maxLines = if (expanded) Int.MAX_VALUE else 2,
         overflow = TextOverflow.Ellipsis,
         onTextLayout = { if (!expanded) overflows = it.hasVisualOverflow },
@@ -1295,7 +1296,7 @@ private fun CreatorRow(creators: List<CreatorUi>, onClick: ((CreatorUi) -> Unit)
                 else -> "${creators[0].name}, ${creators[1].name} & ${creators.size - 2} more"
             },
             style = PlaylistCreatorStyle,
-            color = Color.White.copy(alpha = 0.88f),
+            color = BlossomInk.Primary.copy(alpha = 0.88f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -1328,7 +1329,7 @@ private fun CreatorAvatar(creator: CreatorUi, size: Dp, modifier: Modifier = Mod
             Text(
                 text = creator.name.take(1).uppercase(),
                 style = PlaylistStatsStyle.copy(fontSize = 8.sp, fontWeight = FontWeight.Bold),
-                color = Color.White,
+                color = BlossomInk.Primary,
             )
         }
     }
@@ -1357,12 +1358,12 @@ fun <T : Enum<T>> PlaylistSortControl(
             Text(
                 text = label(current).lowercase(),
                 style = PlaylistStatsStyle.copy(fontSize = 12.sp),
-                color = Color.White.copy(alpha = 0.72f),
+                color = BlossomInk.Primary.copy(alpha = 0.72f),
             )
             Icon(
                 painter = painterResource(R.drawable.expand_more),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.72f),
+                tint = BlossomInk.Primary.copy(alpha = 0.72f),
                 modifier = Modifier
                     .size(16.dp)
                     .graphicsLayer { rotationZ = if (showDirection(current) && !descending) 180f else 0f }
@@ -1388,7 +1389,7 @@ fun <T : Enum<T>> PlaylistSortControl(
                             Icon(
                                 painter = painterResource(R.drawable.expand_more),
                                 contentDescription = stringResource(if (descending) R.string.pc_sort_descending else R.string.pc_sort_ascending),
-                                tint = Color.White,
+                                tint = BlossomInk.Primary,
                                 modifier = Modifier
                                     .size(18.dp)
                                     .graphicsLayer { rotationZ = if (descending) 0f else 180f }
@@ -1470,14 +1471,14 @@ fun PlaylistTrackRow(
             Text(
                 text = title,
                 style = TrackTitleStyle,
-                color = Color.White.copy(alpha = if (isActive) 1f else 0.94f),
+                color = BlossomInk.Primary.copy(alpha = if (isActive) 1f else 0.94f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = subtitle,
                 style = TrackSubtitleStyle,
-                color = Color.White.copy(alpha = 0.55f),
+                color = BlossomInk.Primary.copy(alpha = 0.55f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1512,7 +1513,7 @@ fun PlaylistTrackRow(
                 Icon(
                     painter = painterResource(R.drawable.more_horiz),
                     contentDescription = stringResource(R.string.more_options),
-                    tint = Color.White.copy(alpha = 0.78f),
+                    tint = BlossomInk.Primary.copy(alpha = 0.78f),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -1564,14 +1565,14 @@ fun PlaylistEndOfLine(
             Text(
                 text = pluralStringResource(R.plurals.pc_detail_songs, songCount, songCount).uppercase(),
                 style = ReceiptSmallStyle,
-                color = Color.White.copy(alpha = 0.6f),
+                color = BlossomInk.Primary.copy(alpha = 0.6f),
                 maxLines = 1,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = stringResource(R.string.pc_detail_end_of_line),
                 style = ReceiptCenterStyle,
-                color = Color.White.copy(alpha = 0.78f),
+                color = BlossomInk.Primary.copy(alpha = 0.78f),
                 maxLines = 1,
                 textAlign = TextAlign.Center,
             )
@@ -1579,7 +1580,7 @@ fun PlaylistEndOfLine(
             Text(
                 text = pluralStringResource(R.plurals.pc_detail_minutes, minutes, minutes).uppercase(),
                 style = ReceiptSmallStyle,
-                color = Color.White.copy(alpha = 0.6f),
+                color = BlossomInk.Primary.copy(alpha = 0.6f),
                 maxLines = 1,
                 textAlign = TextAlign.End,
                 modifier = Modifier.weight(1f),
@@ -1597,7 +1598,7 @@ private fun ReceiptRule() {
             .height(1.dp)
             .drawBehind {
                 drawLine(
-                    color = Color.White.copy(alpha = 0.24f),
+                    color = BlossomInk.Primary.copy(alpha = 0.24f),
                     start = Offset(0f, size.height / 2f),
                     end = Offset(size.width, size.height / 2f),
                     strokeWidth = 0.75.dp.toPx(),
@@ -1622,13 +1623,13 @@ fun PlaylistSectionTitle(
             .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(horizontal = 4.dp, vertical = 4.dp)
     ) {
-        Text(text = title, style = SectionTitleStyle, color = Color.White, maxLines = 1)
+        Text(text = title, style = SectionTitleStyle, color = BlossomInk.Primary, maxLines = 1)
         if (showChevron) {
             Spacer(Modifier.width(6.dp))
             Icon(
                 painter = painterResource(R.drawable.ic_chevron_right),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.6f),
+                tint = BlossomInk.Primary.copy(alpha = 0.6f),
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -1681,7 +1682,7 @@ fun FeaturedArtistsRow(
                             Icon(
                                 painter = painterResource(R.drawable.person),
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.6f),
+                                tint = BlossomInk.Primary.copy(alpha = 0.6f),
                                 modifier = Modifier.size(38.dp),
                             )
                         }
@@ -1690,7 +1691,7 @@ fun FeaturedArtistsRow(
                     Text(
                         text = artist.name,
                         style = TrackTitleStyle.copy(fontSize = 13.sp),
-                        color = Color.White.copy(alpha = 0.88f),
+                        color = BlossomInk.Primary.copy(alpha = 0.88f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,

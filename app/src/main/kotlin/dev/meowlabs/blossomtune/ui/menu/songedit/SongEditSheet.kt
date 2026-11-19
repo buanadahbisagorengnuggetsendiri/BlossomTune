@@ -43,6 +43,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // opens the song edit sheet for a song; one that isn't in the library yet first asks to be added, like the mock's second sheet
 @Composable
@@ -101,7 +102,7 @@ private class SongEditFlow(
         ) {
             Text(
                 text = stringResource(R.string.song_edit_need_library),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,

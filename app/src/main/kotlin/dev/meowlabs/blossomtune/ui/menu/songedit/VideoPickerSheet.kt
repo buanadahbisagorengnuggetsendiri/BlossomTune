@@ -66,6 +66,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private const val SearchSettleMs = 400L
 
@@ -181,7 +182,7 @@ private fun VideoPickerContent(state: VideoPickState) {
         Spacer(Modifier.height(16.dp))
         Text(
             text = stringResource(R.string.video_pick_title),
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontFamily = InterFontFamily,
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
@@ -189,7 +190,7 @@ private fun VideoPickerContent(state: VideoPickState) {
         )
         Text(
             text = stringResource(R.string.video_pick_subtitle),
-            color = Color.White.copy(alpha = 0.55f),
+            color = BlossomInk.Primary.copy(alpha = 0.55f),
             fontFamily = InterFontFamily,
             fontSize = 19.sp,
             fontWeight = FontWeight.SemiBold,
@@ -246,7 +247,7 @@ private fun VideoPickerContent(state: VideoPickState) {
         if (!state.searching && state.results.isEmpty() && state.query.isNotBlank()) {
             Text(
                 text = stringResource(R.string.video_pick_nothing),
-                color = Color.White.copy(alpha = 0.5f),
+                color = BlossomInk.Primary.copy(alpha = 0.5f),
                 fontSize = 13.sp,
                 modifier = Modifier.padding(start = 4.dp, top = 14.dp),
             )
@@ -261,8 +262,8 @@ private val PickedRow: Color
 private fun ChoiceRow(title: String, detail: String, picked: Boolean, onClick: () -> Unit) {
     PickRow(picked = picked, onClick = onClick) {
         Column(modifier = Modifier.weight(1f).padding(horizontal = 6.dp, vertical = 4.dp)) {
-            Text(text = title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            Text(text = detail, color = Color.White.copy(alpha = 0.55f), fontSize = 12.sp)
+            Text(text = title, color = BlossomInk.Primary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = detail, color = BlossomInk.Primary.copy(alpha = 0.55f), fontSize = 12.sp)
         }
     }
 }
@@ -285,7 +286,7 @@ private fun VideoRow(thumbnail: String?, title: String, detail: String?, picked:
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
@@ -294,7 +295,7 @@ private fun VideoRow(thumbnail: String?, title: String, detail: String?, picked:
             if (!detail.isNullOrBlank()) {
                 Text(
                     text = detail,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = BlossomInk.Primary.copy(alpha = 0.55f),
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

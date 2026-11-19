@@ -67,6 +67,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Immutable
 private data class LeadDevEntry(
@@ -384,7 +385,7 @@ private fun ColumnScope.AboutSheetContent(
                     Icon(
                         painter = painterResource(R.drawable.ic_blossomtune_mark),
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = BlossomInk.Primary,
                         modifier = Modifier.size(38.dp),
                     )
                 }
@@ -402,7 +403,7 @@ private fun ColumnScope.AboutSheetContent(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.4).sp,
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = BlossomInk.Primary.copy(alpha = 0.9f),
                 )
             }
 
@@ -600,7 +601,7 @@ private fun SectionHeader(title: String) {
         fontSize = 15.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = (-0.3).sp,
-        color = Color.White.copy(alpha = 0.55f),
+        color = BlossomInk.Primary.copy(alpha = 0.55f),
     )
 }
 
@@ -702,7 +703,7 @@ private fun PersonRow(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = (-0.2).sp,
-                    color = Color.White.copy(alpha = 0.65f),
+                    color = BlossomInk.Primary.copy(alpha = 0.65f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -784,7 +785,7 @@ private fun LicenseCard(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.2).sp,
-                color = Color.White.copy(alpha = 0.55f),
+                color = BlossomInk.Primary.copy(alpha = 0.55f),
             )
             Spacer(Modifier.height(2.dp))
             Text(
@@ -799,7 +800,7 @@ private fun LicenseCard(
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = (-0.2).sp,
-                color = Color.White.copy(alpha = 0.55f),
+                color = BlossomInk.Primary.copy(alpha = 0.55f),
             )
         }
         Spacer(Modifier.width(12.dp))
@@ -820,7 +821,7 @@ private fun ArrowBadge() {
         Icon(
             painter = painterResource(R.drawable.arrow_forward),
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.85f),
+            tint = BlossomInk.Primary.copy(alpha = 0.85f),
             modifier = Modifier.size(12.dp),
         )
     }

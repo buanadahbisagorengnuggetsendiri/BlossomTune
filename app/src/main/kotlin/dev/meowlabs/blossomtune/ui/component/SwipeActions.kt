@@ -100,6 +100,7 @@ import java.time.LocalDateTime
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** one side of a swipeable row: what it shows while you drag, and what it does once you let go past the line */
 @Immutable
@@ -414,7 +415,7 @@ internal fun BoxScope.SwipePill(
             Icon(
                 painter = painterResource(action.icon),
                 contentDescription = action.label,
-                tint = Color.White,
+                tint = BlossomInk.Primary,
                 modifier = Modifier
                     .size(PillIconSize)
                     .graphicsLayer {
@@ -437,7 +438,7 @@ internal fun BoxScope.SwipePill(
                     Text(
                         text = action.label,
                         style = SwipeLabelStyle,
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                         maxLines = 1,
                         softWrap = false,
                     )

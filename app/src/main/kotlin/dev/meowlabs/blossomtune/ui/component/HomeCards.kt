@@ -51,6 +51,7 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.GridItemSize
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import coil3.compose.AsyncImage
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // spacing and type straight from the Figma home frames (13:11 / 14:212)
 val HomeContentInset = 36.dp
@@ -171,7 +172,7 @@ fun HomeSectionTitle(
                 Text(
                     text = label,
                     style = HomeCardSubtitleStyle,
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = BlossomInk.Primary.copy(alpha = 0.45f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -196,7 +197,7 @@ private fun SectionChevron() {
     Icon(
         painter = painterResource(R.drawable.ic_chevron_right),
         contentDescription = null,
-        tint = Color.White.copy(alpha = 0.55f),
+        tint = BlossomInk.Primary.copy(alpha = 0.55f),
         modifier = Modifier.size(18.dp),
     )
 }
@@ -259,7 +260,7 @@ fun HomeCoverCard(
         Text(
             text = title,
             style = HomeCardTitleStyle,
-            color = Color.White.copy(alpha = 0.92f),
+            color = BlossomInk.Primary.copy(alpha = 0.92f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = if (circular) TextAlign.Center else TextAlign.Start,
@@ -271,7 +272,7 @@ fun HomeCoverCard(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = BlossomInk.Primary.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -363,7 +364,7 @@ fun HomeVideoCard(
             Text(
                 text = title,
                 style = HomeVideoTitleStyle,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -372,7 +373,7 @@ fun HomeVideoCard(
                 Text(
                     text = subtitle,
                     style = HomeVideoSubtitleStyle,
-                    color = Color.White.copy(alpha = 0.72f),
+                    color = BlossomInk.Primary.copy(alpha = 0.72f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -442,7 +443,7 @@ fun HomeTrackRow(
             Text(
                 text = rank.toString(),
                 style = HomeRankStyle,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 1,
                 modifier = Modifier.width(37.dp),
             )
@@ -477,7 +478,7 @@ fun HomeTrackRow(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = BlossomInk.Primary.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -500,7 +501,7 @@ fun HomeTrackRow(
                 Icon(
                     painter = painterResource(R.drawable.more_horiz),
                     contentDescription = stringResource(R.string.more_label),
-                    tint = Color.White.copy(alpha = 0.85f),
+                    tint = BlossomInk.Primary.copy(alpha = 0.85f),
                     modifier = Modifier.size(17.dp),
                 )
             }
@@ -598,7 +599,7 @@ fun HomeHopInCard(
             Text(
                 text = title,
                 style = HomeCardTitleStyle.copy(fontSize = 13.5.sp, lineHeight = 16.sp),
-                color = Color.White.copy(alpha = 0.94f),
+                color = BlossomInk.Primary.copy(alpha = 0.94f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -607,7 +608,7 @@ fun HomeHopInCard(
                 Text(
                     text = subtitle,
                     style = HomeCardSubtitleStyle.copy(fontSize = 11.sp, lineHeight = 13.sp),
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = BlossomInk.Primary.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

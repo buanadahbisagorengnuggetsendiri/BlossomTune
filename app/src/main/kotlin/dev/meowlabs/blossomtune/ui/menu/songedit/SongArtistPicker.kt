@@ -58,6 +58,7 @@ import dev.meowlabs.blossomtune.ui.utils.resize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val CircleSize = 76.dp
 private const val SearchSettleMs = 350L
@@ -167,7 +168,7 @@ private fun ArtistCircle(artist: EditedArtist, picked: Boolean, label: String, o
                     Icon(
                         painter = painterResource(R.drawable.person),
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.6f),
+                        tint = BlossomInk.Primary.copy(alpha = 0.6f),
                         modifier = Modifier.size(30.dp),
                     )
                 }
@@ -194,7 +195,7 @@ private fun ArtistCircle(artist: EditedArtist, picked: Boolean, label: String, o
         Spacer(Modifier.height(6.dp))
         Text(
             text = label,
-            color = Color.White.copy(alpha = if (picked) 1f else 0.7f),
+            color = BlossomInk.Primary.copy(alpha = if (picked) 1f else 0.7f),
             fontSize = 11.sp,
             fontWeight = if (picked) FontWeight.SemiBold else FontWeight.Medium,
             maxLines = 2,

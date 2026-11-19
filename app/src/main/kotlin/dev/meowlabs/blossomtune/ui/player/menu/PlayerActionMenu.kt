@@ -89,6 +89,7 @@ import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import kotlinx.coroutines.flow.flowOf
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /**
  * @param fromLyrics true when the menu was opened from the lyrics page. The lyrics tools are only
@@ -189,7 +190,7 @@ fun PlayerActionMenu(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = trackInfo.title,
-                            color = Color.White,
+                            color = BlossomInk.Primary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -548,11 +549,11 @@ internal fun MenuRow(
             )
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
-        SheetIcon(icon, tint = Color.White.copy(alpha = contentAlpha))
+        SheetIcon(icon, tint = BlossomInk.Primary.copy(alpha = contentAlpha))
         Spacer(modifier = Modifier.width(14.dp))
         Text(
             text = title,
-            color = Color.White.copy(alpha = contentAlpha),
+            color = BlossomInk.Primary.copy(alpha = contentAlpha),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
@@ -673,7 +674,7 @@ private fun DeviceVolumeRow() {
             Spacer(modifier = Modifier.width(14.dp))
             Text(
                 text = android.os.Build.MODEL ?: stringResource(R.string.ps_device_this_device),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -690,7 +691,7 @@ private fun DeviceVolumeRow() {
             Icon(
                 painter = painterResource(R.drawable.volume_down),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = BlossomInk.Primary.copy(alpha = 0.7f),
                 modifier = Modifier.size(16.dp),
             )
             LineSlider(
@@ -708,7 +709,7 @@ private fun DeviceVolumeRow() {
             Icon(
                 painter = painterResource(R.drawable.volume_up),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = BlossomInk.Primary.copy(alpha = 0.7f),
                 modifier = Modifier.size(16.dp),
             )
         }

@@ -61,6 +61,7 @@ import dev.meowlabs.blossomtune.ui.component.SheetLabel
 import dev.meowlabs.blossomtune.ui.screens.update.SheetPrimaryButton
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val BoxColor = Color(0xFF2A2A2E)
 
@@ -112,7 +113,7 @@ private fun ColumnScope.PairCodeContent(link: DevicesLink, tv: LinkPeer?, onClos
                     fontFamily = InterFontFamily,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 17.sp,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                 )
                 Spacer(Modifier.height(20.dp))
                 SheetPrimaryButton(stringResource(R.string.tv_done), onClick = onClose)
@@ -136,7 +137,7 @@ private fun ColumnScope.PairCodeContent(link: DevicesLink, tv: LinkPeer?, onClos
                         value = address,
                         onValueChange = { address = it.filter { char -> char.isDigit() || char == '.' || char == ':' }.take(21) },
                         singleLine = true,
-                        textStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White),
+                        textStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = BlossomInk.Primary),
                         cursorBrush = SolidColor(Color.White),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier
@@ -146,7 +147,7 @@ private fun ColumnScope.PairCodeContent(link: DevicesLink, tv: LinkPeer?, onClos
                             .focusRequester(addressFocus)
                             .padding(horizontal = 16.dp, vertical = 14.dp),
                         decorationBox = { inner ->
-                            if (address.isEmpty()) Text(stringResource(R.string.tv_pair_address_hint), color = Color.White.copy(alpha = 0.3f), fontSize = 18.sp, fontFamily = InterFontFamily)
+                            if (address.isEmpty()) Text(stringResource(R.string.tv_pair_address_hint), color = BlossomInk.Primary.copy(alpha = 0.3f), fontSize = 18.sp, fontFamily = InterFontFamily)
                             inner()
                         },
                     )
@@ -209,7 +210,7 @@ private fun CodeBoxes(code: String, focus: FocusRequester, onCode: (String) -> U
                         fontFamily = InterFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp,
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                     )
                 }
             }

@@ -64,6 +64,7 @@ import dev.meowlabs.blossomtune.ui.component.detail.playlistCompactHeaderHeight
 import dev.meowlabs.blossomtune.ui.screens.search.SearchFieldHeight
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /**
  * the frame every generated page sits in. [rows] fills the list under the header; the header,
@@ -169,7 +170,7 @@ fun GeneratedSearchCapsule(
                 Text(
                     text = placeholder,
                     style = TextStyle(fontSize = 15.sp),
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = BlossomInk.Primary.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -178,7 +179,7 @@ fun GeneratedSearchCapsule(
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
-                textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
+                textStyle = TextStyle(color = BlossomInk.Primary, fontSize = 15.sp),
                 cursorBrush = SolidColor(Color.White),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
@@ -203,7 +204,7 @@ fun GeneratedSearchCapsule(
                 Icon(
                     painter = painterResource(R.drawable.close),
                     contentDescription = "Clear",
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(14.dp),
                 )
             }
@@ -217,7 +218,7 @@ fun GeneratedGroupHeader(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = SectionTitleStyle,
-        color = Color.White,
+        color = BlossomInk.Primary,
         maxLines = 1,
         modifier = modifier.padding(start = PlaylistInset, end = PlaylistInset, top = 22.dp, bottom = 6.dp),
     )
@@ -229,7 +230,7 @@ fun GeneratedNoResults(query: String, modifier: Modifier = Modifier) {
     Text(
         text = "Nothing here matches \"$query\"",
         style = PlaylistStatsStyle.copy(fontSize = 13.sp),
-        color = Color.White.copy(alpha = 0.6f),
+        color = BlossomInk.Primary.copy(alpha = 0.6f),
         modifier = modifier.padding(horizontal = PlaylistInset, vertical = 24.dp),
     )
 }

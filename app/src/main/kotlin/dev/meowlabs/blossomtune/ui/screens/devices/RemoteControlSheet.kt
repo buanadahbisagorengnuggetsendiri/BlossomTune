@@ -74,6 +74,7 @@ import dev.meowlabs.blossomtune.utils.makeTimeString
 import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // the phone as a remote for the device it steers: what's on there, play and skip, the queue, and its settings
 fun PopupSheetState.showRemoteControl(link: DevicesLink) {
@@ -154,7 +155,7 @@ private fun ColumnScope.RemoteControlContent(link: DevicesLink, onClose: () -> U
 private fun RemoteHeader(target: RemoteTarget, now: RemoteNow?, reachable: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(44.dp).clip(CircleShape).background(Faint), contentAlignment = Alignment.Center) {
-            Icon(target.kind.icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+            Icon(target.kind.icon, contentDescription = null, tint = BlossomInk.Primary, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -164,7 +165,7 @@ private fun RemoteHeader(target: RemoteTarget, now: RemoteNow?, reachable: Boole
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
                 letterSpacing = (-0.02).em,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -209,7 +210,7 @@ private fun NowPlayingCard(now: RemoteNow?, onLike: () -> Unit, onSave: () -> Un
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -227,11 +228,11 @@ private fun NowPlayingCard(now: RemoteNow?, onLike: () -> Unit, onSave: () -> Un
                 Icon(
                     painterResource(if (now.liked) R.drawable.favorite else R.drawable.favorite_border),
                     contentDescription = stringResource(R.string.remote_like),
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                 )
             }
             IconButton(onClick = onSave) {
-                Icon(painterResource(R.drawable.playlist_add), contentDescription = stringResource(R.string.remote_add_to_playlist), tint = Color.White)
+                Icon(painterResource(R.drawable.playlist_add), contentDescription = stringResource(R.string.remote_add_to_playlist), tint = BlossomInk.Primary)
             }
         }
     }
@@ -306,7 +307,7 @@ private fun finishDrag(now: RemoteNow?, dragging: androidx.compose.runtime.Mutab
 private fun Transport(playing: Boolean, enabled: Boolean, onPrevious: () -> Unit, onToggle: () -> Unit, onNext: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onPrevious, enabled = enabled) {
-            Icon(painterResource(R.drawable.skip_previous), contentDescription = stringResource(R.string.remote_previous), tint = Color.White, modifier = Modifier.size(30.dp))
+            Icon(painterResource(R.drawable.skip_previous), contentDescription = stringResource(R.string.remote_previous), tint = BlossomInk.Primary, modifier = Modifier.size(30.dp))
         }
         Box(
             Modifier
@@ -324,7 +325,7 @@ private fun Transport(playing: Boolean, enabled: Boolean, onPrevious: () -> Unit
             )
         }
         IconButton(onClick = onNext, enabled = enabled) {
-            Icon(painterResource(R.drawable.skip_next), contentDescription = stringResource(R.string.remote_next), tint = Color.White, modifier = Modifier.size(30.dp))
+            Icon(painterResource(R.drawable.skip_next), contentDescription = stringResource(R.string.remote_next), tint = BlossomInk.Primary, modifier = Modifier.size(30.dp))
         }
     }
 }
@@ -353,7 +354,7 @@ private fun HandOverRow(target: RemoteTarget, onHandOver: () -> Unit) {
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.remote_hand_over, target.name), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(stringResource(R.string.remote_hand_over, target.name), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = BlossomInk.Primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(song.title, fontFamily = InterFontFamily, fontSize = 12.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
@@ -376,7 +377,7 @@ private fun UpNextRow(item: RemoteQueueItem, onPlay: () -> Unit, onRemove: () ->
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(item.song.title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(item.song.title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = BlossomInk.Primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(item.song.artists.joinToString { it.name }, fontFamily = InterFontFamily, fontSize = 12.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         IconButton(onClick = onRemove) {

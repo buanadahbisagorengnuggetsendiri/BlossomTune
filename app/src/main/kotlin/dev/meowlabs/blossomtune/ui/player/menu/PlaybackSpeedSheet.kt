@@ -53,6 +53,7 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlin.math.abs
 import kotlin.math.log2
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val CardSurface: Color
     @Composable @ReadOnlyComposable get() = MenuRowSurface
@@ -120,7 +121,7 @@ fun PlaybackSpeedSheet(onDismiss: () -> Unit) {
             Spacer(modifier = Modifier.height(22.dp))
             Text(
                 text = stringResource(R.string.ps_speed_title),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -159,7 +160,7 @@ fun PlaybackSpeedSheet(onDismiss: () -> Unit) {
             ) {
                 Text(
                     text = stringResource(R.string.ps_speed_reset),
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -219,7 +220,7 @@ private fun OnlyThisSongRow(checked: Boolean, songTitle: String?, enabled: Boole
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = stringResource(R.string.speed_only_this_song),
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -250,7 +251,7 @@ private fun ValueSlider(label: String, value: Float, onValueChange: (Float) -> U
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = label,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),

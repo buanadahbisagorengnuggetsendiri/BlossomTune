@@ -30,6 +30,7 @@ import com.music.innertube.models.SongItem
 import com.music.innertube.models.YTItem
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.ThumbnailCornerRadius
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun SpeedDialGridItem(
@@ -80,7 +81,7 @@ fun SpeedDialGridItem(
                 text = item.title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
@@ -90,7 +91,7 @@ fun SpeedDialGridItem(
                 Icon(
                     painter = painterResource(R.drawable.navigate_next),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(20.dp)
                 )
         }
@@ -100,7 +101,7 @@ fun SpeedDialGridItem(
             Icon(
                 painter = painterResource(R.drawable.ic_push_pin),
                 contentDescription = null,
-                tint = Color.White,
+                tint = BlossomInk.Primary,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(8.dp)

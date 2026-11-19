@@ -108,6 +108,7 @@ import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 import androidx.compose.runtime.compositionLocalOf
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 const val ActiveBoxAlpha = 0.6f
 
@@ -167,7 +168,7 @@ inline fun ListItem(
                     Icon(
                         painter = painterResource(R.drawable.offline),
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = BlossomInk.Primary,
                         modifier = Modifier
                             .size(ListThumbnailSize / 2)
                             .align(Alignment.Center)
@@ -1247,7 +1248,7 @@ fun LocalThumbnail(
             ) {
                 if (isPlaying) {
                     PlayingIndicator(
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                         barWidth = 2.dp,
                         spacing = 1.5.dp,
                         modifier = Modifier.height(14.dp)
@@ -1256,7 +1257,7 @@ fun LocalThumbnail(
                     Icon(
                         painter = painterResource(R.drawable.ic_untitled_play),
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = BlossomInk.Primary,
                         modifier = Modifier.size(width = 12.dp, height = 13.dp)
                     )
                 }
@@ -1282,7 +1283,7 @@ fun LocalThumbnail(
                     Icon(
                         painter = painterResource(R.drawable.play),
                         contentDescription = null,
-                        tint = Color.White
+                        tint = BlossomInk.Primary
                     )
                 }
             }
@@ -1307,7 +1308,7 @@ fun LocalThumbnail(
                     Icon(
                         painter = painterResource(R.drawable.play),
                         contentDescription = null,
-                        tint = Color.White
+                        tint = BlossomInk.Primary
                     )
                 }
             }
@@ -1393,7 +1394,7 @@ fun BoxScope.OverlayPlayButton(
             Icon(
                 painter = painterResource(R.drawable.play),
                 contentDescription = null,
-                tint = Color.White,
+                tint = BlossomInk.Primary,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -1426,7 +1427,7 @@ fun BoxScope.OverlayEditButton(
             Icon(
                 painter = painterResource(R.drawable.edit),
                 contentDescription = null,
-                tint = Color.White,
+                tint = BlossomInk.Primary,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -1457,7 +1458,7 @@ fun BoxScope.AlbumPlayButton(
             Icon(
                 painter = painterResource(R.drawable.play),
                 contentDescription = null,
-                tint = Color.White
+                tint = BlossomInk.Primary
             )
         }
     }

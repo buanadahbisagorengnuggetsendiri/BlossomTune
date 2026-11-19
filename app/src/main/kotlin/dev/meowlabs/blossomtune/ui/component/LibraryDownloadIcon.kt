@@ -40,6 +40,7 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.utils.resize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** the download badge: its ring, and the cover disc inside it */
 private val BadgeSize = 26.dp
@@ -162,7 +163,7 @@ fun LibraryDownloadIcon(icon: @Composable () -> Unit) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_downward),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(12.dp),
                 )
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -170,12 +171,12 @@ fun LibraryDownloadIcon(icon: @Composable () -> Unit) {
                     val inset = stroke / 2f
                     val arcSize = Size(size.width - stroke, size.height - stroke)
                     drawCircle(
-                        color = Color.White.copy(alpha = 0.32f),
+                        color = BlossomInk.Primary.copy(alpha = 0.32f),
                         radius = size.minDimension / 2f - inset,
                         style = Stroke(stroke),
                     )
                     drawArc(
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                         startAngle = -90f,
                         sweepAngle = 360f * progress.coerceIn(0f, 1f),
                         useCenter = false,

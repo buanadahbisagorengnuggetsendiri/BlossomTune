@@ -63,6 +63,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private enum class AddMusicTab { Suggested, Library }
 
@@ -188,7 +189,7 @@ private fun AddMusicContent(playlistId: String, startInLibrary: Boolean, picks: 
     ) {
         Text(
             text = "Add music",
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = (-0.03).em,

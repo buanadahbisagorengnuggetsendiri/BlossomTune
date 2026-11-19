@@ -67,6 +67,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** Edge of the covers drawn for the carousel: enough for the biggest card, small enough to redraw per keystroke. */
 private const val PreviewPixels = 480
@@ -265,7 +266,7 @@ private fun CoverCard(
                 Icon(
                     painter = painterResource(R.drawable.insert_photo),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(size * 0.13f),
                 )
             }

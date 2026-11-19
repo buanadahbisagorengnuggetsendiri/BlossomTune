@@ -69,6 +69,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // a card a row above the one in view is gone: it fades as it slides up out of the way
 private fun rowLeaving(row: Int, rowPosition: Float): Float = (1f - (rowPosition - row)).coerceIn(0f, 1f)
@@ -371,7 +372,7 @@ fun PlayerSelectorOverlay(
                     val cx = g.centerX(column, position)
                     val cy = g.centerY(row, rowPosition)
                     drawRoundRect(
-                        color = Color.White.copy(alpha = 0.16f * e * rowLeaving(row, rowPosition) * variantFade(column, row, studio, e)),
+                        color = BlossomInk.Primary.copy(alpha = 0.16f * e * rowLeaving(row, rowPosition) * variantFade(column, row, studio, e)),
                         topLeft = Offset(cx - g.cardW / 2f + stroke / 2f, cy - g.cardH / 2f + stroke / 2f),
                         size = Size(g.cardW - stroke, g.cardH - stroke),
                         cornerRadius = CornerRadius(radius),
@@ -392,7 +393,7 @@ fun PlayerSelectorOverlay(
                     repeat(count) { i ->
                         val near = (1f - abs(rowPosition - i)).coerceIn(0f, 1f)
                         drawCircle(
-                            color = Color.White.copy(alpha = (0.32f + 0.6f * near) * settled * e),
+                            color = BlossomInk.Primary.copy(alpha = (0.32f + 0.6f * near) * settled * e),
                             radius = dot / 2f,
                             center = Offset(x, top + i * step),
                         )
@@ -444,7 +445,7 @@ fun PlayerSelectorOverlay(
                     Icon(
                         painter = painterResource(R.drawable.arrow_back_ios),
                         contentDescription = stringResource(R.string.back_button_desc),
-                        tint = Color.White,
+                        tint = BlossomInk.Primary,
                         modifier = Modifier.size(15.dp).offset(x = 2.dp),
                     )
                 }
@@ -452,7 +453,7 @@ fun PlayerSelectorOverlay(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(stringResource(R.string.ps_studio_styles), color = Color.White, style = studioText(StudioType.Title, FontWeight.Bold))
+                    Text(stringResource(R.string.ps_studio_styles), color = BlossomInk.Primary, style = studioText(StudioType.Title, FontWeight.Bold))
                     AnimatedContent(
                         // the module style goes by the name its look gives it
                         targetState = styles.getOrNull(focused)?.let { style ->
@@ -465,7 +466,7 @@ fun PlayerSelectorOverlay(
                         },
                         label = "selectorStyleName",
                     ) { name ->
-                        Text(name, color = Color.White.copy(alpha = 0.6f), style = studioText(StudioType.Subtitle, FontWeight.Medium))
+                        Text(name, color = BlossomInk.Primary.copy(alpha = 0.6f), style = studioText(StudioType.Subtitle, FontWeight.Medium))
                     }
                 }
             }
@@ -495,7 +496,7 @@ fun PlayerSelectorOverlay(
                         // the dot in view is white, its neighbours fade in as a swipe reaches them
                         val near = (1f - abs(position - i)).coerceIn(0f, 1f)
                         drawCircle(
-                            color = Color.White.copy(alpha = 0.32f + 0.68f * near),
+                            color = BlossomInk.Primary.copy(alpha = 0.32f + 0.68f * near),
                             radius = dot / 2f,
                             center = Offset(start + i * step + dot / 2f, size.height / 2f),
                         )
@@ -537,6 +538,6 @@ private fun CardButton(
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = label, color = Color.White.copy(alpha = if (dimmed) 0.35f else 1f), style = studioText(StudioType.Button))
+        Text(text = label, color = BlossomInk.Primary.copy(alpha = if (dimmed) 0.35f else 1f), style = studioText(StudioType.Button))
     }
 }

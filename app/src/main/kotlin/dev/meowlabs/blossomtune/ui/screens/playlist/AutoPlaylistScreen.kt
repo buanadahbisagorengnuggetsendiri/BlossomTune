@@ -120,6 +120,7 @@ import dev.meowlabs.blossomtune.viewmodels.AutoPlaylistViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -620,7 +621,7 @@ private fun LikedSourceSeparator(source: ImportSource?, modifier: Modifier = Mod
                 Icon(
                     painter = painterResource(R.drawable.ic_blossomtune_mark),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = BlossomInk.Primary,
                     modifier = Modifier.size(9.dp),
                 )
             }
@@ -629,7 +630,7 @@ private fun LikedSourceSeparator(source: ImportSource?, modifier: Modifier = Mod
         Text(
             text = source?.label?.replaceFirstChar { it.uppercase() } ?: "BlossomTune",
             style = PlaylistStatsStyle,
-            color = Color.White.copy(alpha = 0.62f),
+            color = BlossomInk.Primary.copy(alpha = 0.62f),
             maxLines = 1,
         )
         Spacer(Modifier.width(10.dp))

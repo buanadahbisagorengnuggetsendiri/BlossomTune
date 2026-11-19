@@ -44,6 +44,7 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.PlayerBottomBarStyle
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** how far the bar's camera closes in on the player behind it */
 private const val BarCameraZoom = 1.5f
@@ -283,7 +284,7 @@ internal fun BarEditor(
                 }
             },
         ) {
-            Text(stringResource(R.string.ps_studio_card_style), color = Color.White, style = studioText(StudioType.Title, FontWeight.Bold))
+            Text(stringResource(R.string.ps_studio_card_style), color = BlossomInk.Primary, style = studioText(StudioType.Title, FontWeight.Bold))
             AnimatedContent(
                 targetState = barStyles.getOrNull(focused)?.displayName.orEmpty(),
                 transitionSpec = {
@@ -292,7 +293,7 @@ internal fun BarEditor(
                 },
                 label = "barStyleName",
             ) { name ->
-                Text(name, color = Color.White.copy(alpha = 0.6f), style = studioText(StudioType.Subtitle, FontWeight.Medium))
+                Text(name, color = BlossomInk.Primary.copy(alpha = 0.6f), style = studioText(StudioType.Subtitle, FontWeight.Medium))
             }
         }
     }

@@ -47,6 +47,7 @@ import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val PillSurface = Color(0xFF1C1C1F)
 
@@ -94,14 +95,14 @@ fun ControllingPill(modifier: Modifier = Modifier) {
                     ),
             )
             Spacer(Modifier.width(7.dp))
-            Icon(device.kind.icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+            Icon(device.kind.icon, contentDescription = null, tint = BlossomInk.Primary, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(5.dp))
             Text(
                 stringResource(R.string.remote_controlling, device.name),
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 12.sp,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.widthIn(max = 220.dp),

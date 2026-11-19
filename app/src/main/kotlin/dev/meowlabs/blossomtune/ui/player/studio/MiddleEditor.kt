@@ -40,13 +40,14 @@ import dev.meowlabs.blossomtune.ui.player.PressScaleActionButton
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** the player's menu item label, exactly as its chevron menu sets it */
 private val MenuLabelStyle = TextStyle(
     fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
     fontSize = 14.sp,
     fontWeight = FontWeight.SemiBold,
-    color = Color.White,
+    color = BlossomInk.Primary,
     shadow = Shadow(color = Color.Black.copy(alpha = 0.75f), offset = Offset(0f, 2f), blurRadius = 8f),
 )
 
@@ -379,7 +380,7 @@ private fun MiddleLabel(text: String, style: TextStyle, x: Float, centerY: Float
     val density = LocalDensity.current
     Text(
         text = text,
-        color = Color.White,
+        color = BlossomInk.Primary,
         style = style,
         maxLines = 2,
         modifier = Modifier.layout { measurable, constraints ->

@@ -68,6 +68,7 @@ import dev.meowlabs.blossomtune.ui.component.TopToaster
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // pairs a new device both ways round: this phone shows its own code for another phone to type, and lists what's in pairing mode nearby
 fun PopupSheetState.showAddDevice(link: DevicesLink) {
@@ -172,7 +173,7 @@ private fun PairingCodeBlock(code: PairingCode?) {
         fontFamily = FontFamily.Monospace,
         fontSize = 40.sp,
         letterSpacing = 10.sp,
-        color = Color.White,
+        color = BlossomInk.Primary,
         maxLines = 1,
     )
     Spacer(Modifier.height(8.dp))
@@ -223,7 +224,7 @@ private fun LookingRow() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.devices_looking), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White)
+            Text(stringResource(R.string.devices_looking), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = BlossomInk.Primary)
             Text(stringResource(R.string.devices_looking_detail), fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 16.sp, color = Muted)
         }
         Spacer(Modifier.width(10.dp))
@@ -254,10 +255,10 @@ private fun DetectedRow(peer: LinkPeer, onConnect: () -> Unit) {
             .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(peer.kind.icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+        Icon(peer.kind.icon, contentDescription = null, tint = BlossomInk.Primary, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(peer.name, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(peer.name, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = BlossomInk.Primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(peer.kind.label(), fontFamily = InterFontFamily, fontSize = 12.sp, color = Muted)
         }
         PillButton(stringResource(R.string.devices_connect), onClick = onConnect)
@@ -276,7 +277,7 @@ private fun EnterCodeField(enabled: Boolean, onCode: (String) -> Unit) {
         },
         enabled = enabled,
         singleLine = true,
-        textStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Color.White, letterSpacing = 4.sp),
+        textStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = BlossomInk.Primary, letterSpacing = 4.sp),
         cursorBrush = SolidColor(Color.White),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
         modifier = Modifier
@@ -286,7 +287,7 @@ private fun EnterCodeField(enabled: Boolean, onCode: (String) -> Unit) {
             .padding(horizontal = 20.dp, vertical = 16.dp),
         decorationBox = { inner ->
             if (code.isEmpty()) {
-                Text(stringResource(R.string.devices_enter_code), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = Color.White.copy(alpha = 0.8f))
+                Text(stringResource(R.string.devices_enter_code), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = BlossomInk.Primary.copy(alpha = 0.8f))
             }
             inner()
         },

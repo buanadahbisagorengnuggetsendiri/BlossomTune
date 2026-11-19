@@ -156,6 +156,7 @@ import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.sin
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** the hero takes this share of the screen height (527 of 874 in the Figma frame) */
 const val HeroHeightFraction = 0.6f
@@ -1188,7 +1189,7 @@ private fun HeroText(
             Text(
                 text = text,
                 style = HomeTitleStyle,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1225,7 +1226,7 @@ private fun HeroLabelLine(label: HeroLabel) {
             Text(
                 text = label.subject,
                 style = HomeLabelStyle,
-                color = Color.White.copy(alpha = 0.88f),
+                color = BlossomInk.Primary.copy(alpha = 0.88f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
@@ -1370,7 +1371,7 @@ private fun QuietHero(modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(R.string.pc_hero_play_something),
                 style = HomeTitleStyle,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -2153,7 +2154,7 @@ private fun GachaDie(spinning: Boolean) {
             .size(21.dp)
             .graphicsLayer { rotationZ = rotation.value }
     ) {
-        drawRoundRect(color = Color.White, cornerRadius = CornerRadius(4.5.dp.toPx()))
+        drawRoundRect(color = BlossomInk.Primary, cornerRadius = CornerRadius(4.5.dp.toPx()))
         val pip = 2.1.dp.toPx()
         val near = size.width * 0.28f
         val far = size.width * 0.72f
