@@ -91,3 +91,6 @@ app/persistent-debug.keystore
 output-metadata.json
 vcs.xml
 lint/
+
+# kunci tanda tangan rilis (jangan pernah masuk git)
+app/keystore/
