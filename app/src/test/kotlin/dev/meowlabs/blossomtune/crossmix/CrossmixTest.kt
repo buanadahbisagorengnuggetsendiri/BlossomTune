@@ -432,6 +432,7 @@ class CrossmixTest {
         )
         for ((out, inc) in pairs) {
             val plan = CrossmixPlanner.plan(CrossmixTrackInput("o", 200_000L, out, null), CrossmixTrackInput("i", 0L, inc, null))
+            println("DEBUG pair out=${out.bpm} inc=${inc.bpm} style=${plan.style.label} entersAtEnd=${plan.style.entersAtEnd} beats=${plan.lengthBeats} period=${plan.outBeatMs} matched=${plan.beatMatched} seconds=${plan.lengthBeats * plan.outBeatMs / 1000.0}")
             assertTrue("${plan.style.label} is a flavour style", plan.style.use != StyleUse.Flavour)
             if (!plan.style.entersAtEnd) {
                 val seconds = plan.lengthBeats * plan.outBeatMs / 1_000.0
