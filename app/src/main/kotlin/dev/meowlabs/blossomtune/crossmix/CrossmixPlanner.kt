@@ -135,8 +135,6 @@ object CrossmixPlanner {
             // overlapping styles lock the beat when tempos allow, hand-over styles only need the next downbeat on the outgoing one's
             val locked = tempo != null && (style.needsBeatMatch || !style.entersAtEnd)
             for (length in style.lengths) {
-                // overlaps stay short: long ones only for two calm songs that lock together, or when the listener asked for long
-                if (!style.entersAtEnd && !overlapFits(length, length * outGrid.periodMs, tempo != null, calmMatch, settings)) continue
                 val swap = style.swapAt(length)
                 for (exit in exits) {
                     // the hand-over sits on one of this song's bars, counted on the beats fitted around it, and the whole move fits in its last 30 s
@@ -148,6 +146,10 @@ object CrossmixPlanner {
                     val landing = pickLanding(style, out, inc, exit.swapMs, swap, period, tempo, locked, outVoice, inVoice, latestLanding) ?: continue
                     val match = if (locked) beatMatch(inc!!, landing.timeMs, tempo!!, period, maxSpeedUp) else null
                     if (style.needsBeatMatch && match == null) continue
+                    // overlaps stay short: long ones only when the beats really lock, or when the listener asked for long.
+                    // Gate on this pair's actual match, not on tempo != null: a lock can still fail per landing, and a blend
+                    // that ends up unmatched must obey the unmatched cap.
+                    if (!style.entersAtEnd && !overlapFits(length, length * period, match != null, calmMatch, settings)) continue
                     val inBeat = match?.inBeatMs ?: period
                     // heard from the start of a blend, or from the hand-over for a drop; up to a bar of silent run-up before that, so the beat is locked before anyone hears it
                     val heardFrom = if (style.entersAtEnd) length.toFloat() else 0f
