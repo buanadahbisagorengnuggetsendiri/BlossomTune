@@ -1,7 +1,7 @@
-package dev.meowlabs.blossomtune.crossmix
+package com.mochyy.mochymusic.crossmix
 
-import dev.meowlabs.blossomtune.constants.CrossmixLength
-import dev.meowlabs.blossomtune.lyrics.LyricsUtils
+import com.mochyy.mochymusic.constants.CrossmixLength
+import com.mochyy.mochymusic.lyrics.LyricsUtils
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.max
@@ -135,6 +135,8 @@ object CrossmixPlanner {
             // overlapping styles lock the beat when tempos allow, hand-over styles only need the next downbeat on the outgoing one's
             val locked = tempo != null && (style.needsBeatMatch || !style.entersAtEnd)
             for (length in style.lengths) {
+                // overlaps stay short: long ones only for two calm songs that lock together, or when the listener asked for long
+                if (!style.entersAtEnd && !overlapFits(length, length * outGrid.periodMs, tempo != null, calmMatch, settings)) continue
                 val swap = style.swapAt(length)
                 for (exit in exits) {
                     // the hand-over sits on one of this song's bars, counted on the beats fitted around it, and the whole move fits in its last 30 s
@@ -146,10 +148,6 @@ object CrossmixPlanner {
                     val landing = pickLanding(style, out, inc, exit.swapMs, swap, period, tempo, locked, outVoice, inVoice, latestLanding) ?: continue
                     val match = if (locked) beatMatch(inc!!, landing.timeMs, tempo!!, period, maxSpeedUp) else null
                     if (style.needsBeatMatch && match == null) continue
-                    // overlaps stay short: long ones only when the beats really lock, or when the listener asked for long.
-                    // Gate on this pair's actual match, not on tempo != null: a lock can still fail per landing, and a blend
-                    // that ends up unmatched must obey the unmatched cap.
-                    if (!style.entersAtEnd && !overlapFits(length, length * period, match != null, calmMatch, settings)) continue
                     val inBeat = match?.inBeatMs ?: period
                     // heard from the start of a blend, or from the hand-over for a drop; up to a bar of silent run-up before that, so the beat is locked before anyone hears it
                     val heardFrom = if (style.entersAtEnd) length.toFloat() else 0f
@@ -392,17 +390,15 @@ object CrossmixPlanner {
     /** whether a blend this long suits the pair: long only for calm songs that lock together, short for two that can't, never over in a blink; the listener's length setting stretches or shrinks the caps */
     private fun overlapFits(length: Int, lengthMs: Double, matched: Boolean, calmMatch: Boolean, settings: CrossmixSettings): Boolean {
         val setting = settings.length
-        val cap = when {
+        val longest = when {
             !matched -> MaxUnmatchedOverlapMs
             calmMatch -> MaxCalmOverlapMs
             else -> MaxOverlapMs
-        }
-        val longest = cap * setting.scale
+        } * setting.scale
         val counted = if (60_000.0 * length / lengthMs >= 140.0) MinFastOverlapMs else MinOverlapMs
         val shortest = if (settings.alwaysMix) max(counted, AlwaysMixMinOverlapMs) else counted
-        // a short setting can cap below always mix's floor: it still gets a little room above it,
-        // but that slack never lifts a blend past the cap its own case allows
-        return lengthMs in shortest..min(cap, max(shortest * 1.35, longest)) && (length < 32 || calmMatch || setting == CrossmixLength.LONG)
+        // a short setting can cap below always mix's floor: it still gets a little room above it
+        return lengthMs in shortest..max(shortest * 1.35, longest) && (length < 32 || calmMatch || setting == CrossmixLength.LONG)
     }
 
     /** a place the outgoing song can hand over, on the beats fitted around it */

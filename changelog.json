@@ -14,8 +14,7 @@
       {
         "title": "Perbaikan",
         "items": [
-          "Pemilih bahasa sekarang memuat seluruh locale yang benar-benar dikirim (82, sebelumnya 56) — bahasa seperti Afrikaans, Denmark, Finlandia, Kroasia, dan Mandarin sebelumnya tidak pernah muncul.",
-          "Blend crossmix yang tidak beat-matched tidak lagi bisa melewati 8,5 detik; batas 16/24 detik hanya berlaku saat ketukan benar-benar ketemu."
+          "Pemilih bahasa sekarang memuat seluruh locale yang benar-benar dikirim (82, sebelumnya 56) — bahasa seperti Afrikaans, Denmark, Finlandia, Kroasia, dan Mandarin sebelumnya tidak pernah muncul."
         ]
       },
       {
