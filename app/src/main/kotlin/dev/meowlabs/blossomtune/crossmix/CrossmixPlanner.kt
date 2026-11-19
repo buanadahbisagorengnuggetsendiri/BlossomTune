@@ -390,15 +390,17 @@ object CrossmixPlanner {
     /** whether a blend this long suits the pair: long only for calm songs that lock together, short for two that can't, never over in a blink; the listener's length setting stretches or shrinks the caps */
     private fun overlapFits(length: Int, lengthMs: Double, matched: Boolean, calmMatch: Boolean, settings: CrossmixSettings): Boolean {
         val setting = settings.length
-        val longest = when {
+        val cap = when {
             !matched -> MaxUnmatchedOverlapMs
             calmMatch -> MaxCalmOverlapMs
             else -> MaxOverlapMs
-        } * setting.scale
+        }
+        val longest = cap * setting.scale
         val counted = if (60_000.0 * length / lengthMs >= 140.0) MinFastOverlapMs else MinOverlapMs
         val shortest = if (settings.alwaysMix) max(counted, AlwaysMixMinOverlapMs) else counted
-        // a short setting can cap below always mix's floor: it still gets a little room above it
-        return lengthMs in shortest..max(shortest * 1.35, longest) && (length < 32 || calmMatch || setting == CrossmixLength.LONG)
+        // a short setting can cap below always mix's floor: it still gets a little room above it,
+        // but that slack never lifts a blend past the cap its own case allows
+        return lengthMs in shortest..min(cap, max(shortest * 1.35, longest)) && (length < 32 || calmMatch || setting == CrossmixLength.LONG)
     }
 
     /** a place the outgoing song can hand over, on the beats fitted around it */
