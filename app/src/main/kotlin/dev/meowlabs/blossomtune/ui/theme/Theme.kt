@@ -24,14 +24,127 @@ import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
 import com.materialkolor.score.Score
 
-val DefaultThemeColor = Color(0xFF8E8E8E)
+/**
+ * Palet aplikasi. Terang = es biru + kartu putih + aksen azure (komposisi mockup
+ * BlossomTune), gelap = hitam/biru/putih.
+ *
+ * Nilainya bukan selera. Setiap pasangan teks/latar di bawah sudah diuji
+ * kontrasnya (WCAG AA, >= 4.5) di `PaletteContrastTest`; mengubah satu warna
+ * tanpa menjalankan tes itu berarti menukar keterbacaan dengan selera.
+ *
+ * Azure mockup #2C7BE5 gagal AA sebagai teks di halaman es (3.68) dan sebagai
+ * latar teks putih (4.14). Yang dirender #2368D8 (4.62 di halaman, 5.19 dengan
+ * putih); hue-nya sama, bedanya tidak kelihatan sebelah mata.
+ */
+object BlossomColors {
+    // --- gelap ---
+    val Blue = Color(0xFF4D8DFF)          // aksen utama di latar hitam
+    val OnBlue = Color(0xFF04101F)        // teks di atas tombol biru
+    val BlueContainer = Color(0xFF12224A)
+    val OnBlueContainer = Color(0xFFD9E6FF)
+    val Steel = Color(0xFFA8C4EC)
+    val SteelContainer = Color(0xFF16233A)
+    val OnSteelContainer = Color(0xFFE4ECF9)
+    val Black = Color(0xFF000000)
+    val White = Color(0xFFFFFFFF)
+    val NightCard = Color(0xFF101827)     // kartu di atas latar hitam
+    val OnNightCard = Color(0xFFC9D6E8)
+
+    // --- terang: es biru, kartu putih, aksen azure ---
+    // page #E8F3FE · kartu #FFFFFF · aksen #2368D8 · tinta #0E1B2C · sekunder #4E6C8A
+    val Ice = Color(0xFFE8F3FE)          // latar halaman
+    val IcePanel = Color(0xFFD9E9FA)     // panel/terpilih di atas es
+    val Azure = Color(0xFF2368D8)        // aksen: tombol, tautan, tab aktif
+    val AzureSpec = Color(0xFF2C7BE5)    // azure mockup: gagal AA, disimpan sebagai rujukan
+    val AzurePale = Color(0xFFDCEBFF)    // container aksen
+    val AzureInk = Color(0xFF0B2A5B)     // teks di atas container aksen
+    val SpecGray = Color(0xFF8E8E93)     // abu spec lama, disimpan sebagai rujukan
+    val Navy = Color(0xFF1C2144)         // navy lama, masih dipakai fallback sampul
+    val OnNavy = Color(0xFFFFFFFF)
+    val Ink = Color(0xFF0E1B2C)          // heading, judul, teks utama
+    val InkSoft = Color(0xFF3F5B78)      // sekunder: 5.70 di panel, 7.05 di putih
+    val InkMuted = Color(0xFF4E6C8A)     // metadata: 4.87 di halaman, 5.47 di putih
+    val Paper = Color(0xFFFFFFFF)        // kartu
+    val Line = Color(0xFFCFE3F7)
+    val LineSoft = Color(0xFFE3F0FE)
+    val Error = Color(0xFFDC2626)        // destructive (mode gelap)
+    val ErrorPale = Color(0xFFFEE2E2)
+    val ErrorInk = Color(0xFF7F1D1D)
+    val InverseSurface = Color(0xFF0E1B2C)
+    val InverseOnSurface = Color(0xFFF4FAFF)
+}
+
+/** Warna tema default (seed artwork/player). Azure, bukan abu netral. */
+val DefaultThemeColor = BlossomColors.Azure
+
+val DarkPalette: ColorScheme = darkColorScheme(
+    primary = BlossomColors.Blue,
+    onPrimary = BlossomColors.OnBlue,
+    primaryContainer = BlossomColors.BlueContainer,
+    onPrimaryContainer = BlossomColors.OnBlueContainer,
+    secondary = BlossomColors.Steel,
+    onSecondary = BlossomColors.OnBlue,
+    secondaryContainer = BlossomColors.SteelContainer,
+    onSecondaryContainer = BlossomColors.OnSteelContainer,
+    background = BlossomColors.Black,
+    onBackground = BlossomColors.White,
+    surface = BlossomColors.Black,
+    onSurface = BlossomColors.White,
+    surfaceVariant = BlossomColors.NightCard,
+    onSurfaceVariant = BlossomColors.OnNightCard,
+    surfaceTint = BlossomColors.Black,
+    error = BlossomColors.Error,
+    onError = BlossomColors.White
+)
+
+val LightPalette: ColorScheme = lightColorScheme(
+    primary = BlossomColors.Azure,
+    onPrimary = BlossomColors.OnNavy,
+    primaryContainer = BlossomColors.AzurePale,
+    onPrimaryContainer = BlossomColors.AzureInk,
+    secondary = BlossomColors.InkMuted,
+    onSecondary = BlossomColors.OnNavy,
+    secondaryContainer = BlossomColors.IcePanel,
+    onSecondaryContainer = BlossomColors.Ink,
+    tertiary = BlossomColors.Azure,
+    onTertiary = BlossomColors.OnNavy,
+    tertiaryContainer = BlossomColors.AzurePale,
+    onTertiaryContainer = BlossomColors.AzureInk,
+    background = BlossomColors.Ice,
+    onBackground = BlossomColors.Ink,
+    surface = BlossomColors.Paper,
+    onSurface = BlossomColors.Ink,
+    surfaceVariant = BlossomColors.IcePanel,
+    onSurfaceVariant = BlossomColors.InkSoft,
+    surfaceTint = BlossomColors.Azure,
+    inverseSurface = BlossomColors.InverseSurface,
+    inverseOnSurface = BlossomColors.InverseOnSurface,
+    error = Color(0xFFC81E1E),          // #DC2626 cuma 4.30 di atas es
+    onError = BlossomColors.White,
+    errorContainer = BlossomColors.ErrorPale,
+    onErrorContainer = BlossomColors.ErrorInk,
+    outline = BlossomColors.Line,
+    outlineVariant = BlossomColors.LineSoft,
+    scrim = BlossomColors.Black,
+    // Tangga permukaan terang digambar dari halaman ke bawah, bukan ke atas:
+    // kartu putih duduk DI ATAS halaman es, panel lebih gelap dari halaman.
+    surfaceBright = BlossomColors.Paper,
+    surfaceDim = BlossomColors.IcePanel,
+    surfaceContainerLowest = BlossomColors.Paper,
+    surfaceContainerLow = Color(0xFFF4FAFF),
+    surfaceContainer = BlossomColors.IcePanel,
+    surfaceContainerHigh = BlossomColors.Line,
+    surfaceContainerHighest = Color(0xFFC3DAF1)
+)
 
 /**
- * blossomtune renders dark-only.
+ * BlossomTune masih dirender gelap di basis Mochy.
  *
- * The light palette was never finished - large parts of the UI hardcode white text and dark
- * glass - so on a light-mode phone the app looked broken rather than light. Pinned here as one
- * switch instead of being decided independently at every call site.
+ * Di 0.5.x switch ini `false` karena seluruh sheet dan bilah kaca sudah ikut mode
+ * (`BlossomSurfaces`/`BlossomInk`). Basis Mochy punya UI sendiri yang hardcode kaca
+ * gelap, jadi palet terang di bawah masih dorman: benar dan teruji, tapi belum
+ * dirender. Menyalakannya (`false`) sebelum sweep tinta selesai = teks putih di
+ * atas sheet putih.
  */
 const val ForceDarkTheme = true
 
@@ -45,46 +158,9 @@ fun BlossomTuneTheme(
 
     // Dynamic (Material You) colour is deliberately not used - the app ships its own palette.
     // The branch is gone rather than dead-but-present: dynamic*ColorScheme is API 31.
-    val baseColorScheme = run {
-
-        if (darkTheme) {
-            darkColorScheme(
-                primary = Color(0xFFE0E0E0),
-                onPrimary = Color.Black,
-                primaryContainer = Color(0xFF333333),
-                onPrimaryContainer = Color.White,
-                secondary = Color(0xFFB0B0B0),
-                onSecondary = Color.Black,
-                secondaryContainer = Color(0xFF2C2C2C),
-                onSecondaryContainer = Color.White,
-                background = Color.Black,
-                onBackground = Color.White,
-                surface = Color.Black,
-                onSurface = Color.White,
-                surfaceVariant = Color(0xFF1A1A1A),
-                onSurfaceVariant = Color.White,
-                surfaceTint = Color.Black
-            )
-        } else {
-            lightColorScheme(
-                primary = Color.Black,
-                onPrimary = Color.White,
-                primaryContainer = Color(0xFFE0E0E0),
-                onPrimaryContainer = Color.Black,
-                secondary = Color(0xFF333333),
-                onSecondary = Color.White,
-                secondaryContainer = Color(0xFFCCCCCC),
-                onSecondaryContainer = Color.Black,
-                background = Color.White,
-                onBackground = Color.Black,
-                surface = Color.White,
-                onSurface = Color.Black,
-                surfaceVariant = Color(0xFFF0F0F0),
-                onSurfaceVariant = Color.Black,
-                surfaceTint = Color.White
-            )
-        }
-    }
+    // Skema diambil dari val top-level supaya `PaletteContrastTest` menguji warna
+    // yang benar-benar dirender, bukan salinannya.
+    val baseColorScheme = if (darkTheme) DarkPalette else LightPalette
 
     val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
         if (darkTheme && pureBlack) {
