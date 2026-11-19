@@ -204,7 +204,7 @@ fun PlayerActionMenu(
                                     stringResource(R.string.ps_menu_by_artist, artist)
                                 }
                             },
-                            color = Color(0xFFB3B3B3),
+                            color = BlossomInk.Muted,
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -627,7 +627,7 @@ private fun SleepTimerRow(onClick: () -> Unit) {
             if (label != null) {
                 Text(
                     text = label,
-                    color = Color(0xFF9A9A9A),
+                    color = BlossomInk.Muted,
                     fontSize = 12.sp,
                 )
             }

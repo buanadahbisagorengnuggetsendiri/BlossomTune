@@ -86,7 +86,9 @@ import dev.meowlabs.blossomtune.ui.screens.audiolab.LabSectionLabel
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabSlider
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabTextAction
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabToggleRow
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.viewmodels.AudioLabViewModel
 import dev.meowlabs.blossomtune.viewmodels.AutoEqIndex
 import kotlinx.coroutines.launch
@@ -153,6 +155,10 @@ private fun Legend(color: Color, label: String) {
 private fun ResponseGraph(measurement: AutoEqMeasurement?, correction: AutoEqCorrection?) {
     val measurer = rememberTextMeasurer(cacheSize = 32)
     val style = TextStyle(fontFamily = InterFontFamily, fontSize = 10.sp, color = LabColors.Faint)
+    // the graph draws on LabColors.Stage: the white grid vanished once the stage turned ice in light mode
+    val dark = LocalBlossomDark.current
+    val gridLine = if (dark) Color.White.copy(alpha = 0.06f) else BlossomColors.Line
+    val gridZero = if (dark) Color.White.copy(alpha = 0.16f) else BlossomColors.InkMuted.copy(alpha = 0.45f)
     val appear by animateFloatAsState(if (measurement != null) 1f else 0f, tween(600), label = "appear")
 
     // the measurement's own grid; the correction's response on it, so corrected = raw + filters
@@ -194,7 +200,7 @@ private fun ResponseGraph(measurement: AutoEqMeasurement?, correction: AutoEqCor
         val step = if (range > 20) 10.0 else 5.0
         val labels = generateSequence(ceil(lo / step) * step) { it + step }.takeWhile { it <= hi }
             .map { (it - centre) to it.toInt().toString() }.toList()
-        drawGrid(plot, measurer, style, labels)
+        drawGrid(plot, measurer, style, gridLine, gridZero, labels)
         if (data == null) return@Canvas
         val (raw, target, cor) = data.first
         val f = measurement!!.frequencies
@@ -229,14 +235,14 @@ private fun SelectedHeadphone(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(correction.model, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp,
-                    color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    color = LabColors.Primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     listOfNotNull(stringResource(R.string.eqx_by_source, correction.source), correction.rig, pluralStringResource(R.plurals.eqx_filters_count, correction.filters.size, correction.filters.size)).joinToString(" · "),
                     fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Secondary, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
             if (fitting) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                CircularProgressIndicator(color = LabColors.Primary, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(10.dp))
             }
         }
@@ -318,7 +324,7 @@ private fun Database(viewModel: AudioLabViewModel, selectedPath: String?, loadin
     LabCard(padding = 14.dp) {
         Row(Modifier.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.eqx_database), fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color.White)
+                Text(stringResource(R.string.eqx_database), fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = LabColors.Primary)
                 Text(stringResource(R.string.eqx_database_desc), fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Secondary)
             }
             val ready = index as? AutoEqIndex.Ready
@@ -414,8 +420,8 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
-                textStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 15.sp, color = Color.White),
-                cursorBrush = SolidColor(Color.White),
+                textStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 15.sp, color = LabColors.Primary),
+                cursorBrush = SolidColor(LabColors.Primary),
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -450,7 +456,7 @@ private fun ModelRow(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(model.name, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
-                    color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    color = LabColors.Primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     if (model.entries.size == 1) model.entries.first().sourceLabel else stringResource(R.string.eqx_profiles_count, model.entries.size),
                     fontFamily = InterFontFamily, fontSize = 12.sp, color = LabColors.Secondary, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -458,9 +464,9 @@ private fun ModelRow(
             }
             when {
                 model.entries.size == 1 && loadingPath == model.entries.first().path ->
-                    CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                    CircularProgressIndicator(color = LabColors.Primary, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
                 picked && model.entries.size == 1 ->
-                    Icon(painterResource(R.drawable.check), null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(painterResource(R.drawable.check), null, tint = LabColors.Primary, modifier = Modifier.size(18.dp))
                 model.entries.size > 1 -> {
                     val turn by animateFloatAsState(if (expanded) 90f else 0f, tween(200), label = "chevron")
                     Icon(painterResource(R.drawable.navigate_next), null, tint = LabColors.Faint,
@@ -480,13 +486,13 @@ private fun ModelRow(
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(entry.sourceLabel, fontFamily = InterFontFamily, fontSize = 13.sp, color = Color.White,
+                    Text(entry.sourceLabel, fontFamily = InterFontFamily, fontSize = 13.sp, color = LabColors.Primary,
                         modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     when {
                         loadingPath == entry.path ->
-                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+                            CircularProgressIndicator(color = LabColors.Primary, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
                         entry.path == selectedPath ->
-                            Icon(painterResource(R.drawable.check), null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(painterResource(R.drawable.check), null, tint = LabColors.Primary, modifier = Modifier.size(16.dp))
                     }
                 }
             }

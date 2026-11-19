@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -69,15 +70,22 @@ import dev.meowlabs.blossomtune.eq.EqSettings
 import dev.meowlabs.blossomtune.playback.audio.AudioOutputs
 import dev.meowlabs.blossomtune.ui.component.damageBoundary
 import dev.meowlabs.blossomtune.ui.component.pressBounce
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.viewmodels.AudioLabViewModel
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-private val HubCard = Color(0xFF222225)
-private val Sketch = Color(0xFF6A6A70)
+// the hub cards are dark in dark mode and white paper in light mode; the sketches
+// draw in LabColors.Secondary. Both are read from draw scopes too, so the sketch
+// functions hoist them into locals first (see EqualizerSketch).
+private val HubCard: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF222225) else BlossomColors.Paper
+private val Sketch: Color
+    @Composable @ReadOnlyComposable get() = LabColors.Secondary
 
 @Composable
 fun AudioLabScreen(
@@ -259,7 +267,7 @@ private fun BigHubCard(
             Text(
                 title,
                 fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 30.sp,
-                letterSpacing = (-0.03).em, color = Color.White,
+                letterSpacing = (-0.03).em, color = LabColors.Primary,
             )
         }
     }
@@ -288,10 +296,10 @@ private fun SmallHubCard(
     ) {
         Box(Modifier.matchParentSize()) { sketch() }
         Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp).fillMaxWidth(0.62f)) {
-            Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
+            Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = LabColors.Primary)
             Text(
                 status.uppercase(),
-                fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = Color(0xFF8A8A8E),
+                fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = LabColors.Secondary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }
@@ -301,14 +309,14 @@ private fun SmallHubCard(
 @Composable
 private fun StatusLine(status: String, on: Boolean, modifier: Modifier = Modifier) {
     val dot by androidx.compose.animation.animateColorAsState(
-        if (on) Color(0xFF8BE07A) else Color(0xFF5C5C63), tween(300), label = "dot",
+        if (on) Color(0xFF8BE07A) else LabColors.Faint, tween(300), label = "dot",
     )
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(7.dp).clip(CircleShape).background(dot))
         Spacer(Modifier.width(8.dp))
         Text(
             status,
-            fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = Color(0xFF8A8A8E),
+            fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = LabColors.Secondary,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
     }
@@ -325,6 +333,10 @@ private fun sketchTime(moving: () -> Boolean = { true }): androidx.compose.runti
 /** three sliders on a tilted panel, set to your curve's lows, mids and highs */
 @Composable
 private fun BoxScope.EqualizerSketch(eq: EqSettings) {
+    // hoisted: the Canvas below cannot call the @Composable getters for these
+    val sketch = Sketch
+    val hubCard = HubCard
+    val faint = LabColors.Faint
     fun band(from: Double, to: Double): Float {
         if (!eq.enabled) return 0f
         val inBand = eq.nodes.filter { it.enabled && it.frequency >= from && it.frequency < to }
@@ -342,16 +354,16 @@ private fun BoxScope.EqualizerSketch(eq: EqSettings) {
         val panel = size.height * 1.05f
         val origin = Offset(size.width - panel * 0.78f, size.height * 0.05f)
         rotate(-14f, Offset(origin.x + panel / 2, origin.y + panel / 2)) {
-            drawRoundRect(Sketch, origin, Size(panel, panel), CornerRadius(panel * 0.2f), style = Stroke(3.5.dp.toPx()))
+            drawRoundRect(sketch, origin, Size(panel, panel), CornerRadius(panel * 0.2f), style = Stroke(3.5.dp.toPx()))
             listOf(low, mid, high).forEachIndexed { i, gain ->
                 val x = origin.x + panel * (0.25f + i * 0.22f)
                 val top = origin.y + panel * 0.16f
                 val bottom = origin.y + panel * 0.84f
-                drawLine(Sketch, Offset(x, top), Offset(x, bottom), 4.dp.toPx(), StrokeCap.Round)
+                drawLine(sketch, Offset(x, top), Offset(x, bottom), 4.dp.toPx(), StrokeCap.Round)
                 val bob = level.punch * 4.dp.toPx() * sin(t * 9f + i * 2f)
                 val y = (top + bottom) / 2 - (gain / 12f) * (bottom - top) / 2 + bob
-                drawCircle(HubCard, 11.dp.toPx(), Offset(x, y))
-                drawCircle(if (eq.enabled) Color(0xFF9A9AA0) else Sketch, 11.dp.toPx(), Offset(x, y), style = Stroke(4.dp.toPx()))
+                drawCircle(hubCard, 11.dp.toPx(), Offset(x, y))
+                drawCircle(if (eq.enabled) faint else sketch, 11.dp.toPx(), Offset(x, y), style = Stroke(4.dp.toPx()))
             }
         }
     }
@@ -360,6 +372,7 @@ private fun BoxScope.EqualizerSketch(eq: EqSettings) {
 /** big outlined FX letters off the edge; a light runs through them while an effect is on */
 @Composable
 private fun BoxScope.FxSketch(active: Boolean) {
+    val sketch = Sketch
     val measurer = rememberTextMeasurer()
     val glow by animateFloatAsState(if (active) 1f else 0f, tween(500), label = "fx")
     val time = sketchTime { active }
@@ -371,7 +384,7 @@ private fun BoxScope.FxSketch(active: Boolean) {
         )
         val layout = measurer.measure("FX", style)
         val topLeft = Offset(size.width - layout.size.width * 0.86f, (size.height - layout.size.height) / 2f + size.height * 0.08f)
-        drawText(layout, color = Sketch, topLeft = topLeft)
+        drawText(layout, color = sketch, topLeft = topLeft)
         if (glow > 0.01f) {
             val sweep = (time.value * 0.35f) % 1f
             val x = topLeft.x + layout.size.width * (sweep * 1.6f - 0.3f)
@@ -390,6 +403,7 @@ private fun BoxScope.FxSketch(active: Boolean) {
 /** a little waveform, as coarse as what's streaming */
 @Composable
 private fun BoxScope.QualitySketch(quality: AudioQuality, firstProvider: String?) {
+    val sketch = Sketch
     val fine = when {
         firstProvider == dev.meowlabs.blossomtune.module.monochrome.MonochromeModule.Id -> 1f
         firstProvider == dev.meowlabs.blossomtune.module.applemusic.AppleMusicModule.Id -> 0.65f
@@ -407,7 +421,7 @@ private fun BoxScope.QualitySketch(quality: AudioQuality, firstProvider: String?
             val a = (0.35f + 0.35f * sin(p * 23f) + 0.3f * sin(p * 57f + 1f)).coerceIn(0f, 1f) * (1f - p * 0.6f)
             val q = (a * levels).roundToInt() / levels.toFloat()
             val half = q * size.height * 0.32f
-            drawLine(Sketch, Offset(x, size.height / 2 - half), Offset(x, size.height / 2 + half), (step * 0.55f).coerceAtLeast(1.dp.toPx()))
+            drawLine(sketch, Offset(x, size.height / 2 - half), Offset(x, size.height / 2 + half), (step * 0.55f).coerceAtLeast(1.dp.toPx()))
             x += step
         }
     }
@@ -416,10 +430,11 @@ private fun BoxScope.QualitySketch(quality: AudioQuality, firstProvider: String?
 /** a usb-c plug on its cable, brighter while a dac is plugged in */
 @Composable
 private fun BoxScope.PassSketch(plugged: Boolean) {
+    val sketch = Sketch
     val on by animateFloatAsState(if (plugged) 1f else 0.4f, tween(400), label = "plug")
     Canvas(Modifier.fillMaxHeight().width(72.dp).align(Alignment.CenterEnd).padding(end = 14.dp, top = 20.dp, bottom = 20.dp)) {
         val mid = size.height / 2f
-        val color = Sketch.copy(alpha = on)
+        val color = sketch.copy(alpha = on)
         val head = Size(size.width * 0.18f, size.height * 0.36f)
         drawRoundRect(color, Offset(0f, mid - head.height / 2f), head, CornerRadius(1.5.dp.toPx()), style = Stroke(1.6.dp.toPx()))
         val body = Size(size.width * 0.42f, size.height * 0.62f)
@@ -431,13 +446,14 @@ private fun BoxScope.PassSketch(plugged: Boolean) {
 /** two songs' volumes crossing */
 @Composable
 private fun BoxScope.TransitionSketch(active: Boolean) {
+    val sketch = Sketch
     val on by animateFloatAsState(if (active) 1f else 0.4f, tween(400), label = "t")
     Canvas(Modifier.fillMaxHeight().width(56.dp).align(Alignment.CenterEnd).padding(end = 14.dp, top = 18.dp, bottom = 18.dp)) {
         val w = size.width
         val h = size.height
         val out = Path().apply { moveTo(0f, 0f); cubicTo(w * 0.5f, 0f, w * 0.5f, h, w, h) }
         val inn = Path().apply { moveTo(0f, h); cubicTo(w * 0.5f, h, w * 0.5f, 0f, w, 0f) }
-        drawPath(out, Sketch.copy(alpha = on), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
-        drawPath(inn, Sketch.copy(alpha = on), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+        drawPath(out, sketch.copy(alpha = on), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+        drawPath(inn, sketch.copy(alpha = on), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
     }
 }

@@ -57,6 +57,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -87,21 +88,46 @@ import dev.meowlabs.blossomtune.ui.component.AppSwitch
 import dev.meowlabs.blossomtune.ui.component.DefaultPlayerSeekBarSlider
 import dev.meowlabs.blossomtune.ui.component.LocalNavAnimatedContentScope
 import dev.meowlabs.blossomtune.ui.component.damageBoundary
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import kotlinx.coroutines.flow.first
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
+/**
+ * The lab's own kit. Dark in dark mode; in light mode the 0.5.x values (white cards,
+ * ice stage, ink text) — the Mochy merge overwrote them with the dark ones, so the
+ * whole Audio Lab stayed black in light mode.
+ *
+ * Secondary is InkSoft, not the 0.5.x InkMuted: InkMuted is 4.48 on the ice stage,
+ * just under AA, while InkSoft is 5.77 there and 7.05 on paper.
+ *
+ * `node()` stays a plain function: the node colours are the same in both modes, and
+ * the equalizer graph reads them from a draw scope, which cannot call a @Composable
+ * getter — the same reason EqGraphEditor/EqBandsEditor hoist `Faint` into a local
+ * before their Canvas.
+ */
 object LabColors {
-    val Card = Color(0xFF1C1C1E)
-    val Stage = Color(0xFF0E0E10)
-    val StageLine = Color(0xFF2E2E32)
-    val Row = Color(0xFF26262A)
-    val RowSelected = Color(0xFF34343A)
-    val Chip = Color(0xFF232327)
-    val Primary = Color.White
-    val Secondary = Color(0xFF9A9AA0)
-    val Faint = Color(0xFF5C5C63)
-    val Ink = Color(0xFF8A8A92)
+    val Card: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+    val Stage: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF0E0E10) else Color(0xFFDCEAF9)
+    val StageLine: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF2E2E32) else Color(0xFFCFE3F7)
+    val Row: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF26262A) else Color(0xFFFFFFFF)
+    val RowSelected: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF34343A) else Color(0xFFE4EFFC)
+    val Chip: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF232327) else Color(0xFFDCEAF9)
+    val Primary: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color.White else Color(0xFF0E1B2C)
+    val Secondary: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF9A9AA0) else Color(0xFF3F5B78)
+    val Faint: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF5C5C63) else Color(0xFF4E6C8A)
+    val Ink: Color
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF8A8A92) else Color(0xFF4E6C8A)
 
     /** the equalizer's node colours, soft enough to sit on blossomtune's greys and apart enough to tell */
     val Nodes = listOf(
@@ -172,7 +198,7 @@ fun LabToggleRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leadingDot) {
-            val dot by animateColorAsState(if (checked) Color.White else Color(0xFFD9D9DE), tween(200), label = "dot")
+            val dot by animateColorAsState(if (checked) (if (LocalBlossomDark.current) Color.White else BlossomColors.Azure) else (if (LocalBlossomDark.current) Color(0xFFD9D9DE) else LabColors.Chip), tween(200), label = "dot")
             Box(
                 Modifier
                     .size(20.dp)
@@ -301,19 +327,19 @@ fun LabTextAction(text: String, iconRes: Int? = null, enabled: Boolean = true, b
             val turn = if (busy) rememberInfiniteTransition(label = "busy")
                 .animateFloat(0f, 360f, infiniteRepeatable(tween(800, easing = LinearEasing)), label = "turn") else null
             Icon(
-                painterResource(iconRes), null, tint = if (enabled) Color.White else LabColors.Faint,
+                painterResource(iconRes), null, tint = if (enabled) LabColors.Primary else LabColors.Faint,
                 modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = turn?.value ?: 0f },
             )
             Spacer(Modifier.width(6.dp))
         }
         Text(text, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-            color = if (enabled) Color.White else LabColors.Faint)
+            color = if (enabled) LabColors.Primary else LabColors.Faint)
     }
 }
 
 data class LabChip(val key: String, val label: String, val dot: Color? = null)
 
-/** a scrolling row of pills; the picked one is white */
+/** a scrolling row of pills; the picked one is white in dark mode, azure in light mode */
 @Composable
 fun LabChips(
     chips: List<LabChip>,
@@ -330,8 +356,9 @@ fun LabChips(
     ) {
         chips.forEach { chip ->
             val selected = chip.key == selectedKey
-            val bg by animateColorAsState(if (selected) Color.White else LabColors.Chip, tween(180), label = "chipBg")
-            val fg by animateColorAsState(if (selected) Color.Black else Color.White, tween(180), label = "chipFg")
+            val dark = LocalBlossomDark.current
+            val bg by animateColorAsState(if (selected) (if (dark) Color.White else BlossomColors.Azure) else LabColors.Chip, tween(180), label = "chipBg")
+            val fg by animateColorAsState(if (selected) (if (dark) Color.Black else Color.White) else LabColors.Primary, tween(180), label = "chipFg")
             val interaction = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
@@ -385,6 +412,8 @@ fun LabSegmented(
             .padding(4.dp),
     ) {
         val segment = maxWidth / options.size
+        val dark = LocalBlossomDark.current
+        val pillFill = if (dark) Color.White else BlossomColors.Azure
         val offset by animateDpAsState(segment * selectedIndex, spring(dampingRatio = 0.82f, stiffness = 520f), label = "segment")
         Box(
             Modifier
@@ -392,11 +421,11 @@ fun LabSegmented(
                 .width(segment)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(height / 2))
-                .background(Color.White)
+                .background(pillFill)
         )
         Row(Modifier.fillMaxWidth().fillMaxHeight()) {
             options.forEachIndexed { index, label ->
-                val color by animateColorAsState(if (index == selectedIndex) Color.Black else Color.White, tween(160), label = "segText")
+                val color by animateColorAsState(if (index == selectedIndex) (if (dark) Color.Black else Color.White) else LabColors.Primary, tween(160), label = "segText")
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -573,7 +602,7 @@ fun LabSelect(
             Icon(
                 painter = painterResource(dev.meowlabs.blossomtune.R.drawable.expand_more),
                 contentDescription = contentDescription,
-                tint = if (open) Color.White else LabColors.Secondary,
+                tint = if (open) LabColors.Primary else LabColors.Secondary,
                 modifier = Modifier.size(22.dp).graphicsLayer { rotationZ = chevron },
             )
         }
@@ -630,8 +659,8 @@ private fun LabSelectRow(label: String, picked: Boolean, onClick: () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         if (picked) {
-            Box(Modifier.size(20.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
-                Icon(painterResource(dev.meowlabs.blossomtune.R.drawable.check), contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
+            Box(Modifier.size(20.dp).clip(CircleShape).background(if (LocalBlossomDark.current) Color.White else BlossomColors.Azure), contentAlignment = Alignment.Center) {
+                Icon(painterResource(dev.meowlabs.blossomtune.R.drawable.check), contentDescription = null, tint = if (LocalBlossomDark.current) Color.Black else Color.White, modifier = Modifier.size(14.dp))
             }
         }
     }
@@ -640,6 +669,9 @@ private fun LabSelectRow(label: String, picked: Boolean, onClick: () -> Unit) {
 private const val LabSelectUnrollMs = 240
 private val LabSelectRowHeight = 44.dp
 private val LabSelectShape = RoundedCornerShape(16.dp)
-private val LabSelectColor = Color(0xFF141416)
-private val LabSelectEdge = Color(0xFF2A2A2F)
-private val LabSelectEdgeOpen = Color(0xFF3C3C42)
+private val LabSelectColor: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF141416) else BlossomColors.Paper
+private val LabSelectEdge: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF2A2A2F) else BlossomColors.Line
+private val LabSelectEdgeOpen: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF3C3C42) else BlossomColors.Azure

@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
@@ -65,13 +66,17 @@ import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.LocalPlayerAwareWindowInsets
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.component.BlurEffectCache
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 
-/** the backdrop behind the sheet, and the sheet itself */
-private val PageBackdrop = Color(0xFF141416)
-private val SheetColor = Color.Black
+/** the backdrop behind the sheet, and the sheet itself: dark in dark mode, ice/paper in light mode */
+private val PageBackdrop: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF141416) else BlossomColors.Ice
+private val SheetColor: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color.Black else BlossomColors.Paper
 private val SheetCorner = 40.dp
 
 /** past this the sheet's content stops widening, so a tablet reads like a wide phone */
@@ -111,7 +116,7 @@ fun AudioLabPage(
         modifier = modifier
             .fillMaxSize()
             // what shows round the backdrop's edges as it shrinks back
-            .background(Color.Black),
+            .background(PageBackdrop),
     ) {
         val wide = maxWidth > ContentMaxWidth + SideMargin * 2
         // on a tablet the title lines up with the sheet's content, not the screen's edge
@@ -222,7 +227,7 @@ fun LabSheetTitle(text: String, modifier: Modifier = Modifier) {
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
         letterSpacing = (-0.02).em,
-        color = Color(0xFF8E8E93),
+        color = LabColors.Secondary,
         modifier = modifier.padding(start = 4.dp, top = 6.dp, bottom = 12.dp),
     )
 }
@@ -234,7 +239,7 @@ fun LabGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.() 
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(30.dp))
-            .background(Color(0xFF1A1A1C))
+            .background(if (LocalBlossomDark.current) Color(0xFF1A1A1C) else Color(0xFFF4FAFF))
             .padding(12.dp),
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
         content = content,
@@ -264,7 +269,7 @@ private fun LabHeader(
             fontSize = title.firstSize * keep,
             lineHeight = title.firstSize * keep * 0.95f,
             letterSpacing = (-0.035).em,
-            color = if (title.firstDim) Color(0xFF8A8A8E) else Color.White,
+            color = if (title.firstDim) LabColors.Secondary else LabColors.Primary,
             maxLines = 1,
             overflow = TextOverflow.Clip,
             softWrap = false,
@@ -279,7 +284,7 @@ private fun LabHeader(
                     fontSize = title.secondSize * keep,
                     lineHeight = title.secondSize * keep * 0.92f,
                     letterSpacing = (-0.04).em,
-                    color = if (title.secondDim) Color(0xFF8A8A8E) else Color.White,
+                    color = if (title.secondDim) LabColors.Secondary else LabColors.Primary,
                     maxLines = 1,
                     overflow = TextOverflow.Clip,
                     softWrap = false,
@@ -298,7 +303,7 @@ private fun LabHeader(
                 fontFamily = FontFamily.Monospace,
                 fontSize = 10.sp,
                 letterSpacing = 0.06.em,
-                color = Color(0xFF8A8A8E),
+                color = LabColors.Secondary,
                 maxLines = 2,
                 modifier = Modifier.widthIn(max = 220.dp),
             )
@@ -312,8 +317,8 @@ private fun LabBadge(text: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(Color(0xFF2C2C2E))
-            .border(1.5.dp, Color(0xFFFFF59D), RoundedCornerShape(50))
+            .background(if (LocalBlossomDark.current) Color(0xFF2C2C2E) else BlossomColors.AzurePale)
+            .border(1.5.dp, if (LocalBlossomDark.current) Color(0xFFFFF59D) else BlossomColors.Azure, RoundedCornerShape(50))
             .padding(horizontal = 12.dp, vertical = 3.dp),
     ) {
         Text(
@@ -322,7 +327,7 @@ private fun LabBadge(text: String) {
             fontWeight = FontWeight.Medium,
             fontSize = 13.sp,
             letterSpacing = 0.08.em,
-            color = Color(0xFFFFD866),
+            color = if (LocalBlossomDark.current) Color(0xFFFFD866) else BlossomColors.AzureInk,
             maxLines = 1,
         )
     }
@@ -331,6 +336,7 @@ private fun LabBadge(text: String) {
 /** keeps what scrolls up under the status bar and the back button readable */
 @Composable
 private fun TopScrim(scroll: ScrollState, headerHeight: Int, statusTop: Dp) {
+    val scrim = if (LocalBlossomDark.current) Color.Black else BlossomColors.Ice
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -340,7 +346,7 @@ private fun TopScrim(scroll: ScrollState, headerHeight: Int, statusTop: Dp) {
                 val reach = headerHeight - (statusTop + 64.dp).toPx()
                 alpha = ((scroll.value - reach) / 48.dp.toPx()).coerceIn(0f, 1f)
             }
-            .background(Brush.verticalGradient(listOf(Color.Black, Color.Black.copy(alpha = 0.85f), Color.Transparent))),
+            .background(Brush.verticalGradient(listOf(scrim, scrim.copy(alpha = 0.85f), Color.Transparent))),
     )
 }
 

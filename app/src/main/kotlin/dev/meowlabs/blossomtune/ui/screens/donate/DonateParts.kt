@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +31,8 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.component.pressBounce
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
@@ -39,7 +42,9 @@ internal const val CharacterAspect = 1013f / 768f
 // gap between the sheet's handle row and the top of her hair
 internal val CharacterTop = 24.dp
 
-internal val DonateSoftText = Color.White.copy(alpha = 0.72f)
+/** soft text on the support/donate sheets: white on their dark sheet, ink-muted on the white sheet in light mode */
+internal val DonateSoftText: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color.White.copy(alpha = 0.72f) else BlossomColors.InkMuted
 
 /** about half the sheet wide like the mocks, but small enough on a short or sideways screen that the words still fit */
 internal fun characterWidth(maxWidth: Dp, maxHeight: Dp): Dp =
@@ -69,7 +74,7 @@ internal fun DonateCharacter(width: Dp, modifier: Modifier = Modifier, overlapBe
     }
 }
 
-/** the round grey buttons under both sheets, quiet ones are the way out */
+/** the round buttons under both sheets, quiet ones are the way out: grey in dark mode, azure in light mode */
 @Composable
 internal fun DonatePillButton(
     text: String,
@@ -78,13 +83,22 @@ internal fun DonatePillButton(
     quiet: Boolean = false,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    // white text on the pale row surface vanished in light mode; the loud button goes azure, the quiet one ice
+    val dark = LocalBlossomDark.current
+    val fill = if (dark) MenuRowSurface else if (quiet) BlossomColors.IcePanel else BlossomColors.Azure
+    // InkSoft, not InkMuted: InkMuted is 4.43 on the ice panel, just under AA; InkSoft is 5.70
+    val textColor = if (quiet) {
+        if (dark) Color.White.copy(alpha = 0.38f) else BlossomColors.InkSoft
+    } else {
+        Color.White
+    }
     Box(
         modifier = modifier
             .pressBounce(interaction, pressedScale = 0.97f)
             .fillMaxWidth()
             .height(48.dp)
             .clip(CircleShape)
-            .background(MenuRowSurface)
+            .background(fill)
             .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -93,7 +107,7 @@ internal fun DonatePillButton(
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = (-0.4).sp,
-            color = if (quiet) Color.White.copy(alpha = 0.38f) else Color.White,
+            color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

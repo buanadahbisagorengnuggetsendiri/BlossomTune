@@ -228,12 +228,12 @@ private fun StatusCard(shown: Shown, mixerRate: Int?, onPermission: () -> Unit) 
         Text(
             stringResource(R.string.audiopass_status_label),
             fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp,
-            letterSpacing = (-0.02).em, color = Color(0xFF8E8E93),
+            letterSpacing = (-0.02).em, color = LabColors.Secondary,
         )
         Text(
             stringResource(status),
             fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 34.sp, lineHeight = 38.sp,
-            letterSpacing = (-0.03).em, color = Color.White,
+            letterSpacing = (-0.03).em, color = LabColors.Primary,
         )
         Spacer(Modifier.height(14.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(LabColors.StageLine))
@@ -303,7 +303,7 @@ private fun ColumnScope.BluetoothDetails(state: BluetoothCodecWatcher.State, onP
                 Note(
                     if (better != null) stringResource(R.string.audiopass_bt_better, better, state.codec.name)
                     else stringResource(R.string.audiopass_bt_ldac_low, ldacLabel(ldac!!)),
-                    color = Color.White,
+                    color = LabColors.Primary,
                 )
                 Spacer(Modifier.height(10.dp))
                 val developerOn = remember { developerOptionsOn(context) }
@@ -414,7 +414,7 @@ private fun OptionTile(title: String, checked: Boolean, onChange: (Boolean) -> U
             .clickable { onChange(!checked) }
             .padding(horizontal = 18.dp, vertical = 16.dp),
     ) {
-        Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 19.sp, color = Color.White)
+        Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 19.sp, color = LabColors.Primary)
         Spacer(Modifier.weight(1f).heightIn(min = 12.dp))
         AppSwitch(checked = checked, onCheckedChange = onChange)
     }
@@ -491,7 +491,7 @@ private fun DirectUsbCard(
         Column(Modifier.padding(horizontal = 6.dp, vertical = 6.dp)) {
             Text(
                 stringResource(R.string.audiopass_usb_title),
-                fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White,
+                fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = LabColors.Primary,
             )
             Spacer(Modifier.height(4.dp))
             when (permitted) {
@@ -560,7 +560,7 @@ private fun BlockersCard(active: Set<PassBlocker>, lossyToo: Boolean, canRestore
             Text(
                 stringResource(if (active.isEmpty()) R.string.audiopass_blockers_clear_title else R.string.audiopass_blockers_title),
                 fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, lineHeight = 21.sp,
-                color = Color.White, modifier = Modifier.weight(1f),
+                color = LabColors.Primary, modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(10.dp))
             PillButton(stringResource(R.string.audiopass_blockers_button), enabled = active.isNotEmpty(), onClick = onClear)
@@ -569,12 +569,12 @@ private fun BlockersCard(active: Set<PassBlocker>, lossyToo: Boolean, canRestore
         PassBlocker.entries.forEach { blocker ->
             val on = blocker in active
             Row(Modifier.padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(6.dp).clip(CircleShape).background(if (on) Color.White else LabColors.Faint))
+                Box(Modifier.size(6.dp).clip(CircleShape).background(if (on) LabColors.Primary else LabColors.Faint))
                 Spacer(Modifier.width(10.dp))
                 Text(
                     stringResource(blocker.label),
                     fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
-                    color = if (on) Color.White else LabColors.Faint,
+                    color = if (on) LabColors.Primary else LabColors.Faint,
                 )
             }
         }

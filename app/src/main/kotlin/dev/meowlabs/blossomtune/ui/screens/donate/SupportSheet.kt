@@ -29,6 +29,7 @@ import dev.meowlabs.blossomtune.core.updater.GithubRepoUrl
 import dev.meowlabs.blossomtune.ui.component.PopupSheetHandleHeight
 import dev.meowlabs.blossomtune.ui.component.PopupSheetState
 import dev.meowlabs.blossomtune.ui.screens.update.openUrl
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // the band ends around her chest, above where her fade starts (56%), or the letters show through her
 private const val BandEndsOnCharacter = 0.53f
@@ -83,7 +84,7 @@ private fun SupportSheetContent() {
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-1).sp,
                 textAlign = TextAlign.Center,
-                color = Color.White,
+                color = BlossomInk.Primary,
             )
             Spacer(Modifier.height(14.dp))
             Text(

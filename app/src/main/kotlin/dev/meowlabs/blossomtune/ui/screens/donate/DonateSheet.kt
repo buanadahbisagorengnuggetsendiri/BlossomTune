@@ -46,6 +46,7 @@ import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.screens.update.VersionRing
 import dev.meowlabs.blossomtune.ui.screens.update.openUrl
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 
 // the title tucks up over her faded bottom by this much, like the mock
@@ -107,7 +108,7 @@ private fun DonateSheetContent() {
                 lineHeight = 40.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-1.2).sp,
-                color = Color.White,
+                color = BlossomInk.Primary,
             )
             Spacer(Modifier.height(4.dp))
             Text(
@@ -178,14 +179,14 @@ private fun DonateLinkRow(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp,
-                color = Color.White.copy(alpha = 0.88f),
+                color = BlossomInk.Primary,
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = BlossomInk.Muted,
                 )
             }
         }

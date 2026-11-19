@@ -1250,7 +1250,8 @@ private fun HeroLabelLine(label: HeroLabel) {
             Text(
                 text = label.subject,
                 style = HomeLabelStyle,
-                color = BlossomInk.Primary.copy(alpha = 0.88f),
+                // on the hero photo, like the rest of the label line — ink only reads on the ice page below it
+                color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),

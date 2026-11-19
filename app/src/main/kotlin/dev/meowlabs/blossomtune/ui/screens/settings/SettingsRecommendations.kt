@@ -72,6 +72,7 @@ import dev.meowlabs.blossomtune.ui.screens.devices.DeviceIntegrationRoute
 import dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportSyncRoute
 import dev.meowlabs.blossomtune.ui.screens.settings.integrations.discord.DiscordRoute
 import dev.meowlabs.blossomtune.ui.screens.settings.integrations.scrobbleServiceRoute
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.utils.PreferencesCache
 import dev.meowlabs.blossomtune.utils.dataStore
@@ -328,7 +329,7 @@ internal fun RecommendedCard(recommendations: List<RecommendedSetting>, open: (S
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.Medium,
             fontSize = 13.sp,
-            color = Color.White.copy(alpha = 0.55f),
+            color = BlossomInk.Muted,
             modifier = Modifier.padding(start = 10.dp, top = 8.dp, bottom = 4.dp),
         )
         recommendations.forEachIndexed { index, recommendation ->
@@ -338,7 +339,7 @@ internal fun RecommendedCard(recommendations: List<RecommendedSetting>, open: (S
                         .fillMaxWidth()
                         .padding(start = 66.dp, end = 10.dp)
                         .height(0.8.dp)
-                        .background(Color.White.copy(alpha = 0.08f)),
+                        .background(BlossomInk.Divider),
                 )
             }
             RecommendationRow(
@@ -372,7 +373,7 @@ private fun RecommendationRow(recommendation: RecommendedSetting, onClick: () ->
             Icon(
                 painter = recommendation.icon(),
                 contentDescription = null,
-                tint = Color.White,
+                tint = BlossomInk.Primary,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -383,7 +384,7 @@ private fun RecommendationRow(recommendation: RecommendedSetting, onClick: () ->
                 fontFamily = InterFontFamily,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -391,7 +392,7 @@ private fun RecommendationRow(recommendation: RecommendedSetting, onClick: () ->
                 text = stringResource(R.string.settings_crumb, stringResource(recommendation.pageRes)),
                 fontFamily = InterFontFamily,
                 fontSize = 13.sp,
-                color = Color.White.copy(alpha = 0.55f),
+                color = BlossomInk.Muted,
             )
         }
     }
