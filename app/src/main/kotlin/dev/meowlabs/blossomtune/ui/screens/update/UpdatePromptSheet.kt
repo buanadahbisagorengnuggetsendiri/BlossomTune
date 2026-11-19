@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -52,7 +53,8 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
-private val CardSurface = MenuRowSurface
+private val CardSurface: Color
+    @Composable @ReadOnlyComposable get() = MenuRowSurface
 
 @Composable
 fun UpdatePromptSheet(

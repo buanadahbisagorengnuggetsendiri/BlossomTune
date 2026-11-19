@@ -71,6 +71,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -516,6 +517,9 @@ private fun BoxWithConstraintsScope.PopupSheetFrame(
 ) {
     val scope = rememberCoroutineScope()
     val motion = remember(frame) { FrameMotion(frame, scope) }
+    // read here: .drawBehind is not a composable context
+    val sheetSurface = MenuSurface
+    val rowSurface = MenuRowSurface
 
     // The front frame is the topmost one that isn't leaving. Everything else is inert: no drag,
     // no back, no taps through to its content.
@@ -665,7 +669,7 @@ private fun BoxWithConstraintsScope.PopupSheetFrame(
                 val frames = state.frames
                 val index = frames.indexOf(frame)
                 val recede = if (index < 0) 0f else frames.depthAbove(index).coerceAtMost(1f)
-                drawRect(lerp(frame.surface ?: MenuSurface, MenuRowSurface, recede))
+                drawRect(lerp(frame.surface ?: sheetSurface, rowSurface, recede))
             }
             // The whole sheet is a touch target, not just the parts of its content that have one -
             // otherwise a tap on an empty patch (beside a row, around the button bar) fell
@@ -832,4 +836,5 @@ private fun SheetBody(
 }
 
 /** Elevated row/card/button sitting directly on a [MenuSurface] sheet - see docs/popup-sheet.skill.md. */
-val PopupSheetRowSurface: Color get() = MenuRowSurface
+val PopupSheetRowSurface: Color
+    @Composable @ReadOnlyComposable get() = MenuRowSurface

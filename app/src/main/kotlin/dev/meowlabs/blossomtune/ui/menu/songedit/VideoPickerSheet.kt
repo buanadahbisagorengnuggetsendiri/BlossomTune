@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -253,7 +254,8 @@ private fun VideoPickerContent(state: VideoPickState) {
     }
 }
 
-private val PickedRow = lerp(MenuRowSurface, Color.White, 0.12f)
+private val PickedRow: Color
+    @Composable @ReadOnlyComposable get() = lerp(MenuRowSurface, BlossomInk.Primary, 0.12f)
 
 @Composable
 private fun ChoiceRow(title: String, detail: String, picked: Boolean, onClick: () -> Unit) {

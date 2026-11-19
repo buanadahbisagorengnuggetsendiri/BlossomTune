@@ -202,8 +202,8 @@ private fun WordMeter(session: LyricsShareSession) {
                 val restWidth = size.width - restLeft
                 val radius = CornerRadius(size.height / 2f)
                 val brush = pickedBrush(session.palette, size.width)
-                drawRoundRect(MenuRowSurface, size = Size(cardWidth, size.height), cornerRadius = radius)
-                drawRoundRect(MenuRowSurface, topLeft = Offset(restLeft, 0f), size = Size(restWidth, size.height), cornerRadius = radius)
+                drawRoundRect(rowSurface, size = Size(cardWidth, size.height), cornerRadius = radius)
+                drawRoundRect(rowSurface, topLeft = Offset(restLeft, 0f), size = Size(restWidth, size.height), cornerRadius = radius)
                 val inCard = (words / card).coerceIn(0f, 1f)
                 if (inCard > 0f) {
                     drawRoundRect(brush, size = Size((cardWidth * inCard).coerceAtLeast(size.height), size.height), cornerRadius = radius)
@@ -247,6 +247,7 @@ private fun LineRow(session: LyricsShareSession, index: Int, text: String, modif
     val greyed by animateFloatAsState(if (blocked) 1f else 0f, tween(220), label = "lineGreyed")
     val shake = remember { Animatable(0f) }
     val interaction = remember { MutableInteractionSource() }
+    val rowSurface = MenuRowSurface   // read here: .drawBehind is not a composable context
     Box(
         modifier
             .pressBounce(interaction, pressedScale = 0.97f)
@@ -257,7 +258,7 @@ private fun LineRow(session: LyricsShareSession, index: Int, text: String, modif
                 translationX = shake.value
                 with(session.choreography) { applyRowArrival(index) }
             }
-            .drawBehind { drawShareRowLook(fill.value, outline.value, session.palette, ShareRowCorner.toPx()) }
+            .drawBehind { drawShareRowLook(fill.value, outline.value, session.palette, ShareRowCorner.toPx(), rowSurface) }
             .clickable(interactionSource = interaction, indication = RemoteFocus) {
                 if (session.toggle(index)) {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)

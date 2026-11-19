@@ -65,11 +65,12 @@ internal fun DrawScope.drawShareRowLook(
     outline: Float,
     palette: List<Color>,
     corner: Float,
+    surface: Color,
     size: Size = this.size,
     alpha: Float = 1f,
 ) {
     val radius = CornerRadius(corner)
-    drawRoundRect(MenuRowSurface, size = size, cornerRadius = radius, alpha = alpha)
+    drawRoundRect(surface, size = size, cornerRadius = radius, alpha = alpha)
     val brush = pickedBrush(palette, size.width)
     if (fill > 0f) drawRoundRect(brush, size = size, cornerRadius = radius, alpha = fill * alpha)
     if (outline > 0f) {

@@ -50,6 +50,7 @@ internal fun ShareFlight(session: LyricsShareSession) {
     val clip = remember { Path() }
     // the last place the line was seen, for when it scrolls out of the lyrics mid-flight
     val lastSource = remember { arrayOfNulls<Rect>(1) }
+    val rowSurface = MenuRowSurface   // read here: .drawBehind is not a composable context
 
     LaunchedEffect(Unit) {
         // one frame drawn first, so the lyrics never show a gap where neither copy is
@@ -68,7 +69,7 @@ internal fun ShareFlight(session: LyricsShareSession) {
                 val to = session.flightTarget?.takeIf { it.isAttached }?.fullBoundsInWindow()
                 // flying back to a line that has scrolled away: fade out on the way instead
                 val gone = if (live == null) choreo.travel() else 1f
-                drawFlight(session, source, from, to, measurer, clip, choreo.pillAlpha() * gone)
+                drawFlight(session, source, from, to, measurer, clip, choreo.pillAlpha() * gone, rowSurface)
             },
     )
 }
@@ -81,6 +82,7 @@ private fun DrawScope.drawFlight(
     measurer: TextMeasurer,
     clip: Path,
     alpha: Float,
+    rowSurface: Color,
 ) {
     if (alpha <= 0f) return
     val choreo = session.choreography
@@ -138,6 +140,7 @@ private fun DrawScope.drawFlight(
                 outline = if (picked && session.pastCard(session.held)) 1f else 0f,
                 palette = session.palette,
                 corner = corner,
+                surface = rowSurface,
                 size = size,
                 alpha = landed,
             )

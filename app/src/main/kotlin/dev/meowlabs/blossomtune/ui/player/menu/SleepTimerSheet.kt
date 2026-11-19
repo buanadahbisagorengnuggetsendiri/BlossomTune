@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -65,7 +66,8 @@ import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.SheetIcon
 import kotlinx.coroutines.delay
 
-private val CardSurface = MenuRowSurface
+private val CardSurface: Color
+    @Composable @ReadOnlyComposable get() = MenuRowSurface
 private val SheetEasing = MenuEasing
 private val Muted = Color(0xFFAAAAAA)
 private val PresetMinutes = listOf(1, 5, 10, 15, 25, 30, 45, 60)

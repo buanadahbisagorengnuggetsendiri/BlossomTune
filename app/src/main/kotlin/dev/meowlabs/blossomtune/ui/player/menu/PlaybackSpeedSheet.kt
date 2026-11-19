@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,7 +54,8 @@ import kotlin.math.abs
 import kotlin.math.log2
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
-private val CardSurface = MenuRowSurface
+private val CardSurface: Color
+    @Composable @ReadOnlyComposable get() = MenuRowSurface
 
 @Composable
 fun PlaybackSpeedSheet(onDismiss: () -> Unit) {

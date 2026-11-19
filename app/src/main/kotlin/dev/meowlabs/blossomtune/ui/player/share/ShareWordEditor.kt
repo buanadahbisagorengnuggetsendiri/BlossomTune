@@ -369,6 +369,7 @@ private fun MakeItCard(
     onClick: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val rowSurface = MenuRowSurface   // read here: .drawBehind is not a composable context
     val lit = animateFloatAsState(
         targetValue = if (active) 1f else 0f,
         animationSpec = spring(dampingRatio = 0.8f, stiffness = 500f),
@@ -383,7 +384,7 @@ private fun MakeItCard(
             }
             .pressBounce(interaction)
             .clip(RoundedCornerShape(14.dp))
-            .drawBehind { drawRect(lerp(MenuRowSurface, CardLit, lit.value.coerceIn(0f, 1f))) }
+            .drawBehind { drawRect(lerp(rowSurface, CardLit, lit.value.coerceIn(0f, 1f))) }
             .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {

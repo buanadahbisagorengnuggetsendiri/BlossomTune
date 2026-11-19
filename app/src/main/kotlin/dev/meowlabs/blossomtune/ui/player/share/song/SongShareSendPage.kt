@@ -359,6 +359,8 @@ private fun QualityPicker(send: SendState, canUltraHd: Boolean, video: Boolean) 
 
 @Composable
 private fun ExportProgress(progress: Float, video: Boolean) {
+    val track = MenuRowSurface          // read here: .drawBehind is not a composable context
+    val fillInk = BlossomInk.Primary
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Caption(
             if (video) {
@@ -375,8 +377,8 @@ private fun ExportProgress(progress: Float, video: Boolean) {
                 .height(6.dp)
                 .drawBehind {
                     val radius = CornerRadius(size.height / 2f)
-                    drawRoundRect(MenuRowSurface, cornerRadius = radius)
-                    drawRoundRect(Color.White, size = Size(size.width * progress.coerceIn(0.02f, 1f), size.height), cornerRadius = radius)
+                    drawRoundRect(track, cornerRadius = radius)
+                    drawRoundRect(fillInk, size = Size(size.width * progress.coerceIn(0.02f, 1f), size.height), cornerRadius = radius)
                 },
         )
     }

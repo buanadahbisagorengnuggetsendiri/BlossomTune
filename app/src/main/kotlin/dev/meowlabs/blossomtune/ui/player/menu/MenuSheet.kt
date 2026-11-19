@@ -60,7 +60,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import kotlinx.coroutines.CoroutineScope
@@ -201,6 +200,10 @@ fun MenuSheetSurface(
 ) {
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
+    // read here: .drawBehind is not a composable context
+    val sheetSurface = MenuSurface
+    val rowSurface = MenuRowSurface
+    val handleInk = BlossomInk.Primary
     val stack = LocalMenuSheetStack.current
     val peekPx = with(density) { PeekHeight.toPx() }
     // a floating card is as tall as what's in it and scrolls inside itself; it never grows to a taller detent
@@ -514,7 +517,7 @@ fun MenuSheetSurface(
                         val index = entries.indexOf(entry)
                         if (index >= 0) recede = entries.depthAbove(index).coerceAtMost(1f)
                     }
-                    drawRect(lerp(MenuSurface, MenuRowSurface, recede))
+                    drawRect(lerp(sheetSurface, rowSurface, recede))
                 }
         ) {
             val dragHandle = Modifier.draggable(
@@ -546,7 +549,7 @@ fun MenuSheetSurface(
                         .width(64.dp)
                         .height(4.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.5f))
+                        .background(handleInk.copy(alpha = 0.5f))
                 )
             }
 
