@@ -117,6 +117,7 @@ import dev.meowlabs.blossomtune.models.toMediaMetadata
 import dev.meowlabs.blossomtune.playback.PlayerConnection
 import dev.meowlabs.blossomtune.playback.queues.YouTubeQueue
 import dev.meowlabs.blossomtune.ui.player.CanvasArtworkPlaybackCache
+import dev.meowlabs.blossomtune.ui.player.findActivity
 import dev.meowlabs.blossomtune.ui.player.CanvasArtworkPlayer
 import dev.meowlabs.blossomtune.ui.player.normalizeCanvasArtistName
 import dev.meowlabs.blossomtune.ui.player.normalizeCanvasSongTitle
@@ -209,8 +210,10 @@ private val HeroSectionTuck = 7.dp
 private val HeroSlideEasing = CubicBezierEasing(0.32f, 0f, 0.15f, 1f)
 private const val HeroSlideMillis = 1150
 private const val HeroAdvanceMillis = 5500L
-private val HeroPillContent = Color(0xFF2F2F2F)
-private val HeroPillFill = Color.White.copy(alpha = 0.64f)
+// pil Play: biru pekat dengan label putih. Dulu putih 64% dengan label putih, yang di atas foto
+// gelap cuma terbaca sebagai kabut.
+private val HeroPillContent = Color.White
+private val HeroPillFill = Color(0xFF2368D8)
 private val HeroLabelColor: Color
     @Composable @ReadOnlyComposable get() = Color.White.copy(alpha = 0.69f)
 
@@ -643,6 +646,24 @@ fun HeroCarousel(
     }
 }
 
+/**
+ * ikon status bar putih selama hero bergambar ada di belakangnya: foto hero selalu digelapkan
+ * scrim gelap, jadi ikon gelap milik tema terang tenggelam di sana.
+ */
+@Composable
+private fun WhiteStatusIcons() {
+    val view = androidx.compose.ui.platform.LocalView.current
+    val restoreDark = dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark.current
+    androidx.compose.runtime.DisposableEffect(view) {
+        val window = view.context.findActivity()?.window
+        val controller = window?.let {
+            androidx.core.view.WindowCompat.getInsetsController(it, it.decorView)
+        }
+        controller?.isAppearanceLightStatusBars = false
+        onDispose { controller?.isAppearanceLightStatusBars = restoreDark }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HeroPager(
@@ -652,6 +673,7 @@ private fun HeroPager(
     heroScrollProgressProvider: () -> Float,
     gachaPool: List<MediaMetadata>,
 ) {
+    WhiteStatusIcons()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()

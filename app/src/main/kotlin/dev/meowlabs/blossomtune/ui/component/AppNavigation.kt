@@ -4,6 +4,7 @@ package dev.meowlabs.blossomtune.ui.component
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -206,6 +208,10 @@ internal val NavBarShape = RoundedCornerShape(50)
 /** How bright an unlit tab's icon is. */
 private const val UnlitIconAlpha = 0.7f
 
+/** the blue bar: same two stops in both themes, so the white icons never sit on a pale surface */
+private val NavAzureTop = Color(0xFF2A70E0)
+private val NavAzureBottom = Color(0xFF1B56BC)
+
 @Composable
 fun AppNavigationBar(
     navigationItems: List<Screens>,
@@ -247,13 +253,25 @@ fun AppNavigationBar(
                     if (moduleGlass?.outline != false) drawChromeOutline(Offset.Zero, size, cornerRadius = size.height / 2f)
                 }
         ) {
-            FrostedChromeGlass(
-                state = glassState,
-                pureBlack = pureBlack,
-                accentWash = accentWash,
-                modifier = Modifier.fillMaxSize(),
-                pill = glassPill,
-            )
+            if (moduleGlass == null) {
+                // bar biru: satu warna tetap di kedua tema, ikonnya putih, jadi tidak ada lagi
+                // ikon putih di atas kaca terang yang bikin tenggelam
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(listOf(NavAzureTop, NavAzureBottom))
+                        )
+                )
+            } else {
+                FrostedChromeGlass(
+                    state = glassState,
+                    pureBlack = pureBlack,
+                    accentWash = accentWash,
+                    modifier = Modifier.fillMaxSize(),
+                    pill = glassPill,
+                )
+            }
 
             Row(
                 modifier = Modifier
@@ -337,6 +355,13 @@ internal fun RowScope.NavTab(
             ),
         contentAlignment = Alignment.Center
     ) {
+        // kapsul putih pudar di belakang tab aktif: di atas biru, ikon putih butuh penanda
+        Box(
+            modifier = Modifier
+                .size(iconSize * 1.9f, iconSize)
+                .graphicsLayer { alpha = lit.value }
+                .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(50))
+        )
         if (screen == Screens.Library) {
             LibraryDownloadIcon { TabIcons(screen, unlitIcon, litIcon, iconSize) { lit.value } }
         } else {
