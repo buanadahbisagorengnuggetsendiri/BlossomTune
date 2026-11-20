@@ -1918,11 +1918,11 @@ private fun SheetBackdrop(
         }
     }
     if (!composed) return
-    // mode terang: pemutar es — latar rata warna halaman, artwork tidak dipakai sebagai backdrop
+    // mode terang: pemutar petal — latar rata warna halaman, artwork tidak dipakai sebagai backdrop
     val icy = !dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark.current
     val containerColor = when {
         pureBlack -> Color.Black
-        icy -> dev.meowlabs.blossomtune.ui.theme.BlossomColors.Ice
+        icy -> dev.meowlabs.blossomtune.ui.theme.BlossomColors.Petal
         else -> MaterialTheme.colorScheme.surfaceContainer
     }
     Box(

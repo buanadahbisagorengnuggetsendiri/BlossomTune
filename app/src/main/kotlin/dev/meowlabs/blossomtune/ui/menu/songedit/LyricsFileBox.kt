@@ -79,7 +79,7 @@ fun LyricsFileBox(
             .fillMaxWidth()
             .drawBehind {
                 drawRoundRect(
-                    color = BlossomColors.Azure.copy(alpha = 0.55f),
+                    color = BlossomColors.DeepRose.copy(alpha = 0.55f),
                     cornerRadius = CornerRadius(18.dp.toPx()),
                     style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f))),
                 )

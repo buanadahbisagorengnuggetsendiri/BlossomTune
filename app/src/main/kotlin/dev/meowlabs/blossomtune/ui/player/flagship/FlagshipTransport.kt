@@ -290,7 +290,7 @@ private fun PlayButton(
                                 scaleY = 0.85f + 0.15f * s
                             }
                             .clip(CircleShape)
-                            .background(BlossomColors.Azure)
+                            .background(BlossomColors.DeepRose)
                     } else Modifier
                 ),
         ) {
@@ -546,7 +546,7 @@ private fun RepeatButton(
                             scaleY = s
                         }
                         .clip(CircleShape)
-                        .background(BlossomColors.Azure),
+                        .background(BlossomColors.DeepRose),
                 ) {
                     Text(
                         text = "1",
@@ -624,7 +624,7 @@ fun TransportLayoutPreview(layout: FlagshipTransportLayout, modifier: Modifier =
                 modifier = Modifier
                     .size(unit * TenCircle)
                     .clip(CircleShape)
-                    .background(BlossomColors.Azure)
+                    .background(BlossomColors.DeepRose)
                     .drawBehind { drawPlayGlyph(shapes, still, unit.toPx(), BlossomColors.White) },
             )
         } else {

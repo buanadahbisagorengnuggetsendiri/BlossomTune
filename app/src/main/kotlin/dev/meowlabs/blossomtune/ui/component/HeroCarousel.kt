@@ -158,6 +158,7 @@ import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.sin
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** the hero takes this share of the screen height (527 of 874 in the Figma frame) */
@@ -210,10 +211,10 @@ private val HeroSectionTuck = 7.dp
 private val HeroSlideEasing = CubicBezierEasing(0.32f, 0f, 0.15f, 1f)
 private const val HeroSlideMillis = 1150
 private const val HeroAdvanceMillis = 5500L
-// pil Play: biru pekat dengan label putih. Dulu putih 64% dengan label putih, yang di atas foto
+// pil Play: rose pekat dengan label putih. Dulu putih 64% dengan label putih, yang di atas foto
 // gelap cuma terbaca sebagai kabut.
 private val HeroPillContent = Color.White
-private val HeroPillFill = Color(0xFF2368D8)
+private val HeroPillFill = BlossomColors.DeepRose
 private val HeroLabelColor: Color
     @Composable @ReadOnlyComposable get() = Color.White.copy(alpha = 0.69f)
 

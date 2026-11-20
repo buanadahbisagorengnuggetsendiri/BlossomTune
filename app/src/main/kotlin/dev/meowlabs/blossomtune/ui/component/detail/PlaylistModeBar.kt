@@ -340,7 +340,7 @@ internal fun Modifier.selectedRowBand(progress: () -> Float): Modifier = drawBeh
     if (p <= 0f) return@drawBehind
     val inset = 14.dp.toPx()
     drawRoundRect(
-        color = BlossomColors.Azure.copy(alpha = 0.10f * p.coerceAtMost(1f)),
+        color = BlossomColors.DeepRose.copy(alpha = 0.10f * p.coerceAtMost(1f)),
         topLeft = Offset(inset, 0f),
         size = Size(size.width - inset * 2f, size.height),
         cornerRadius = CornerRadius(14.dp.toPx()),

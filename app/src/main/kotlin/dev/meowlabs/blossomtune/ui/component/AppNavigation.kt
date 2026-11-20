@@ -208,9 +208,9 @@ internal val NavBarShape = RoundedCornerShape(50)
 /** How bright an unlit tab's icon is. */
 private const val UnlitIconAlpha = 0.7f
 
-/** the blue bar: same two stops in both themes, so the white icons never sit on a pale surface */
-private val NavAzureTop = Color(0xFF2A70E0)
-private val NavAzureBottom = Color(0xFF1B56BC)
+/** the rose bar: same two stops in both themes, so the white icons never sit on a pale surface */
+private val NavRoseTop = Color(0xFF9A3050)
+private val NavRoseBottom = Color(0xFF6E1F38)
 
 @Composable
 fun AppNavigationBar(
@@ -254,13 +254,13 @@ fun AppNavigationBar(
                 }
         ) {
             if (moduleGlass == null) {
-                // bar biru: satu warna tetap di kedua tema, ikonnya putih, jadi tidak ada lagi
+                // bar rose: satu warna tetap di kedua tema, ikonnya putih, jadi tidak ada lagi
                 // ikon putih di atas kaca terang yang bikin tenggelam
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            Brush.verticalGradient(listOf(NavAzureTop, NavAzureBottom))
+                            Brush.verticalGradient(listOf(NavRoseTop, NavRoseBottom))
                         )
                 )
             } else {

@@ -101,15 +101,15 @@ val SearchTitleBlockHeight = 62.dp
 val SearchTopClearance = 18.dp
 
 object SearchColors {
-    // Dua mode: nilai gelap tetap persis basis Mochy, nilai terang memakai palet es/azure.
+    // Dua mode: nilai gelap tetap persis basis Mochy, nilai terang memakai palet petal/deep rose.
     val Field: Color @Composable @ReadOnlyComposable
         get() = if (LocalBlossomDark.current) Color(0xFF141416) else BlossomColors.Paper
     val FieldFocused: Color @Composable @ReadOnlyComposable
-        get() = if (LocalBlossomDark.current) Color(0xFF1E1E21) else BlossomColors.IcePanel
+        get() = if (LocalBlossomDark.current) Color(0xFF1E1E21) else BlossomColors.PetalPanel
     val Tile: Color @Composable @ReadOnlyComposable
         get() = if (LocalBlossomDark.current) Color(0xFF121214) else BlossomColors.Paper
     val TileHigh: Color @Composable @ReadOnlyComposable
-        get() = if (LocalBlossomDark.current) Color(0xFF1C1C1F) else Color(0xFFF4FAFF)
+        get() = if (LocalBlossomDark.current) Color(0xFF1C1C1F) else BlossomColors.PetalPanel
     val Divider: Color @Composable @ReadOnlyComposable
         get() = if (LocalBlossomDark.current) Color(0xFF232326) else BlossomColors.LineSoft
     val Primary: Color @Composable @ReadOnlyComposable
@@ -120,7 +120,7 @@ object SearchColors {
         get() = if (LocalBlossomDark.current) Color(0xFF77777D) else BlossomColors.InkMuted
 
     @Composable @ReadOnlyComposable
-    fun page(pureBlack: Boolean): Color = if (LocalBlossomDark.current) Color.Black else BlossomColors.Ice
+    fun page(pureBlack: Boolean): Color = if (LocalBlossomDark.current) Color.Black else BlossomColors.Petal
 }
 
 val SearchCollapseEasing = CubicBezierEasing(0.57f, 0.53f, 0f, 1f)
