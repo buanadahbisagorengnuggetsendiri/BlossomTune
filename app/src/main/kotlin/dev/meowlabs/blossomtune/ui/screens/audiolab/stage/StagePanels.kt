@@ -141,7 +141,7 @@ private fun ListenerControls(viewModel: AudioLabViewModel, stage: State<StageSet
 internal fun StagePill(label: String, on: Boolean, onClick: () -> Unit) {
     // the picked pill is white in dark mode, azure in light mode — white on the light chip vanished
     val dark = LocalBlossomDark.current
-    val background by animateColorAsState(if (on) (if (dark) Color.White else BlossomColors.Azure) else LabColors.Chip, tween(180), label = "pillBg")
+    val background by animateColorAsState(if (on) (if (dark) Color.White else BlossomColors.DeepRose) else LabColors.Chip, tween(180), label = "pillBg")
     val foreground by animateColorAsState(if (on) (if (dark) Color.Black else Color.White) else LabColors.Primary, tween(180), label = "pillFg")
     Box(
         modifier = Modifier

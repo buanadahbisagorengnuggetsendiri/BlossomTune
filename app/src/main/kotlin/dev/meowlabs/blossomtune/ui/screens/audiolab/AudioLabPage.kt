@@ -74,7 +74,7 @@ import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 
 /** the backdrop behind the sheet, and the sheet itself: dark in dark mode, ice/paper in light mode */
 private val PageBackdrop: Color
-    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF141416) else BlossomColors.Ice
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF141416) else BlossomColors.Petal
 private val SheetColor: Color
     @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color.Black else BlossomColors.Paper
 private val SheetCorner = 40.dp
@@ -317,8 +317,8 @@ private fun LabBadge(text: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(if (LocalBlossomDark.current) Color(0xFF2C2C2E) else BlossomColors.AzurePale)
-            .border(1.5.dp, if (LocalBlossomDark.current) Color(0xFFFFF59D) else BlossomColors.Azure, RoundedCornerShape(50))
+            .background(if (LocalBlossomDark.current) Color(0xFF2C2C2E) else BlossomColors.RosePale)
+            .border(1.5.dp, if (LocalBlossomDark.current) Color(0xFFFFF59D) else BlossomColors.DeepRose, RoundedCornerShape(50))
             .padding(horizontal = 12.dp, vertical = 3.dp),
     ) {
         Text(
@@ -327,7 +327,7 @@ private fun LabBadge(text: String) {
             fontWeight = FontWeight.Medium,
             fontSize = 13.sp,
             letterSpacing = 0.08.em,
-            color = if (LocalBlossomDark.current) Color(0xFFFFD866) else BlossomColors.AzureInk,
+            color = if (LocalBlossomDark.current) Color(0xFFFFD866) else BlossomColors.RoseInk,
             maxLines = 1,
         )
     }
@@ -336,7 +336,7 @@ private fun LabBadge(text: String) {
 /** keeps what scrolls up under the status bar and the back button readable */
 @Composable
 private fun TopScrim(scroll: ScrollState, headerHeight: Int, statusTop: Dp) {
-    val scrim = if (LocalBlossomDark.current) Color.Black else BlossomColors.Ice
+    val scrim = if (LocalBlossomDark.current) Color.Black else BlossomColors.Petal
     Box(
         modifier = Modifier
             .fillMaxWidth()
