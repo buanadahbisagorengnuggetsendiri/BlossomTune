@@ -1,5 +1,36 @@
 [
   {
+    "versionName": "0.6.2",
+    "publishedAt": "2026-11-20",
+    "summary": "Tema Cherry Blossom untuk mode terang dan gelap, perbaikan kontras supaya semua teks terbaca, dan updater di dalam aplikasi akhirnya bisa menemukan update.",
+    "sections": [
+      {
+        "title": "Tema baru",
+        "items": [
+          "Palet Cherry Blossom: Deep Rose, Blush, dan Petal White di mode terang; Night plum dan aksen Cherry di mode gelap.",
+          "Mode terang: latar Petal, kartu putih, aksen Deep Rose, dan bilah navigasi rose.",
+          "Mode gelap: latar Night plum, teks Petal, dan aksen Cherry Blossom."
+        ]
+      },
+      {
+        "title": "Perbaikan kontras",
+        "items": [
+          "About song dan Stream info: kartu info kini memakai tinta tema, bukan lagi putih di atas putih.",
+          "Menu player: kartu deskripsi lagu terbaca, dan judul serta artis di full player kini tinta gelap di atas terang.",
+          "Settings: judul seksi, nilai, dan panah kini tinta tema; kartu grup Now Playing kini terang di mode terang.",
+          "Slider dan huruf di sheet kini memakai tinta tema di kedua mode."
+        ]
+      },
+      {
+        "title": "Updater",
+        "items": [
+          "Cek update di dalam aplikasi kini menemukan rilis 0.x; sebelumnya updater mengabaikan semua rilis di bawah 8.2.3 karena batas lama dari basis Mochy.",
+          "Update ke 0.6.2 ini masih harus dipasang manual sekali; update berikutnya baru bisa lewat aplikasi."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.6.1",
     "publishedAt": "2026-11-20",
     "summary": "Mode terang kini biru-putih seperti 0.5.x: palet es/azure yang di 0.6.0 belum diport ke basis Mochy kini sudah diport, jadi teks dan ikon yang sebelumnya hilang di latar terang terbaca lagi di semua layar.",
