@@ -75,7 +75,9 @@ import dev.meowlabs.blossomtune.ui.screens.audiolab.rememberLabTime
 import dev.meowlabs.blossomtune.ui.screens.audiolab.rememberOnScreen
 import dev.meowlabs.blossomtune.ui.screens.audiolab.rememberPicturesHeld
 import dev.meowlabs.blossomtune.ui.screens.audiolab.trackOnScreen
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.viewmodels.frequencyLabel
 import dev.meowlabs.blossomtune.viewmodels.gainLabel
 import kotlin.math.abs
@@ -170,7 +172,7 @@ fun EqGraphSection(
                         .clickable { onAdd(freeFrequency(nodes), 0.0) },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(painterResource(R.drawable.add), stringResource(R.string.eqx_add_band), tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(painterResource(R.drawable.add), stringResource(R.string.eqx_add_band), tint = LabColors.Primary, modifier = Modifier.size(18.dp))
                 }
             }
         },
@@ -235,6 +237,13 @@ private fun EqGraph(
     val selectedPulse by animateFloatAsState(if (dragging >= 0) 1f else 0f, spring(dampingRatio = 0.6f, stiffness = 500f), label = "drag")
 
     val labelStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 10.sp, color = LabColors.Faint)
+    // the graph draws on LabColors.Stage: white ink vanished once the stage turned ice in light mode
+    val dark = LocalBlossomDark.current
+    val curveInk = LabColors.Primary
+    val faint = LabColors.Faint
+    val gridLine = if (dark) Color.White.copy(alpha = 0.06f) else BlossomColors.Line
+    val gridZero = if (dark) Color.White.copy(alpha = 0.16f) else BlossomColors.InkMuted.copy(alpha = 0.45f)
+    val spectrumInk = if (dark) Color.White else BlossomColors.Azure
     val plotOf: DrawScope.() -> Plot = {
         Plot(left = 30.dp.toPx(), top = 10.dp.toPx(), right = size.width - 10.dp.toPx(), bottom = size.height - 24.dp.toPx())
     }
@@ -298,7 +307,7 @@ private fun EqGraph(
             },
     ) {
         val plot = plotOf()
-        drawGrid(plot, measurer, labelStyle)
+        drawGrid(plot, measurer, labelStyle, gridLine, gridZero)
 
         // the music, faintly, so you can see what you're shaping
         val t = time.value
@@ -306,7 +315,7 @@ private fun EqGraph(
             lastSpectrumTime[0] = t
             analyzer.update()
         }
-        drawSpectrum(plot, analyzer.levels)
+        drawSpectrum(plot, analyzer.levels, spectrumInk)
 
         clipRect(plot.left, plot.top, plot.right, plot.bottom) {
             val zero = plot.y(0.0)
@@ -327,14 +336,14 @@ private fun EqGraph(
             // the sound you hear: every band summed
             drawPath(
                 curvePath(plot, total),
-                Color.White,
+                curveInk,
                 style = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
             )
         }
 
         nodes.forEachIndexed { i, n ->
             val center = Offset(plot.x(n.frequency), plot.y(n.nodeGain().coerceIn(-GraphRangeDb, GraphRangeDb)))
-            val color = if (n.enabled) LabColors.node(i) else LabColors.Faint
+            val color = if (n.enabled) LabColors.node(i) else faint
             val isSelected = i == selected
             val r = (if (isSelected) 8.5.dp else 6.5.dp).toPx() + if (isSelected) 3.dp.toPx() * selectedPulse else 0f
             if (isSelected) {
@@ -342,7 +351,7 @@ private fun EqGraph(
             }
             drawCircle(Color.Black, r + 2.dp.toPx(), center)
             drawCircle(color, r, center)
-            if (isSelected) drawCircle(Color.White, r + 2.dp.toPx(), center, style = Stroke(1.5.dp.toPx()))
+            if (isSelected) drawCircle(curveInk, r + 2.dp.toPx(), center, style = Stroke(1.5.dp.toPx()))
         }
     }
 }
@@ -379,12 +388,13 @@ internal fun DrawScope.drawGrid(
     plot: Plot,
     measurer: androidx.compose.ui.text.TextMeasurer,
     style: TextStyle,
+    line: Color,
+    zeroLine: Color,
     yLabels: List<Pair<Double, String>> = listOf(12.0 to "+12", 6.0 to "+6", 0.0 to "0", -6.0 to "-6", -12.0 to "-12"),
 ) {
-    val line = Color.White.copy(alpha = 0.06f)
     yLabels.forEach { (db, label) ->
         val y = plot.y(db)
-        drawLine(if (db == 0.0) Color.White.copy(alpha = 0.16f) else line, Offset(plot.left, y), Offset(plot.right, y), 1.dp.toPx())
+        drawLine(if (db == 0.0) zeroLine else line, Offset(plot.left, y), Offset(plot.right, y), 1.dp.toPx())
         val layout = measurer.measure(label, style)
         drawText(layout, topLeft = Offset(plot.left - layout.size.width - 6.dp.toPx(), y - layout.size.height / 2f))
     }
@@ -397,7 +407,7 @@ internal fun DrawScope.drawGrid(
     }
 }
 
-private fun DrawScope.drawSpectrum(plot: Plot, levels: FloatArray) {
+private fun DrawScope.drawSpectrum(plot: Plot, levels: FloatArray, ink: Color) {
     val height = (plot.bottom - plot.top) * 0.55f
     val path = Path()
     var any = false
@@ -416,12 +426,12 @@ private fun DrawScope.drawSpectrum(plot: Plot, levels: FloatArray) {
     drawPath(
         path,
         Brush.verticalGradient(
-            listOf(Color.White.copy(alpha = 0.09f), Color.White.copy(alpha = 0.01f)),
+            listOf(ink.copy(alpha = 0.09f), ink.copy(alpha = 0.01f)),
             startY = plot.bottom - height,
             endY = plot.bottom,
         ),
     )
-    drawPath(stroke, Color.White.copy(alpha = 0.12f), style = Stroke(1.dp.toPx()))
+    drawPath(stroke, ink.copy(alpha = 0.12f), style = Stroke(1.dp.toPx()))
 }
 
 @Composable
@@ -439,7 +449,7 @@ private fun NodeDetail(
             Column(Modifier.weight(1f)) {
                 Text(
                     stringResource(R.string.eqx_node_title, frequencyLabel(node.frequency)),
-                    fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White,
+                    fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = LabColors.Primary,
                 )
                 Text(
                     "${stringResource(filterTypeRes(node.filterType)).lowercase()} · Q ${String.format("%.1f", node.q)}" +

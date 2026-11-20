@@ -50,6 +50,7 @@ import dev.meowlabs.blossomtune.constants.ShowFormatBadgeKey
 import dev.meowlabs.blossomtune.constants.ShowFormatSampleRateKey
 import dev.meowlabs.blossomtune.extensions.togglePlayPause
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
@@ -63,7 +64,9 @@ private val PillHeight = 42.dp
 private val PillGap = 11.dp
 private val ChevronSize = 43.dp
 private val SideMargin = 30.dp
-private val PillFill = Color.White.copy(alpha = 0.08f)
+// a pill's fill follows the player ink: white glass over the dark player, ink glass over the ice page
+private val PillFill: Color
+    @Composable get() = PlayerInk.copy(alpha = 0.10f)
 /** between the stack and the title row, on top of the stack's own gap */
 private val TitleGap = 4.dp
 
@@ -160,7 +163,11 @@ fun TurntableControls(
  * forward plays slower or faster while held. The Poster wears the same stack.
  */
 @Composable
-fun TurntablePills(modifier: Modifier = Modifier, likeBurst: LikeBurstState? = null, horizontal: Boolean = false) {
+fun TurntablePills(modifier: Modifier = Modifier, likeBurst: LikeBurstState? = null, horizontal: Boolean = false,
+    /** the Turntable wears these on its ice page; the Poster wears them over its cover photo, so it passes white */
+    ink: Color = PlayerInk,
+) {
+    val pillFill = ink.copy(alpha = 0.10f)
     val connection = LocalPlayerConnection.current ?: return
     val track by connection.uiState.trackInfo.collectAsState()
     val transport by connection.uiState.transportState.collectAsState()
@@ -169,11 +176,11 @@ fun TurntablePills(modifier: Modifier = Modifier, likeBurst: LikeBurstState? = n
     DisposableEffect(holdSpeed) { onDispose { holdSpeed.end() } }
 
     val pills: @Composable () -> Unit = {
-        Pill {
+        Pill(fill = pillFill) {
             val liked = track.liked
             PressScaleIcon(
                 icon = if (liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-                tint = if (liked) Color.White else Color.White.copy(alpha = 0.85f),
+                tint = if (liked) ink else ink.copy(alpha = 0.85f),
                 onClick = {
                     if (likeBurst != null) likeBurst.likeFromButton(LikeSlot.PLAYER, liked, connection::toggleLike)
                     else connection.toggleLike()
@@ -181,13 +188,13 @@ fun TurntablePills(modifier: Modifier = Modifier, likeBurst: LikeBurstState? = n
                 modifier = Modifier.likeButtonTarget(likeBurst, LikeSlot.PLAYER),
             )
         }
-        Pill {
+        Pill(fill = pillFill) {
             AnimatedPressScaleSkipButton(
                 icon = R.drawable.avd_skip_previous,
                 flagshipGlyph = true,
                 onClick = connection::seekToPrevious,
                 enabled = transport.canSkipPrevious,
-                tint = Color.White,
+                tint = ink,
                 iconSize = 24.dp,
                 onHoldStart = { holdSpeed.start(HoldSlowFactor) },
                 onHoldEnd = holdSpeed::end,
@@ -196,7 +203,7 @@ fun TurntablePills(modifier: Modifier = Modifier, likeBurst: LikeBurstState? = n
                 modifier = Modifier.fillMaxSize(),
             )
         }
-        Pill {
+        Pill(fill = pillFill) {
             AnimatedPressScalePlayPauseButton(
                 flagshipGlyph = true,
                 isPlaying = transport.isPlaying,
@@ -209,19 +216,19 @@ fun TurntablePills(modifier: Modifier = Modifier, likeBurst: LikeBurstState? = n
                         connection.togglePlayPause()
                     }
                 },
-                tint = Color.White,
+                tint = ink,
                 // the skips' size, so play keeps the flagship's proportion to them
                 iconSize = 24.dp,
                 modifier = Modifier.fillMaxSize(),
             )
         }
-        Pill {
+        Pill(fill = pillFill) {
             AnimatedPressScaleSkipButton(
                 icon = R.drawable.avd_skip_next,
                 flagshipGlyph = true,
                 onClick = connection::seekToNext,
                 enabled = transport.canSkipNext,
-                tint = Color.White,
+                tint = ink,
                 iconSize = 24.dp,
                 onHoldStart = { holdSpeed.start(HoldFastFactor) },
                 onHoldEnd = holdSpeed::end,
@@ -239,13 +246,13 @@ fun TurntablePills(modifier: Modifier = Modifier, likeBurst: LikeBurstState? = n
 }
 
 @Composable
-private fun Pill(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+private fun Pill(modifier: Modifier = Modifier, fill: Color = PillFill, content: @Composable () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(PillWidth, PillHeight)
             .clip(RoundedCornerShape(50))
-            .background(PillFill),
+            .background(fill),
     ) { content() }
 }
 
@@ -299,7 +306,7 @@ private fun ChevronButton(open: Boolean, hidden: Boolean, onClick: () -> Unit, m
             androidx.compose.foundation.Image(
                 painter = painterResource(R.drawable.expand_less),
                 contentDescription = null,
-                colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.9f)),
+                colorFilter = ColorFilter.tint(PlayerInk.copy(alpha = 0.9f)),
                 modifier = Modifier
                     .size(20.dp)
                     .graphicsLayer { rotationZ = rotation },
@@ -354,7 +361,7 @@ private fun TitleLines(mediaId: String, title: String, artist: String, modifier:
                     lineHeight = 31.sp,
                     letterSpacing = (-0.035).em,
                 ),
-                color = Color.White,
+                color = PlayerInk,
                 modifier = Modifier.weight(1f, fill = false),
             )
             if (badge != null) {
@@ -379,7 +386,7 @@ private fun TitleLines(mediaId: String, title: String, artist: String, modifier:
                     fontSize = 17.sp,
                     lineHeight = 20.sp,
                     letterSpacing = (-0.02).em,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = PlayerInk.copy(alpha = 0.65f),
                 ),
             )
         }

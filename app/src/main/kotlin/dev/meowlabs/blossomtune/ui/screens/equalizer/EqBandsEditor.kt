@@ -45,7 +45,9 @@ import dev.meowlabs.blossomtune.eq.data.ParametricEQBand
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabCard
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabSectionLabel
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.viewmodels.frequencyLabel
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -83,6 +85,12 @@ private fun BandSliders(nodes: List<ParametricEQBand>, onGain: (Int, Double) -> 
 
     val valueStyle = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = LabColors.Secondary)
     val freqStyle = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = LabColors.Faint)
+    // the sliders draw on LabColors.Stage: white ink vanished once the stage turned ice in light mode
+    val dark = LocalBlossomDark.current
+    val curveInk = LabColors.Primary
+    val faint = LabColors.Faint
+    val zeroLine = if (dark) Color.White.copy(alpha = 0.14f) else BlossomColors.InkMuted.copy(alpha = 0.45f)
+    val track = if (dark) Color.White.copy(alpha = 0.08f) else BlossomColors.Line
 
     Canvas(
         modifier = Modifier
@@ -149,7 +157,7 @@ private fun BandSliders(nodes: List<ParametricEQBand>, onGain: (Int, Double) -> 
         val zero = y(0.0)
 
         drawLine(
-            Color.White.copy(alpha = 0.14f), Offset(10.dp.toPx(), zero), Offset(size.width - 10.dp.toPx(), zero),
+            zeroLine, Offset(10.dp.toPx(), zero), Offset(size.width - 10.dp.toPx(), zero),
             1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 6.dp.toPx())),
         )
 
@@ -170,7 +178,7 @@ private fun BandSliders(nodes: List<ParametricEQBand>, onGain: (Int, Double) -> 
                     )
                 }
             }
-            drawPath(path, Color.White.copy(alpha = 0.28f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+            drawPath(path, curveInk.copy(alpha = 0.28f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
         }
 
         val trackWidth = 4.dp.toPx()
@@ -178,9 +186,9 @@ private fun BandSliders(nodes: List<ParametricEQBand>, onGain: (Int, Double) -> 
             val node = nodes[i]
             val cx = colWidth * (c + 0.5f)
             val isActive = c == active
-            val color = if (node.enabled) LabColors.node(i) else LabColors.Faint
+            val color = if (node.enabled) LabColors.node(i) else faint
             drawRoundRect(
-                Color.White.copy(alpha = 0.08f),
+                track,
                 Offset(cx - trackWidth / 2, top), Size(trackWidth, bottom - top), CornerRadius(trackWidth / 2),
             )
             val gy = y(node.gain)
@@ -191,13 +199,13 @@ private fun BandSliders(nodes: List<ParametricEQBand>, onGain: (Int, Double) -> 
             val thumbW = (if (isActive) 28.dp else 24.dp).toPx()
             val thumbH = (if (isActive) 14.dp else 12.dp).toPx()
             drawRoundRect(
-                Color.White,
+                curveInk,
                 Offset(cx - thumbW / 2, gy - thumbH / 2), Size(thumbW, thumbH), CornerRadius(thumbH / 2),
             )
             val value = measurer.measure(
                 (if (node.gain > 0) "+" else "") + (if (node.gain == node.gain.roundToInt().toDouble()) node.gain.roundToInt().toString()
                 else String.format("%.1f", node.gain)),
-                if (isActive) valueStyle.copy(color = Color.White) else valueStyle,
+                if (isActive) valueStyle.copy(color = curveInk) else valueStyle,
             )
             drawText(value, topLeft = Offset(cx - value.size.width / 2f, top - value.size.height - 8.dp.toPx()))
             val freq = measurer.measure(frequencyLabel(node.frequency).removeSuffix("Hz"), freqStyle)

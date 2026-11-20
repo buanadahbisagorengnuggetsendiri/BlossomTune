@@ -365,7 +365,7 @@ private fun PosterPlayerStyle(actions: StyleActions, modifier: Modifier, preview
                         .align(Alignment.BottomEnd)
                         .padding(end = 22.dp, bottom = bottom),
                 ) {
-                    dev.meowlabs.blossomtune.ui.player.TurntablePills()
+                    dev.meowlabs.blossomtune.ui.player.TurntablePills(ink = Color.White)
                 }
                 // the menu at the top, opening down, clear of the transport
                 StyleMenu(
@@ -419,7 +419,7 @@ private fun PosterPlayerStyle(actions: StyleActions, modifier: Modifier, preview
                         .align(Alignment.TopEnd)
                         .padding(top = 18.dp, end = 20.dp + insets.end + PosterChevron + 8.dp),
                 ) {
-                    dev.meowlabs.blossomtune.ui.player.TurntablePills(horizontal = true)
+                    dev.meowlabs.blossomtune.ui.player.TurntablePills(horizontal = true, ink = Color.White)
                 }
                 StyleMenu(
                     open = menuOpen, onOpenChange = setMenuOpen, tones = tones, actions = actions,

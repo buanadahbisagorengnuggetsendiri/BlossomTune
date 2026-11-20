@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlurEffect
@@ -45,6 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.LocalPlayerConnection
 import dev.meowlabs.blossomtune.constants.PlayerCoverStyle
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 import dev.meowlabs.blossomtune.utils.makeTimeString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -176,12 +180,17 @@ fun TurntableArm(
     val failureLabel by dev.meowlabs.blossomtune.ui.player.rememberStreamFailureLabel(failureProgress)
 
     val measurer = rememberTextMeasurer(cacheSize = 16)
-    val labelStyle = remember {
+    // the times ride the arc, which crosses both the black record and the ice page:
+    // ink text on a paper chip reads on either, white text on its own only on the record
+    val labelChip = if (LocalBlossomDark.current) Color.Transparent else BlossomColors.Paper
+    // PlayerInk is a @Composable getter: read it in composable scope, not inside the remember lambda
+    val playerInk = PlayerInk
+    val labelStyle = remember(playerInk) {
         TextStyle(
             fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp,
-            color = Color.White,
+            color = playerInk,
         )
     }
     val currentConnection by rememberUpdatedState(connection)
@@ -286,6 +295,7 @@ fun TurntableArm(
                             durationMs = currentConnection?.player?.duration ?: 0L,
                             measurer = measurer,
                             labelStyle = labelStyle,
+                            labelChip = labelChip,
                             failureProgress = failureProgress.value,
                             failureLabel = failureLabel,
                         )
@@ -356,6 +366,7 @@ private fun DrawScope.drawTimeArc(
     durationMs: Long,
     measurer: androidx.compose.ui.text.TextMeasurer,
     labelStyle: TextStyle,
+    labelChip: Color = Color.Transparent,
     failureProgress: Float = -1f,
     failureLabel: String? = null,
 ) {
@@ -403,15 +414,15 @@ private fun DrawScope.drawTimeArc(
     if (failureLabel != null) {
         timeLabel(
             failureLabel, pivot, start - LabelGapDegrees, radius, alpha, measurer,
-            labelStyle.copy(color = dev.meowlabs.blossomtune.ui.player.StreamFailureRed),
+            labelStyle.copy(color = dev.meowlabs.blossomtune.ui.player.StreamFailureRed), labelChip,
         )
     } else {
-        timeLabel(makeTimeString(shown), pivot, start - LabelGapDegrees, radius, alpha, measurer, labelStyle)
+        timeLabel(makeTimeString(shown), pivot, start - LabelGapDegrees, radius, alpha, measurer, labelStyle, labelChip)
     }
     // the length lands at the far end as the arc reaches it
     val endAlpha = alpha * ((grow - 0.7f) / 0.3f).coerceIn(0f, 1f)
     if (endAlpha > 0.001f) {
-        timeLabel(makeTimeString(durationMs), pivot, EndDegrees + StylusDegrees + LabelGapDegrees, radius, endAlpha, measurer, labelStyle)
+        timeLabel(makeTimeString(durationMs), pivot, EndDegrees + StylusDegrees + LabelGapDegrees, radius, endAlpha, measurer, labelStyle, labelChip)
     }
 }
 
@@ -423,11 +434,20 @@ private fun DrawScope.timeLabel(
     alpha: Float,
     measurer: androidx.compose.ui.text.TextMeasurer,
     style: TextStyle,
+    chip: Color = Color.Transparent,
 ) {
     val layout = measurer.measure(text, style.copy(color = style.color.copy(alpha = alpha)))
     val at = pivot + unit(degrees) * radius
     // along the arc, reading the right way up
     rotate(degrees - 90f, at) {
+        if (chip.alpha > 0f) {
+            drawRoundRect(
+                color = chip.copy(alpha = chip.alpha * alpha),
+                topLeft = Offset(at.x - layout.size.width / 2f - 5.dp.toPx(), at.y - layout.size.height / 2f - 1.dp.toPx()),
+                size = Size(layout.size.width + 10.dp.toPx(), layout.size.height + 2.dp.toPx()),
+                cornerRadius = CornerRadius(4.dp.toPx()),
+            )
+        }
         drawText(layout, topLeft = Offset(at.x - layout.size.width / 2f, at.y - layout.size.height / 2f))
     }
 }

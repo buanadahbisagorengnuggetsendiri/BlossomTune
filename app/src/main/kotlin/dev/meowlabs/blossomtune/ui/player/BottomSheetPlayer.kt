@@ -129,6 +129,7 @@ import kotlin.math.abs
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 /**
@@ -2119,6 +2120,9 @@ private fun ExpandMenuOverlay(
             label = "overlayChevronBgColor",
             animationSpec = androidx.compose.animation.core.tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing)
         )
+        // the dim behind the menu: black in dark mode, white in light — the menu's
+        // labels are PlayerInk, which is ink in light mode, so a black dim would hide them
+        val menuScrim = if (LocalBlossomDark.current) Color.Black else Color.White
         val overlayChevronTint by animateColorAsState(
             targetValue = if (visible) PlayerInk else PlayerInk.copy(alpha = 0.90f),
             label = "overlayChevronTint",
@@ -2128,7 +2132,7 @@ private fun ExpandMenuOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = bgAlpha.value))
+                .background(menuScrim.copy(alpha = bgAlpha.value))
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = { onDismiss() })
                 }

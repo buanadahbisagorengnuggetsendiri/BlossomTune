@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -38,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.screens.search.SearchColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.ui.screens.search.SearchHorizontalPadding
 import dev.meowlabs.blossomtune.viewmodels.LibraryShelfKind
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
@@ -55,15 +58,20 @@ enum class LibraryTab(val labelRes: Int, val shelf: LibraryShelfKind? = null) {
     Imported(R.string.library_tab_imported),
 }
 
-private val ChipTrack = Color(0xFF161618)
-private val Chip = Color(0xFF232326)
-private val ChipSelected = Color(0xFF3D3D41)
+// dark track with a lighter picked pill in dark mode; in light mode an ice track,
+// white pills, and the picked one azure with white text — dark chips with ink text vanished
+private val ChipTrack: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF161618) else BlossomColors.IcePanel
+private val Chip: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF232326) else BlossomColors.Paper
+private val ChipSelected: Color
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF3D3D41) else BlossomColors.Azure
 
 private val ChipTrackPadding = 3.dp
 private val ChipGap = 4.dp
 private val ChipRowGap = 6.dp
 
-/** The tabs as small pills in a dark track, the picked one a step lighter. */
+/** The tabs as small pills in a track, the picked one a step lighter — azure in light mode. */
 @Composable
 fun LibraryTabChips(
     selected: LibraryTab,
@@ -146,7 +154,11 @@ private fun LibraryTabChip(tab: LibraryTab, isSelected: Boolean, onSelect: (Libr
     ) {
         Text(
             text = stringResource(tab.labelRes),
-            color = if (isSelected) SearchColors.Primary else SearchColors.Primary.copy(alpha = 0.72f),
+            color = if (isSelected) {
+                if (LocalBlossomDark.current) SearchColors.Primary else Color.White
+            } else {
+                SearchColors.Primary.copy(alpha = 0.72f)
+            },
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
         )
@@ -174,7 +186,7 @@ fun LibraryManagePill(text: String, onClick: () -> Unit, modifier: Modifier = Mo
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .clip(RoundedCornerShape(percent = 50))
-                .background(Color(0xFF2E2E31))
+                .background(if (LocalBlossomDark.current) Color(0xFF2E2E31) else BlossomColors.IcePanel)
                 .clickable(role = Role.Button, onClick = onClick)
                 .heightIn(min = 30.dp)
                 .padding(horizontal = 18.dp, vertical = 6.dp),

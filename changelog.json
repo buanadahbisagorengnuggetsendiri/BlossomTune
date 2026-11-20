@@ -1,5 +1,26 @@
 [
   {
+    "versionName": "0.6.1",
+    "publishedAt": "2026-11-20",
+    "summary": "Mode terang kini biru-putih seperti 0.5.x: palet es/azure yang di 0.6.0 belum diport ke basis Mochy kini sudah diport, jadi teks dan ikon yang sebelumnya hilang di latar terang terbaca lagi di semua layar.",
+    "sections": [
+      {
+        "title": "Perbaikan tema",
+        "items": [
+          "Player: judul, artis, kontrol, dan waktu putar kini memakai tinta gelap di atas latar es, bukan lagi putih di atas terang.",
+          "Menu player: subtitle dan sleep timer terbaca di sheet putih.",
+          "Home: nama artis di hero kini putih di atas foto.",
+          "Profil: tanggal bergabung tidak lagi tercetak ganda.",
+          "About dan Donate: tombol kini biru dengan teks putih, atau panel es dengan tinta gelap.",
+          "Settings: ikon dan teks di kartu putih kini tinta gelap, bukan putih di atas putih.",
+          "Audio Lab: kartu, sheet, dan grafik equalizer mengikuti mode terang dengan tinta di atas es.",
+          "Library: pil filter kini putih dengan tinta gelap, yang terpilih biru dengan teks putih.",
+          "Mode gelap tidak berubah, dan mini player tetap gelap seperti sebelumnya."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.6.0",
     "publishedAt": "2026-11-19",
     "summary": "Basis baru: BlossomTune sekarang dibangun dari Mochy 8.4.2, bukan musicfy. Paketnya tetap, jadi update ini menimpa 0.5.11 tanpa menghapus library dan unduhan offline.",

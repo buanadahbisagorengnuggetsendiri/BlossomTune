@@ -42,7 +42,9 @@ import dev.meowlabs.blossomtune.ui.screens.audiolab.LabSlider
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabTextAction
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabToggleRow
 import dev.meowlabs.blossomtune.ui.screens.audiolab.pct
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.viewmodels.AudioLabViewModel
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -78,7 +80,7 @@ private fun SourceChips(stage: State<StageSettings>, selected: Int?, onSelect: (
     val names = StageSource.entries.associateWith { stringResource(sourceName(it)) }
     val labels = labelsOf(objects, names, stringResource(R.string.stage_source_numbered))
     val chips = objects.map { (id, source) -> LabChip(id.toString(), labels.getValue(id), sourceColor(source)) } +
-        LabChip(YouKey, stringResource(R.string.stage_you), Color.White)
+        LabChip(YouKey, stringResource(R.string.stage_you), if (LocalBlossomDark.current) Color.White else BlossomColors.Ink)
     LabChips(
         chips = chips,
         selectedKey = when (selected) {
@@ -137,8 +139,10 @@ private fun ListenerControls(viewModel: AudioLabViewModel, stage: State<StageSet
 /** a small on/off pill, white while on, like the chips */
 @Composable
 internal fun StagePill(label: String, on: Boolean, onClick: () -> Unit) {
-    val background by animateColorAsState(if (on) Color.White else LabColors.Chip, tween(180), label = "pillBg")
-    val foreground by animateColorAsState(if (on) Color.Black else Color.White, tween(180), label = "pillFg")
+    // the picked pill is white in dark mode, azure in light mode — white on the light chip vanished
+    val dark = LocalBlossomDark.current
+    val background by animateColorAsState(if (on) (if (dark) Color.White else BlossomColors.Azure) else LabColors.Chip, tween(180), label = "pillBg")
+    val foreground by animateColorAsState(if (on) (if (dark) Color.Black else Color.White) else LabColors.Primary, tween(180), label = "pillFg")
     Box(
         modifier = Modifier
             .height(34.dp)

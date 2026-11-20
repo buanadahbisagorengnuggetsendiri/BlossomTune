@@ -283,7 +283,8 @@ fun ProfileScreen(navController: NavController) {
     }
     val cardNumber = cardNumberPref.ifBlank { "00000000000" }
     val joinedDate = if (joinedEpochDay >= 0L) LocalDate.ofEpochDay(joinedEpochDay) else LocalDate.now()
-    val joinedText = stringResource(R.string.profile_joined_at, joinedDate.format(DateLong)) + joinedDate.format(DateLong)
+    // profile_joined_at already holds the date (%1$s); appending it again printed it twice
+    val joinedText = stringResource(R.string.profile_joined_at, joinedDate.format(DateLong))
     val photo: Any? = profilePicUri.takeIf { it.isNotBlank() }?.let { if (it.contains("://")) it else "file://$it" }
 
     // ---- header state -------------------------------------------------------------------------
@@ -585,9 +586,10 @@ fun ProfileScreen(navController: NavController) {
                             .recapDots(color = { lerp(HeaderDots, StoryDots, expand) }),
                     ) {
                         // greeting (in the header; its scrolled-away twin lives in the top bar); on its side it heads the cards at the right
+                        // white: the header is dark (HeaderGrey -> StoryDark) in both modes, ink vanishes on it in light mode
                         if (!landscape) Text(
                             text = stringResource(R.string.profile_greeting_format, stringResource(BlossomTuneGreeting.currentRes), accountName.ifBlank { stringResource(R.string.profile_greeting_fallback) }),
-                            style = PageTitle,
+                            style = PageTitle.copy(color = Color.White),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
@@ -723,7 +725,7 @@ fun ProfileScreen(navController: NavController) {
                             if (recapWaiting) {
                                 Text(
                                     text = if (landscape) stringResource(R.string.recap_tap_hint) else stringResource(R.string.profile_swipe_down_hint),
-                                    style = MonoSmall.copy(color = BlossomInk.Muted),
+                                    style = MonoSmall.copy(color = Color.White.copy(alpha = 0.7f)),
                                     maxLines = 1,
                                     modifier = Modifier.graphicsLayer {
                                         val w = hintWords.value
@@ -753,18 +755,19 @@ fun ProfileScreen(navController: NavController) {
                                 text = if (invalid) stringResource(
                                             R.string.profile_come_back_later,
                                         ) else stringResource(R.string.profile_scratch_hint),
-                                style = PageTitle.copy(fontSize = 20.sp, textAlign = TextAlign.Center),
+                                // white: this sits on the dark expanded header, like the greeting above it
+                                style = PageTitle.copy(fontSize = 20.sp, textAlign = TextAlign.Center, color = Color.White),
                                 modifier = Modifier.graphicsLayer { alpha = if (invalid) 1f else 1f - scratch.dissolve.value },
                             )
                             if (invalid) {
                                 Text(
                                     text = (recap as? RecapAvailability.NotYet)?.comeBack.orEmpty(),
-                                    style = PageTitle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, color = BlossomInk.Muted),
+                                    style = PageTitle.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, color = Color.White.copy(alpha = 0.7f)),
                                     modifier = Modifier.padding(top = 6.dp),
                                 )
                                 Text(
                                     text = stringResource(R.string.profile_swipe_up_to_close),
-                                    style = MonoSmall.copy(color = BlossomInk.Muted),
+                                    style = MonoSmall.copy(color = Color.White.copy(alpha = 0.7f)),
                                     modifier = Modifier.padding(top = 26.dp),
                                 )
                             }
@@ -863,7 +866,8 @@ fun ProfileScreen(navController: NavController) {
             Icon(
                 painter = painterResource(R.drawable.ic_blossomtune_mark),
                 contentDescription = "BlossomTune",
-                tint = BlossomInk.Primary,
+                // white: the top bar is a dark glass scrim in both modes
+                tint = Color.White,
                 modifier = Modifier
                     .padding(start = HomeContentInset, top = statusBarTop + TopBarLogoTop)
                     .size(width = 31.dp, height = 34.dp)
@@ -877,7 +881,7 @@ fun ProfileScreen(navController: NavController) {
             if (collapseProgress > 0.01f) {
                 Text(
                     text = stringResource(R.string.profile_greeting_format, stringResource(BlossomTuneGreeting.currentRes), accountName.ifBlank { stringResource(R.string.profile_greeting_fallback) }),
-                    style = PageTitle.copy(fontSize = 18.sp),
+                    style = PageTitle.copy(fontSize = 18.sp, color = Color.White),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
