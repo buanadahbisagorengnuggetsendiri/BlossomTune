@@ -41,19 +41,23 @@ import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import androidx.compose.runtime.ReadOnlyComposable
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // the look both info sheets share, drawn from the about song and stream info mocks
 
 internal val InfoSidePadding = 20.dp
-internal val InfoMuted = Color.White.copy(alpha = 0.55f)
-internal val InfoLine = Color.White.copy(alpha = 0.12f)
+internal val InfoMuted: Color
+    @Composable @ReadOnlyComposable get() = BlossomInk.Muted
+internal val InfoLine: Color
+    @Composable @ReadOnlyComposable get() = BlossomInk.Divider
 private val CardShape = RoundedCornerShape(26.dp)
 
 @Composable
 internal fun InfoSheetTitle(text: String) {
     Text(
         text = text,
-        color = Color.White,
+        color = BlossomInk.Primary,
         fontSize = 28.sp,
         lineHeight = 32.sp,
         fontWeight = FontWeight.Bold,
@@ -66,7 +70,7 @@ internal fun InfoSectionTitle(text: String, modifier: Modifier = Modifier, trail
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()) {
         Text(
             text = text,
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 21.sp,
             lineHeight = 25.sp,
             fontWeight = FontWeight.Bold,
@@ -150,7 +154,7 @@ internal fun StatLine(label: String, value: String) {
         )
         Text(
             text = value,
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 13.sp,
             lineHeight = 17.sp,
             fontWeight = FontWeight.SemiBold,
@@ -168,7 +172,7 @@ internal fun InfoPill(text: String, filled: Boolean, onClick: () -> Unit, enable
         modifier = Modifier
             .height(30.dp)
             .clip(shape)
-            .then(if (filled) Modifier.background(Color.White.copy(alpha = if (enabled) 0.28f else 0.12f)) else Modifier.border(1.dp, Color.White.copy(alpha = 0.3f), shape))
+            .then(if (filled) Modifier.background(BlossomInk.Primary.copy(alpha = if (enabled) 0.28f else 0.12f)) else Modifier.border(1.dp, BlossomInk.Primary.copy(alpha = 0.3f), shape))
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -179,7 +183,7 @@ internal fun InfoPill(text: String, filled: Boolean, onClick: () -> Unit, enable
     ) {
         Text(
             text = text,
-            color = Color.White.copy(alpha = if (!enabled) 0.4f else if (filled) 1f else 0.75f),
+            color = BlossomInk.Primary.copy(alpha = if (!enabled) 0.4f else if (filled) 1f else 0.75f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
@@ -196,7 +200,7 @@ internal fun LoadingBar(width: Dp, height: Dp = 12.dp) {
             .width(width)
             .height(height)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.10f)),
+            .background(BlossomInk.Primary.copy(alpha = 0.10f)),
     )
 }
 
@@ -209,7 +213,7 @@ internal fun InfoBullet(label: String, value: String) {
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = InfoMuted)) { append(label) }
                 append("  ")
-                withStyle(SpanStyle(color = Color.White)) { append(value) }
+                withStyle(SpanStyle(color = BlossomInk.Primary)) { append(value) }
             },
             fontSize = 14.sp,
             lineHeight = 19.sp,

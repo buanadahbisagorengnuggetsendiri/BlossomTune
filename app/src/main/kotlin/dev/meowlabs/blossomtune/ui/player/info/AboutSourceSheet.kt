@@ -43,6 +43,7 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProviderSquircle
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** picks where "about" reads from; each row previews what that source says, so the choice is an easy one */
 @Composable
@@ -106,7 +107,7 @@ private fun SourceRow(source: AboutSource, preview: String, isSelected: Boolean,
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = source.label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text(text = source.label, color = BlossomInk.Primary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             Text(
                 text = preview,
                 color = InfoMuted,

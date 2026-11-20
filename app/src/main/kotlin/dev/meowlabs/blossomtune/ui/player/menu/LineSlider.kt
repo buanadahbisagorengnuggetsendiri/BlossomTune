@@ -23,6 +23,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 @Composable
 fun LineSlider(
@@ -32,8 +33,8 @@ fun LineSlider(
     trackHeight: Dp = 6.dp,
 
     touchHeight: Dp = 28.dp,
-    activeColor: Color = Color.White,
-    inactiveColor: Color = Color.White.copy(alpha = 0.22f),
+    activeColor: Color = BlossomInk.Primary,
+    inactiveColor: Color = BlossomInk.Primary.copy(alpha = 0.22f),
 ) {
     val widthPx = remember { mutableFloatStateOf(0f) }
     val latest by rememberUpdatedState(onValueChange)

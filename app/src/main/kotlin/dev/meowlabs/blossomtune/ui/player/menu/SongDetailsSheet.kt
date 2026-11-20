@@ -207,7 +207,7 @@ internal fun SongHeader(song: MediaMetadata) {
             if (artists.isNotBlank()) {
                 Text(
                     text = artists,
-                    color = Color(0xFFB3B3B3),
+                    color = BlossomInk.Muted,
                     fontSize = 12.sp,
                     lineHeight = 16.sp,
                     maxLines = 2,
@@ -312,7 +312,7 @@ private fun DoneButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .height(46.dp)
             .clip(RoundedCornerShape(50))
-            .background(Color.White.copy(alpha = 0.24f))
+            .background(BlossomInk.Primary.copy(alpha = 0.12f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = RemoteFocus,

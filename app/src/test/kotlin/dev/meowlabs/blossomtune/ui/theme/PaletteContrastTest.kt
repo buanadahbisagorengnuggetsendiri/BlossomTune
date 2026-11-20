@@ -147,4 +147,25 @@ class PaletteContrastTest {
         assertReadable(LightPalette.error, LightPalette.background, "error di latar")
         assertReadable(LightPalette.onErrorContainer, LightPalette.errorContainer, "teks di error-container")
     }
+    /**
+     * Tinta sheet (info sheets, menu, larp, settings) di atas permukaan sheet/row
+     * yang ikut mode. Dulu hardcode putih di atas sheet putih = kontras 1.00,
+     * dan #B3B3B3 di atas putih = 2.10. Tinta sheet sekarang ikut mode lewat
+     * [LightInk]/[DarkInk], pemutar lewat [BlossomColors.Ink] (terang) dan putih
+     * (gelap); semuanya harus lolos AA di kedua mode.
+     */
+    @Test
+    fun sheetInk_isReadableInBothModes() {
+        assertReadable(LightInk.primary, LightSurfaces.sheet, "tinta sheet terang di sheet putih")
+        assertReadable(LightInk.primary, LightSurfaces.row, "tinta sheet terang di row petal muda")
+        assertReadable(LightInk.muted, LightSurfaces.sheet, "tinta redup terang di sheet putih")
+        assertReadable(LightInk.muted, LightSurfaces.row, "tinta redup terang di row petal muda")
+        assertReadable(DarkInk.primary, DarkSurfaces.sheet, "tinta sheet gelap di sheet plum")
+        assertReadable(DarkInk.primary, DarkSurfaces.row, "tinta sheet gelap di row plum")
+        assertReadable(DarkInk.muted, DarkSurfaces.sheet, "tinta redup gelap di sheet plum")
+        assertReadable(DarkInk.muted, DarkSurfaces.row, "tinta redup gelap di row plum")
+        assertReadable(LightInk.primary, LightPalette.background, "tinta pemutar terang di halaman petal")
+        assertReadable(BlossomColors.White, DarkPalette.background, "tinta pemutar gelap di latar malam")
+    }
+
 }

@@ -227,7 +227,7 @@ private fun OnlyThisSongRow(checked: Boolean, songTitle: String?, enabled: Boole
             if (!songTitle.isNullOrBlank()) {
                 Text(
                     text = stringResource(R.string.speed_only_this_song_detail, songTitle),
-                    color = Color(0xFFB3B3B3),
+                    color = BlossomInk.Muted,
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -258,7 +258,7 @@ private fun ValueSlider(label: String, value: Float, onValueChange: (Float) -> U
             )
             Text(
                 text = String.format("%.2f×", value),
-                color = Color(0xFFB3B3B3),
+                color = BlossomInk.Muted,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )

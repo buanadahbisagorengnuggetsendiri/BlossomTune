@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +32,7 @@ import dev.meowlabs.blossomtune.constants.AboutSongSourceKey
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private const val PreviewLines = 4
 private val PreviewLineHeight = 20.sp
@@ -72,7 +72,7 @@ fun AboutPreviewCard(about: SongAbout, onOpen: () -> Unit) {
                     }
                     shownText != null -> Text(
                         text = shownText,
-                        color = Color.White,
+                        color = BlossomInk.Primary,
                         fontSize = 14.sp,
                         lineHeight = PreviewLineHeight,
                         fontWeight = FontWeight.SemiBold,

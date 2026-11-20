@@ -53,7 +53,8 @@ import kotlin.math.roundToInt
 private const val AutoCrossfadeDurationSeconds = 5f
 private const val ManualMinSeconds = 1f
 private const val ManualMaxSeconds = 20f
-private val HeadingColor = Color.White.copy(alpha = 0.82f)
+private val HeadingColor: Color
+    @Composable get() = LabColors.Primary.copy(alpha = 0.82f)
 
 @Composable
 fun CrossmixSettingsScreen(navController: NavController) {

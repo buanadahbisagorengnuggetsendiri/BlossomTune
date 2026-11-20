@@ -15,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +26,7 @@ import dev.meowlabs.blossomtune.ui.component.SettingsGroup
 import dev.meowlabs.blossomtune.ui.component.SettingsGroupStyle
 import dev.meowlabs.blossomtune.ui.component.SettingsItem
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 // a section's title (if it has one) and its grouped rows, left out whole when the search hides every row
 @Composable
@@ -38,7 +38,7 @@ internal fun SettingsSection(title: String?, items: List<SettingsItem>) {
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
-            color = Color.White,
+            color = BlossomInk.Primary,
             modifier = Modifier.padding(bottom = 10.dp, start = 4.dp),
         )
     }
@@ -70,7 +70,7 @@ internal fun ValueTitle(title: String, value: String) {
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 13.sp,
-            color = Color.White.copy(alpha = 0.70f),
+            color = BlossomInk.Muted,
         )
     }
 }
@@ -129,7 +129,7 @@ private fun NextArrow() {
     Icon(
         painter = painterResource(R.drawable.navigate_next),
         contentDescription = null,
-        tint = Color.White.copy(alpha = 0.5f),
+        tint = BlossomInk.Primary.copy(alpha = 0.5f),
         modifier = Modifier.size(20.dp),
     )
 }

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.ui.player.models.TrackInfo
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 private val TargetX = 36.dp + 60.dp + 18.dp
 
@@ -130,7 +131,7 @@ fun MorphingSongInfo(
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 softWrap = false,
-                color = Color.White,
+                color = PlayerInk,
                 // as wide as the header holds once shrunk, so a title too long for it still scrolls
                 modifier = Modifier
                     .width(headerWidth / titleEndScale)
@@ -153,7 +154,7 @@ fun MorphingSongInfo(
                     style = artistStyle,
                     maxLines = 1,
                     softWrap = false,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = PlayerInk.copy(alpha = 0.7f),
                     modifier = Modifier
                         .width(headerWidth / artistEndScale)
                         .graphicsLayer {
