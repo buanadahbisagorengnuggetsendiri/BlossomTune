@@ -50,6 +50,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 
 enum class SettingsGroupStyle {
 
@@ -177,7 +179,7 @@ private fun ClusterRows(cluster: ItemCluster) {
     )
 
     // Expanded sub-menu background slightly brighter than accent surface
-    val pillColor = Color(0xFF282830).copy(alpha = pillAlpha)
+    val pillColor = (if (LocalBlossomDark.current) Color(0xFF282830) else BlossomColors.PetalPanel).copy(alpha = pillAlpha)
 
     Box(
         modifier = Modifier

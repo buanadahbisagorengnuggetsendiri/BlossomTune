@@ -43,6 +43,7 @@ import dev.meowlabs.blossomtune.ui.player.LyricsScreen
 import dev.meowlabs.blossomtune.ui.player.QueueScreen
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
+import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 /**
  * The song's whole lyrics over a style, from its menu: the flagship's own lyrics page on the
@@ -169,14 +170,14 @@ private fun StyleOverlayPage(
                             track.title,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 19.sp, letterSpacing = (-0.03).em, color = Color.White),
+                            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 19.sp, letterSpacing = (-0.03).em, color = PlayerInk),
                         )
                         if (track.artist.isNotBlank()) {
                             Text(
                                 track.artist,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, letterSpacing = (-0.02).em, color = Color.White.copy(alpha = 0.6f)),
+                                style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, letterSpacing = (-0.02).em, color = PlayerInk.copy(alpha = 0.6f)),
                             )
                         }
                     }

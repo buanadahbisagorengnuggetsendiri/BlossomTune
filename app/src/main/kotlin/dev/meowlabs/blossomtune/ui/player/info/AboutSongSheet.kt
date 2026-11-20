@@ -43,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -66,6 +65,7 @@ import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProviderSquircle
 import dev.meowlabs.blossomtune.utils.makeTimeString
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** where the "about" text comes from; the chip beside the title swaps it */
 enum class AboutSource(val id: String, val label: String) {
@@ -178,7 +178,7 @@ private fun SourceChip(source: AboutSource, onClick: () -> Unit) {
         modifier = Modifier
             .height(26.dp)
             .clip(shape)
-            .border(1.dp, Color.White.copy(alpha = 0.3f), shape)
+            .border(1.dp, BlossomInk.Primary.copy(alpha = 0.3f), shape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = RemoteFocus,
@@ -186,9 +186,9 @@ private fun SourceChip(source: AboutSource, onClick: () -> Unit) {
             )
             .padding(horizontal = 11.dp),
     ) {
-        Text(text = source.label, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(text = source.label, color = BlossomInk.Primary.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.width(6.dp))
-        Icon(Icons.Rounded.SwapVert, contentDescription = stringResource(R.string.pc_about_change_source), tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+        Icon(Icons.Rounded.SwapVert, contentDescription = stringResource(R.string.pc_about_change_source), tint = BlossomInk.Primary.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
     }
 }
 
@@ -217,7 +217,7 @@ private fun AboutCard(about: SongAbout, source: AboutSource, onSwitch: (AboutSou
                         }
                         shownText != null -> Text(
                             text = shownText,
-                            color = Color.White,
+                            color = BlossomInk.Primary,
                             fontSize = 14.sp,
                             lineHeight = 20.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -312,7 +312,7 @@ private fun ArtistRow(artists: List<AboutArtist>, onOpenArtist: (String) -> Unit
                     Icon(
                         painter = painterResource(R.drawable.person),
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.3f),
+                        tint = BlossomInk.Primary.copy(alpha = 0.3f),
                         modifier = Modifier.size(36.dp),
                     )
                     if (artist.imageUrl != null) {
@@ -327,7 +327,7 @@ private fun ArtistRow(artists: List<AboutArtist>, onOpenArtist: (String) -> Unit
                 Spacer(Modifier.height(10.dp))
                 Text(
                     text = artist.name,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
@@ -358,7 +358,7 @@ private fun StoreRow(links: List<StoreLink>) = BoxWithConstraints(Modifier.fillM
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = link.service.label,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,

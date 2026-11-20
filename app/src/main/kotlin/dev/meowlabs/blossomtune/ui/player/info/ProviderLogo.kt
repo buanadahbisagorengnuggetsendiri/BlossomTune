@@ -27,6 +27,7 @@ import dev.meowlabs.blossomtune.modules.SourceModules
 import dev.meowlabs.blossomtune.playback.PlayingFrom
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProviderSquircle
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.SquircleShape
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** a provider's own icon, the same squircle the onboarding uses; a letter for a module with none */
 @Composable
@@ -55,7 +56,7 @@ internal fun ProviderLogo(providerId: String, name: String, size: Dp) {
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(size).clip(SquircleShape).background(Color.White.copy(alpha = 0.16f)),
         ) {
-            Text(text = name.take(1).uppercase(), color = Color.White, fontSize = (size.value * 0.42f).sp, fontWeight = FontWeight.Bold)
+            Text(text = name.take(1).uppercase(), color = BlossomInk.Primary, fontSize = (size.value * 0.42f).sp, fontWeight = FontWeight.Bold)
         }
     }
 }

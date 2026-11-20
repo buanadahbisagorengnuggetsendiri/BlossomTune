@@ -30,7 +30,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +49,7 @@ import dev.meowlabs.blossomtune.ui.player.larpQualityText
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private const val LarpAspect = 220f / 287f
 
@@ -92,7 +92,7 @@ private fun LarpSheetContent(picked: MutableState<LarpLevel>) {
         Spacer(Modifier.height(24.dp))
         Text(
             text = stringResource(R.string.larp_sheet_title),
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.Bold,
             fontSize = 24.sp,
@@ -103,7 +103,7 @@ private fun LarpSheetContent(picked: MutableState<LarpLevel>) {
         Spacer(Modifier.height(10.dp))
         Text(
             text = stringResource(R.string.larp_sheet_body),
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontFamily = InterFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp,

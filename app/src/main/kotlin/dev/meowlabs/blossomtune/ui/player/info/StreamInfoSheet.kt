@@ -32,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -64,6 +63,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /** "stream info": where the playing song comes from, and its whole road to the speaker */
 @Composable
@@ -132,7 +132,7 @@ private fun ProviderRow(service: MusicService, from: PlayingFrom?, onForce: () -
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = from.name,
-                color = Color.White,
+                color = BlossomInk.Primary,
                 fontSize = 18.sp,
                 lineHeight = 22.sp,
                 fontWeight = FontWeight.Bold,
@@ -169,7 +169,7 @@ private fun StatCardView(card: StatCard) {
     InfoCard(modifier = Modifier.animateContentSize(spring(stiffness = 500f))) {
         Text(
             text = card.title,
-            color = Color.White,
+            color = BlossomInk.Primary,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = (-0.02).em,
