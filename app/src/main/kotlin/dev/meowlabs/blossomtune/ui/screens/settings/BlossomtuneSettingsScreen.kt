@@ -304,7 +304,7 @@ private fun AppearanceRow(modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
-                    .background(if (selected) BlossomColors.Azure else BlossomSurface.row)
+                    .background(if (selected) BlossomColors.DeepRose else BlossomSurface.row)
                     .clickable { setPref(mode.name) }
                     .padding(horizontal = 14.dp, vertical = 8.dp),
             ) {
@@ -312,7 +312,7 @@ private fun AppearanceRow(modifier: Modifier = Modifier) {
                     text = label,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (selected) BlossomColors.OnNavy else BlossomInk.Primary,
+                    color = if (selected) BlossomColors.White else BlossomInk.Primary,
                 )
             }
         }

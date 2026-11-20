@@ -82,7 +82,7 @@ private fun DrawScope.drawTv(topLeft: Offset, screen: Size) {
 }
 
 private fun DrawScope.drawArrow(from: Offset, to: Offset, width: Float, dash: Float) {
-    val color = BlossomColors.Azure.copy(alpha = 0.9f)
+    val color = BlossomColors.DeepRose.copy(alpha = 0.9f)
     val head = width * 4f
     drawLine(color, from, Offset(to.x - width, to.y), width, StrokeCap.Round, PathEffect.dashPathEffect(floatArrayOf(dash, dash * 0.8f)))
     drawLine(color, Offset(to.x - head, to.y - head), to, width, StrokeCap.Round)

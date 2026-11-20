@@ -85,7 +85,7 @@ internal fun DonatePillButton(
     val interaction = remember { MutableInteractionSource() }
     // white text on the pale row surface vanished in light mode; the loud button goes azure, the quiet one ice
     val dark = LocalBlossomDark.current
-    val fill = if (dark) MenuRowSurface else if (quiet) BlossomColors.IcePanel else BlossomColors.Azure
+    val fill = if (dark) MenuRowSurface else if (quiet) BlossomColors.PetalPanel else BlossomColors.DeepRose
     // InkSoft, not InkMuted: InkMuted is 4.43 on the ice panel, just under AA; InkSoft is 5.70
     val textColor = if (quiet) {
         if (dark) Color.White.copy(alpha = 0.38f) else BlossomColors.InkSoft

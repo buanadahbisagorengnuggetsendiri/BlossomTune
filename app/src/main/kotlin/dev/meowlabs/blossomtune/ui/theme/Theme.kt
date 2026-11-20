@@ -28,104 +28,105 @@ import com.materialkolor.rememberDynamicColorScheme
 import com.materialkolor.score.Score
 
 /**
- * Palet aplikasi. Terang = es biru + kartu putih + aksen azure (komposisi mockup
- * BlossomTune), gelap = hitam/biru/putih.
+ * Palet aplikasi. Terang = petal + kartu putih + aksen deep rose (palet
+ * Cherry Blossom), gelap = malam plum + blossom pink + petal.
  *
  * Nilainya bukan selera. Setiap pasangan teks/latar di bawah sudah diuji
  * kontrasnya (WCAG AA, >= 4.5) di `PaletteContrastTest`; mengubah satu warna
  * tanpa menjalankan tes itu berarti menukar keterbacaan dengan selera.
  *
- * Azure mockup #2C7BE5 gagal AA sebagai teks di halaman es (3.68) dan sebagai
- * latar teks putih (4.14). Yang dirender #2368D8 (4.62 di halaman, 5.19 dengan
- * putih); hue-nya sama, bedanya tidak kelihatan sebelah mata.
+ * Rose palet #C84870 gagal AA sebagai teks kecil di halaman petal (3.91),
+ * jadi yang dirender #9A3050 (6.20 di halaman, 7.21 dengan putih); hue-nya
+ * sama, bedanya tidak kelihatan sebelah mata. Nilai palet tetap disimpan
+ * di [BlossomColors.RoseSpec] sebagai rujukan desain.
  */
 object BlossomColors {
-    // --- gelap ---
-    val Blue = Color(0xFF4D8DFF)          // aksen utama di latar hitam
-    val OnBlue = Color(0xFF04101F)        // teks di atas tombol biru
-    val BlueContainer = Color(0xFF12224A)
-    val OnBlueContainer = Color(0xFFD9E6FF)
-    val Steel = Color(0xFFA8C4EC)
-    val SteelContainer = Color(0xFF16233A)
-    val OnSteelContainer = Color(0xFFE4ECF9)
+    // --- gelap: malam plum + blossom pink + petal ---
+    val Blossom = Color(0xFFE890A8)       // aksen utama di latar malam (Cherry Blossom)
+    val OnBlossom = Color(0xFF2A121B)     // teks di atas tombol blossom
+    val BlossomContainer = Color(0xFF3A1220)
+    val OnBlossomContainer = Color(0xFFF5C0CC)  // Blush
+    val Blush = Color(0xFFF5C0CC)          // sekunder terang di latar malam
+    val BlushContainer = Color(0xFF2A1018)
+    val OnBlushContainer = Color(0xFFF3D3DB)
+    val Night = Color(0xFF1A0A11)          // latar malam, bukan hitam murni
     val Black = Color(0xFF000000)
     val White = Color(0xFFFFFFFF)
-    val NightCard = Color(0xFF101827)     // kartu di atas latar hitam
-    val OnNightCard = Color(0xFFC9D6E8)
+    val NightCard = Color(0xFF241019)      // kartu di atas latar malam
+    val OnNightCard = Color(0xFFEBCED6)
 
-    // --- terang: es biru, kartu putih, aksen azure ---
-    // page #E8F3FE · kartu #FFFFFF · aksen #2368D8 · tinta #0E1B2C · sekunder #4E6C8A
-    val Ice = Color(0xFFE8F3FE)          // latar halaman
-    val IcePanel = Color(0xFFD9E9FA)     // panel/terpilih di atas es
-    val Azure = Color(0xFF2368D8)        // aksen: tombol, tautan, tab aktif
-    val AzureSpec = Color(0xFF2C7BE5)    // azure mockup: gagal AA, disimpan sebagai rujukan
-    val AzurePale = Color(0xFFDCEBFF)    // container aksen
-    val AzureInk = Color(0xFF0B2A5B)     // teks di atas container aksen
-    val SpecGray = Color(0xFF8E8E93)     // abu spec lama, disimpan sebagai rujukan
-    val Navy = Color(0xFF1C2144)         // navy lama, masih dipakai fallback sampul
-    val OnNavy = Color(0xFFFFFFFF)
-    val Ink = Color(0xFF0E1B2C)          // heading, judul, teks utama
-    val InkSoft = Color(0xFF3F5B78)      // sekunder: 5.70 di panel, 7.05 di putih
-    val InkMuted = Color(0xFF4E6C8A)     // metadata: 4.87 di halaman, 5.47 di putih
-    val Paper = Color(0xFFFFFFFF)        // kartu
-    val Line = Color(0xFFCFE3F7)
-    val Hairline = Color(0xFF8A8F98)     // garis rambut: terbaca di hitam dan di putih
-    val LineSoft = Color(0xFFE3F0FE)
-    val Error = Color(0xFFDC2626)        // destructive di atas permukaan terang
-    val ErrorOnDark = Color(0xFFFFB4AB)  // #DC2626 cuma 4.35 di atas hitam
+    // --- terang: petal, kartu putih, aksen deep rose ---
+    // page #FAEAEE, kartu #FFFFFF, aksen #9A3050, tinta #2A121B, sekunder #7C4A5C
+    val Petal = Color(0xFFFAEAEE)          // latar halaman
+    val PetalPanel = Color(0xFFF6DCE1)     // panel/terpilih di atas petal
+    val DeepRose = Color(0xFF9A3050)       // aksen: tombol, tautan, tab aktif
+    val RoseSpec = Color(0xFFC84870)       // rose palet: gagal AA, disimpan sebagai rujukan
+    val RosePale = Color(0xFFFADADD)       // container aksen
+    val RoseInk = Color(0xFF4A1424)        // teks di atas container aksen
+    val SpecGray = Color(0xFF8E8E93)       // abu spec lama, disimpan sebagai rujukan
+    val Plum = Color(0xFF2A121B)           // plum tua, masih dipakai fallback sampul
+    val Ink = Color(0xFF2A121B)            // heading, judul, teks utama
+    val InkSoft = Color(0xFF5E3342)        // sekunder: 8.01 di panel, 10.35 di putih
+    val InkMuted = Color(0xFF7C4A5C)       // metadata: 6.04 di halaman, 7.02 di putih
+    val Paper = Color(0xFFFFFFFF)          // kartu
+    val Line = Color(0xFFE8C6CF)
+    val Hairline = Color(0xFF8A8F98)       // garis rambut: terbaca di hitam dan di putih
+    val LineSoft = Color(0xFFF3DEE3)
+    val Error = Color(0xFFDC2626)          // destructive di atas permukaan terang
+    val ErrorOnDark = Color(0xFFFFB4AB)    // #DC2626 cuma 4.35 di atas hitam
     val OnErrorOnDark = Color(0xFF690005)
     val ErrorPale = Color(0xFFFEE2E2)
     val ErrorInk = Color(0xFF7F1D1D)
-    val InverseSurface = Color(0xFF0E1B2C)
-    val InverseOnSurface = Color(0xFFF4FAFF)
+    val InverseSurface = Color(0xFF2A121B)
+    val InverseOnSurface = Color(0xFFFDF3F5)
 }
 
-/** Warna tema default (seed artwork/player). Azure, bukan abu netral. */
-val DefaultThemeColor = BlossomColors.Azure
+/** Warna tema default (seed artwork/player). Deep rose, bukan abu netral. */
+val DefaultThemeColor = BlossomColors.DeepRose
 
 val DarkPalette: ColorScheme = darkColorScheme(
-    primary = BlossomColors.Blue,
-    onPrimary = BlossomColors.OnBlue,
-    primaryContainer = BlossomColors.BlueContainer,
-    onPrimaryContainer = BlossomColors.OnBlueContainer,
-    secondary = BlossomColors.Steel,
-    onSecondary = BlossomColors.OnBlue,
-    secondaryContainer = BlossomColors.SteelContainer,
-    onSecondaryContainer = BlossomColors.OnSteelContainer,
-    background = BlossomColors.Black,
-    onBackground = BlossomColors.White,
-    surface = BlossomColors.Black,
-    onSurface = BlossomColors.White,
+    primary = BlossomColors.Blossom,
+    onPrimary = BlossomColors.OnBlossom,
+    primaryContainer = BlossomColors.BlossomContainer,
+    onPrimaryContainer = BlossomColors.OnBlossomContainer,
+    secondary = BlossomColors.Blush,
+    onSecondary = BlossomColors.OnBlossom,
+    secondaryContainer = BlossomColors.BlushContainer,
+    onSecondaryContainer = BlossomColors.OnBlushContainer,
+    background = BlossomColors.Night,
+    onBackground = BlossomColors.Petal,
+    surface = BlossomColors.Night,
+    onSurface = BlossomColors.Petal,
     surfaceVariant = BlossomColors.NightCard,
     onSurfaceVariant = BlossomColors.OnNightCard,
-    surfaceTint = BlossomColors.Black,
+    surfaceTint = BlossomColors.Night,
     error = BlossomColors.ErrorOnDark,
     onError = BlossomColors.OnErrorOnDark
 )
 
 val LightPalette: ColorScheme = lightColorScheme(
-    primary = BlossomColors.Azure,
-    onPrimary = BlossomColors.OnNavy,
-    primaryContainer = BlossomColors.AzurePale,
-    onPrimaryContainer = BlossomColors.AzureInk,
+    primary = BlossomColors.DeepRose,
+    onPrimary = BlossomColors.White,
+    primaryContainer = BlossomColors.RosePale,
+    onPrimaryContainer = BlossomColors.RoseInk,
     secondary = BlossomColors.InkMuted,
-    onSecondary = BlossomColors.OnNavy,
-    secondaryContainer = BlossomColors.IcePanel,
+    onSecondary = BlossomColors.White,
+    secondaryContainer = BlossomColors.PetalPanel,
     onSecondaryContainer = BlossomColors.Ink,
-    tertiary = BlossomColors.Azure,
-    onTertiary = BlossomColors.OnNavy,
-    tertiaryContainer = BlossomColors.AzurePale,
-    onTertiaryContainer = BlossomColors.AzureInk,
-    background = BlossomColors.Ice,
+    tertiary = BlossomColors.DeepRose,
+    onTertiary = BlossomColors.White,
+    tertiaryContainer = BlossomColors.RosePale,
+    onTertiaryContainer = BlossomColors.RoseInk,
+    background = BlossomColors.Petal,
     onBackground = BlossomColors.Ink,
     surface = BlossomColors.Paper,
     onSurface = BlossomColors.Ink,
-    surfaceVariant = BlossomColors.IcePanel,
+    surfaceVariant = BlossomColors.PetalPanel,
     onSurfaceVariant = BlossomColors.InkSoft,
-    surfaceTint = BlossomColors.Azure,
+    surfaceTint = BlossomColors.DeepRose,
     inverseSurface = BlossomColors.InverseSurface,
     inverseOnSurface = BlossomColors.InverseOnSurface,
-    error = Color(0xFFC81E1E),          // #DC2626 cuma 4.30 di atas es
+    error = Color(0xFFC81E1E),          // #DC2626 cuma 4.30 di atas es, 4.94 di atas petal
     onError = BlossomColors.White,
     errorContainer = BlossomColors.ErrorPale,
     onErrorContainer = BlossomColors.ErrorInk,
@@ -133,14 +134,14 @@ val LightPalette: ColorScheme = lightColorScheme(
     outlineVariant = BlossomColors.LineSoft,
     scrim = BlossomColors.Black,
     // Tangga permukaan terang digambar dari halaman ke bawah, bukan ke atas:
-    // kartu putih duduk DI ATAS halaman es, panel lebih gelap dari halaman.
+    // kartu putih duduk DI ATAS halaman petal, panel lebih gelap dari halaman.
     surfaceBright = BlossomColors.Paper,
-    surfaceDim = BlossomColors.IcePanel,
+    surfaceDim = BlossomColors.PetalPanel,
     surfaceContainerLowest = BlossomColors.Paper,
-    surfaceContainerLow = Color(0xFFF4FAFF),
-    surfaceContainer = BlossomColors.IcePanel,
+    surfaceContainerLow = Color(0xFFFDF3F5),
+    surfaceContainer = BlossomColors.PetalPanel,
     surfaceContainerHigh = BlossomColors.Line,
-    surfaceContainerHighest = Color(0xFFC3DAF1)
+    surfaceContainerHighest = Color(0xFFE2B7C2)
 )
 
 /**
@@ -148,9 +149,9 @@ val LightPalette: ColorScheme = lightColorScheme(
  * (`MenuSurface` `#0B0B0C`, `MenuRowSurface` `#161619`, `GlassChromeColor`
  * `#131313`).
  *
- * "Kaca gelap" di atas halaman es jadi kotak hitam, dan tinta putih di atasnya
- * hilang. Jadi permukaannya ikut mode; nilai gelap diambil apa adanya dari basis
- * supaya mode gelap tidak berubah sama sekali.
+ * "Kaca gelap" di atas halaman petal jadi kotak hitam, dan tinta putih di atasnya
+ * hilang. Jadi permukaannya ikut mode; nilai gelapnya malam plum, bukan hitam
+ * basis, supaya mode gelap ikut palet Cherry Blossom juga.
  */
 data class BlossomSurfaces(
     val chrome: Color,   // bilah kaca: bottom bar, mini player, toolbar
@@ -160,17 +161,17 @@ data class BlossomSurfaces(
 )
 
 val DarkSurfaces = BlossomSurfaces(
-    chrome = Color(0xFF131313),
-    sheet = Color(0xFF0B0B0C),
-    row = Color(0xFF161619),
-    page = BlossomColors.Black,
+    chrome = Color(0xFF1E0E14),
+    sheet = Color(0xFF160A0F),
+    row = Color(0xFF221017),
+    page = BlossomColors.Night,
 )
 
 val LightSurfaces = BlossomSurfaces(
-    chrome = Color(0xFFFFFFFF),   // kaca putih di atas halaman es
+    chrome = Color(0xFFFFFFFF),   // kaca putih di atas halaman petal
     sheet = Color(0xFFFFFFFF),    // kartu putih
-    row = Color(0xFFF4FAFF),      // baris = es muda
-    page = BlossomColors.Ice,
+    row = Color(0xFFF7E6EA),      // baris = petal muda
+    page = BlossomColors.Petal,
 )
 
 val LocalBlossomSurfaces = staticCompositionLocalOf { DarkSurfaces }
@@ -195,8 +196,8 @@ data class BlossomInkSet(
 )
 
 val DarkInk = BlossomInkSet(
-    primary = BlossomColors.White,
-    muted = Color(0xFFA7AFBF),
+    primary = BlossomColors.Petal,
+    muted = Color(0xFFD3A9B6),
     divider = BlossomColors.White.copy(alpha = 0.08f),
     chip = BlossomColors.White,
     onChip = BlossomColors.Black,
@@ -217,7 +218,7 @@ val LocalBlossomDark = staticCompositionLocalOf { true }
 
 /**
  * Tinta pemutar. Dulu pemutar selalu di atas artwork, jadi seluruh ikon dan
- * teksnya putih mati. Sekarang pemutar ikut mode: di mode terang permukaannya es,
+ * teksnya putih mati. Sekarang pemutar ikut mode: di mode terang permukaannya petal,
  * jadi tintanya tinta halaman. Nama sendiri supaya niatnya kebaca di ui/player.
  */
 val LocalPlayerInk = staticCompositionLocalOf { BlossomColors.White }
@@ -237,7 +238,7 @@ object BlossomInk {
  * ikut mode, jadi palet terang benar-benar dirender.
  *
  * Yang sengaja tetap gelap: video, TV, dan badge di atas artwork. Pemutar ikut
- * es kecuali bagian yang memang duduk di atas video/artwork.
+ * petal kecuali bagian yang memang duduk di atas video/artwork.
  */
 const val ForceDarkTheme = false
 

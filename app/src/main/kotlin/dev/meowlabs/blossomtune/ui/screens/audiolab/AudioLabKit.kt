@@ -198,7 +198,7 @@ fun LabToggleRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leadingDot) {
-            val dot by animateColorAsState(if (checked) (if (LocalBlossomDark.current) Color.White else BlossomColors.Azure) else (if (LocalBlossomDark.current) Color(0xFFD9D9DE) else LabColors.Chip), tween(200), label = "dot")
+            val dot by animateColorAsState(if (checked) (if (LocalBlossomDark.current) Color.White else BlossomColors.DeepRose) else (if (LocalBlossomDark.current) Color(0xFFD9D9DE) else LabColors.Chip), tween(200), label = "dot")
             Box(
                 Modifier
                     .size(20.dp)
@@ -357,7 +357,7 @@ fun LabChips(
         chips.forEach { chip ->
             val selected = chip.key == selectedKey
             val dark = LocalBlossomDark.current
-            val bg by animateColorAsState(if (selected) (if (dark) Color.White else BlossomColors.Azure) else LabColors.Chip, tween(180), label = "chipBg")
+            val bg by animateColorAsState(if (selected) (if (dark) Color.White else BlossomColors.DeepRose) else LabColors.Chip, tween(180), label = "chipBg")
             val fg by animateColorAsState(if (selected) (if (dark) Color.Black else Color.White) else LabColors.Primary, tween(180), label = "chipFg")
             val interaction = remember { MutableInteractionSource() }
             Row(
@@ -413,7 +413,7 @@ fun LabSegmented(
     ) {
         val segment = maxWidth / options.size
         val dark = LocalBlossomDark.current
-        val pillFill = if (dark) Color.White else BlossomColors.Azure
+        val pillFill = if (dark) Color.White else BlossomColors.DeepRose
         val offset by animateDpAsState(segment * selectedIndex, spring(dampingRatio = 0.82f, stiffness = 520f), label = "segment")
         Box(
             Modifier
@@ -659,7 +659,7 @@ private fun LabSelectRow(label: String, picked: Boolean, onClick: () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         if (picked) {
-            Box(Modifier.size(20.dp).clip(CircleShape).background(if (LocalBlossomDark.current) Color.White else BlossomColors.Azure), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(20.dp).clip(CircleShape).background(if (LocalBlossomDark.current) Color.White else BlossomColors.DeepRose), contentAlignment = Alignment.Center) {
                 Icon(painterResource(dev.meowlabs.blossomtune.R.drawable.check), contentDescription = null, tint = if (LocalBlossomDark.current) Color.Black else Color.White, modifier = Modifier.size(14.dp))
             }
         }
@@ -674,4 +674,4 @@ private val LabSelectColor: Color
 private val LabSelectEdge: Color
     @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF2A2A2F) else BlossomColors.Line
 private val LabSelectEdgeOpen: Color
-    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF3C3C42) else BlossomColors.Azure
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF3C3C42) else BlossomColors.DeepRose

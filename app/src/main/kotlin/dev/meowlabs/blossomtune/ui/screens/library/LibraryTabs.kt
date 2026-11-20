@@ -61,11 +61,11 @@ enum class LibraryTab(val labelRes: Int, val shelf: LibraryShelfKind? = null) {
 // dark track with a lighter picked pill in dark mode; in light mode an ice track,
 // white pills, and the picked one azure with white text — dark chips with ink text vanished
 private val ChipTrack: Color
-    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF161618) else BlossomColors.IcePanel
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF161618) else BlossomColors.PetalPanel
 private val Chip: Color
     @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF232326) else BlossomColors.Paper
 private val ChipSelected: Color
-    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF3D3D41) else BlossomColors.Azure
+    @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF3D3D41) else BlossomColors.DeepRose
 
 private val ChipTrackPadding = 3.dp
 private val ChipGap = 4.dp
@@ -186,7 +186,7 @@ fun LibraryManagePill(text: String, onClick: () -> Unit, modifier: Modifier = Mo
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .clip(RoundedCornerShape(percent = 50))
-                .background(if (LocalBlossomDark.current) Color(0xFF2E2E31) else BlossomColors.IcePanel)
+                .background(if (LocalBlossomDark.current) Color(0xFF2E2E31) else BlossomColors.PetalPanel)
                 .clickable(role = Role.Button, onClick = onClick)
                 .heightIn(min = 30.dp)
                 .padding(horizontal = 18.dp, vertical = 6.dp),

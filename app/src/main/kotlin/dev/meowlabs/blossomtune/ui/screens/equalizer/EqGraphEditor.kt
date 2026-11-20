@@ -243,7 +243,7 @@ private fun EqGraph(
     val faint = LabColors.Faint
     val gridLine = if (dark) Color.White.copy(alpha = 0.06f) else BlossomColors.Line
     val gridZero = if (dark) Color.White.copy(alpha = 0.16f) else BlossomColors.InkMuted.copy(alpha = 0.45f)
-    val spectrumInk = if (dark) Color.White else BlossomColors.Azure
+    val spectrumInk = if (dark) Color.White else BlossomColors.DeepRose
     val plotOf: DrawScope.() -> Plot = {
         Plot(left = 30.dp.toPx(), top = 10.dp.toPx(), right = size.width - 10.dp.toPx(), bottom = size.height - 24.dp.toPx())
     }
