@@ -206,7 +206,7 @@ private fun PageShaderBlock(block: PageBlock.Shader, skin: ModuleSkin) {
 }
 
 // a page has no song to take colours from, so the player's tones read as plain white shades and the accent as the app's
-private fun pageColor(color: SkinColor, accent: Color): Color = when (color) {
+private @Composable fun pageColor(color: SkinColor, accent: Color): Color = when (color) {
     is SkinColor.Fixed -> color.color
     SkinColor.Accent, SkinColor.Cover, SkinColor.Played -> accent
     SkinColor.Remaining -> accent.copy(alpha = 0.6f)

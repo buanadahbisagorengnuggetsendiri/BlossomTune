@@ -183,12 +183,14 @@ fun TurntableArm(
     // the times ride the arc, which crosses both the black record and the ice page:
     // ink text on a paper chip reads on either, white text on its own only on the record
     val labelChip = if (LocalBlossomDark.current) Color.Transparent else BlossomColors.Paper
-    val labelStyle = remember(PlayerInk) {
+    // PlayerInk is a @Composable getter: read it in composable scope, not inside the remember lambda
+    val playerInk = PlayerInk
+    val labelStyle = remember(playerInk) {
         TextStyle(
             fontFamily = dev.meowlabs.blossomtune.ui.theme.InterFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp,
-            color = PlayerInk,
+            color = playerInk,
         )
     }
     val currentConnection by rememberUpdatedState(connection)

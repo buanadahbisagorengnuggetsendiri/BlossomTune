@@ -63,19 +63,25 @@ internal fun PreviewFrame(
             .fillMaxHeight()
             .clip(if (floating) FloatingFrameShape else FrameShape)
             .background(FrameFill)
-            .then(if (floating) Modifier else SinkingFoot),
+            .then(if (floating) Modifier else sinkingFoot()),
         content = content,
     )
 }
 
 private val FloatingFrameShape = RoundedCornerShape(15.dp)
 
-private val SinkingFoot = Modifier.drawWithCache {
-    val top = size.height * 0.72f
-    val foot = Brush.verticalGradient(0f to Color.Transparent, 1f to LabColors.Card, startY = top, endY = size.height)
-    onDrawWithContent {
-        drawContent()
-        drawRect(foot, topLeft = Offset(0f, top))
+// LabColors.Card is a @Composable getter, so it cannot be read inside drawWithCache:
+// read it in composable scope and capture the plain Color instead
+@Composable
+private fun sinkingFoot(): Modifier {
+    val card = LabColors.Card
+    return Modifier.drawWithCache {
+        val top = size.height * 0.72f
+        val foot = Brush.verticalGradient(0f to Color.Transparent, 1f to card, startY = top, endY = size.height)
+        onDrawWithContent {
+            drawContent()
+            drawRect(foot, topLeft = Offset(0f, top))
+        }
     }
 }
 
