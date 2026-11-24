@@ -68,7 +68,6 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.CompositingStrategy
 import dev.meowlabs.blossomtune.constants.ShowPlayerBottomCardKey
 import dev.meowlabs.blossomtune.ui.component.GlassState
-import dev.meowlabs.blossomtune.ui.player.ClassicCardLook
 import dev.meowlabs.blossomtune.ui.player.ControlsDrawShift
 import dev.meowlabs.blossomtune.ui.player.PlayerDeckHeight
 import dev.meowlabs.blossomtune.ui.player.PlayerDeckPreview

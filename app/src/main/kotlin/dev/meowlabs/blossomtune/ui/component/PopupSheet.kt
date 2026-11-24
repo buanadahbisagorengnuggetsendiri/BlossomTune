@@ -552,12 +552,14 @@ private fun BoxWithConstraintsScope.PopupSheetFrame(
     }
 
     // the sheet's colour, stepping up to the row gray as it recedes; the fade behind its bar matches it
-    val surfaceColor: () -> Color = remember(state, frame) {
+    val menuSurface = MenuSurface
+    val menuRowSurface = MenuRowSurface
+    val surfaceColor: () -> Color = remember(state, frame, menuSurface, menuRowSurface) {
         {
             val frames = state.frames
             val index = frames.indexOf(frame)
             val recede = if (index < 0) 0f else frames.depthAbove(index).coerceAtMost(1f)
-            lerp(frame.surface ?: MenuSurface, MenuRowSurface, recede)
+            lerp(frame.surface ?: menuSurface, menuRowSurface, recede)
         }
     }
 

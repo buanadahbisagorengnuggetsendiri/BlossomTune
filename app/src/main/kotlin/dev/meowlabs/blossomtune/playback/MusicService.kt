@@ -250,7 +250,6 @@ import dev.meowlabs.blossomtune.widget.BlossomTuneWidgetManager
 import dev.meowlabs.blossomtune.widget.MusicWidgetReceiver
 import dev.meowlabs.blossomtune.eq.audio.EightDAudioProcessor
 import kotlinx.coroutines.cancel
-import dev.meowlabs.blossomtune.widget.MochyWidgetManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

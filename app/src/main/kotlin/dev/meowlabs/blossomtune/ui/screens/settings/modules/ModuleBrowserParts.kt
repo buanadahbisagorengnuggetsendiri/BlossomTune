@@ -42,7 +42,6 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.modules.browser.FeedModule
 import dev.meowlabs.blossomtune.modules.browser.FeedPerson
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.viewmodels.BrowserFilter
 import dev.meowlabs.blossomtune.ui.component.containerTransformSource
 import dev.meowlabs.blossomtune.ui.component.coverTintBackground
 

@@ -221,7 +221,6 @@ import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.utils.reportException
 import dev.meowlabs.blossomtune.ui.component.navigateToTab
-import dev.meowlabs.blossomtune.ui.theme.MochyTheme
 import com.valentinilk.shimmer.LocalShimmerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dev.meowlabs.blossomtune.ui.screens.setup.SetupWizardContainer

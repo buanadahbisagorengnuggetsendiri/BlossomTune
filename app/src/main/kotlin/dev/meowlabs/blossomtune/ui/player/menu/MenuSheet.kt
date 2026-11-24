@@ -375,7 +375,9 @@ fun MenuSheetSurface(
         }
 
         // the sheet's colour, stepping up to the row gray as it recedes; the fade behind its bar matches it
-        val surfaceColor: () -> Color = remember(stack, entry) {
+        val menuSurface = MenuSurface
+        val menuRowSurface = MenuRowSurface
+        val surfaceColor: () -> Color = remember(stack, entry, menuSurface, menuRowSurface) {
             {
                 var recede = 0f
                 if (stack != null) {
@@ -383,7 +385,7 @@ fun MenuSheetSurface(
                     val index = entries.indexOf(entry)
                     if (index >= 0) recede = entries.depthAbove(index).coerceAtMost(1f)
                 }
-                lerp(MenuSurface, MenuRowSurface, recede)
+                lerp(menuSurface, menuRowSurface, recede)
             }
         }
 

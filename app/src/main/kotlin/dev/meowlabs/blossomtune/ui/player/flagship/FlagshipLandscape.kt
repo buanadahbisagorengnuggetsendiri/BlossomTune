@@ -288,11 +288,11 @@ internal fun FlagshipLandscape(
     val handedToBar = animateFloatAsState(
         if (onTv && dev.meowlabs.blossomtune.ui.player.TvPlayerRemote.controlsShown) 1f else 0f,
         tween(420),
-    // beside the square or the record the seek bar stays over the buttons; with the full cover it moves onto the cover under the lyrics
-    val seekInPanel = !onTv && look != CoverLook.FULL
-    // the tv's control bar takes over the title: the cover's own one glides down into it and fades
+        // the tv's control bar takes over the title: the cover's own one glides down into it and fades
         label = "handedToBar",
     )
+    // beside the square or the record the seek bar stays over the buttons; with the full cover it moves onto the cover under the lyrics
+    val seekInPanel = !onTv && look != CoverLook.FULL
     val direction = LocalLayoutDirection.current
     val sides = WindowInsets.navigationBarsIgnoringVisibility.union(WindowInsets.displayCutout).asPaddingValues()
     val startInset = sides.calculateStartPadding(direction)

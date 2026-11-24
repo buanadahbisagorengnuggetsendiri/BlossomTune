@@ -65,7 +65,6 @@ import dev.meowlabs.blossomtune.ui.component.LocalZoomOutOverlayState
 import dev.meowlabs.blossomtune.ui.screens.settings.devspace.openDevUrl
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
-import dev.meowlabs.blossomtune.viewmodels.BrowserFilter
 import dev.meowlabs.blossomtune.viewmodels.ModuleBrowserViewModel
 import dev.meowlabs.blossomtune.viewmodels.ModulesViewModel
 import dev.meowlabs.blossomtune.viewmodels.matching

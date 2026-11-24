@@ -185,8 +185,6 @@ data class SkinPlayer(
     /** a box or the bottom bar asks for frosted glass, so the backdrop has to be captured for it */
     val frosted: Boolean by lazy { all.any { (it is SkinBlock.Box && it.glass != null) || (it is SkinBlock.BottomBar && it.glass != null) } }
 
-    /** some words name the stream or the phone ({codec}, {kbps}, {device}...), so blossomtune only gathers them for players that show them */
-    val audio: Boolean by lazy { all.any { it is SkinBlock.Label && SkinAudioField.containsMatchIn(it.value) } }
     /** where each editable part sits: the part's id to the blocks marked with it */
     val partIds: Set<String> by lazy { all.mapNotNull { (it as? SkinBlock.Styled)?.part }.toSet() }
 

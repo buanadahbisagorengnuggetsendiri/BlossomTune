@@ -190,10 +190,10 @@ private fun OrbitIndicator(settings: EightDSettings) {
     }
 
     // the angle is only read in draw, so the turning dot repaints this box and never recomposes the card
+    val line = LabColors.StageLine
     Canvas(Modifier.fillMaxWidth().height(148.dp).damageBoundary()) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val radius = minOf(size.width * 0.34f, size.height * 0.43f)
-        val line = LabColors.StageLine
         repeat(3) { index ->
             drawCircle(
                 color = line,

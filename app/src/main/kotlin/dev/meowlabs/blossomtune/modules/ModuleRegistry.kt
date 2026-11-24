@@ -43,7 +43,6 @@ import dev.meowlabs.blossomtune.modules.web.WebModule
 import dev.meowlabs.blossomtune.modules.web.WebModuleManifest
 import dev.meowlabs.blossomtune.utils.dataStore
 import dev.meowlabs.blossomtune.utils.get
-import dev.meowlabs.blossomtune.module.MochyModule
 import dev.meowlabs.blossomtune.modules.skin.LookValues
 import dev.meowlabs.blossomtune.modules.web.FieldRange
 import dev.meowlabs.blossomtune.modules.web.FieldRanges

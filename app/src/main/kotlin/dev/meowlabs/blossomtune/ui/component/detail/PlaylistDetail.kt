@@ -1475,8 +1475,6 @@ fun PlaylistTrackRow(
                 songId = songId,
                 style = TrackTitleStyle,
                 color = BlossomInk.Primary.copy(alpha = if (isActive) 1f else 0.94f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = subtitle,
