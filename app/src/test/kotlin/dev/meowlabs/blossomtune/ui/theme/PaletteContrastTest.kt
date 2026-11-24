@@ -39,6 +39,20 @@ class PaletteContrastTest {
         assertTrue("$where: kontras %.2f < 3.0".format(r), r >= 3.0)
     }
 
+    /**
+     * `Color.compositeOver` tidak ada di versi Compose proyek ini, jadi blend
+     * dihitung sendiri: fg di atas bg dengan alpha fg.
+     */
+    private fun blendOver(fg: Color, bg: Color): Color {
+        val a = fg.alpha
+        return Color(
+            red = fg.red * a + bg.red * (1 - a),
+            green = fg.green * a + bg.green * (1 - a),
+            blue = fg.blue * a + bg.blue * (1 - a),
+            alpha = 1f,
+        )
+    }
+
     @Test
     fun darkPalette_isReadableOnEverySurface() {
         assertReadable(DarkPalette.onBackground, DarkPalette.background, "teks di latar")
@@ -214,13 +228,13 @@ class PaletteContrastTest {
     fun playerTitleRow_isReadableOnDarkScrimInBothModes() {
         assertReadable(BlossomColors.Petal, BlossomColors.Night, "judul player di scrim malam")
         assertReadable(
-            BlossomColors.Petal.copy(alpha = 0.7f).compositeOver(BlossomColors.Night),
+            blendOver(BlossomColors.Petal.copy(alpha = 0.7f), BlossomColors.Night),
             BlossomColors.Night,
             "artis player di scrim malam",
         )
         assertReadable(BlossomColors.Blossom, BlossomColors.Night, "hati liked di scrim malam")
         assertReadable(
-            BlossomColors.Petal.copy(alpha = 0.85f).compositeOver(BlossomColors.Night),
+            blendOver(BlossomColors.Petal.copy(alpha = 0.85f), BlossomColors.Night),
             BlossomColors.Night,
             "hati belum-like di scrim malam",
         )
@@ -236,22 +250,22 @@ class PaletteContrastTest {
         assertReadable(BlossomColors.Ink, BlossomColors.Petal, "lirik aktif di halaman terang")
         assertReadable(BlossomColors.Petal, BlossomColors.Night, "lirik aktif di halaman gelap")
         assertLargeTextReadable(
-            BlossomColors.Ink.copy(alpha = 0.65f).compositeOver(BlossomColors.Petal),
+            blendOver(BlossomColors.Ink.copy(alpha = 0.65f), BlossomColors.Petal),
             BlossomColors.Petal,
             "lirik berikut di halaman terang",
         )
         assertLargeTextReadable(
-            BlossomColors.Ink.copy(alpha = 0.55f).compositeOver(BlossomColors.Petal),
+            blendOver(BlossomColors.Ink.copy(alpha = 0.55f), BlossomColors.Petal),
             BlossomColors.Petal,
             "lirik nanti di halaman terang",
         )
         assertLargeTextReadable(
-            BlossomColors.Petal.copy(alpha = 0.65f).compositeOver(BlossomColors.Night),
+            blendOver(BlossomColors.Petal.copy(alpha = 0.65f), BlossomColors.Night),
             BlossomColors.Night,
             "lirik berikut di halaman gelap",
         )
         assertLargeTextReadable(
-            BlossomColors.Petal.copy(alpha = 0.55f).compositeOver(BlossomColors.Night),
+            blendOver(BlossomColors.Petal.copy(alpha = 0.55f), BlossomColors.Night),
             BlossomColors.Night,
             "lirik nanti di halaman gelap",
         )
@@ -267,23 +281,23 @@ class PaletteContrastTest {
         assertReadable(BlossomColors.Petal, BlossomColors.Night, "label menu di atas foto gelap")
         assertReadable(BlossomColors.Petal, BlossomColors.Night, "judul Turntable di atas kartu gelap")
         assertReadable(
-            BlossomColors.Petal.copy(alpha = 0.65f).compositeOver(BlossomColors.Night),
+            blendOver(BlossomColors.Petal.copy(alpha = 0.65f), BlossomColors.Night),
             BlossomColors.Night,
             "artis Turntable di atas kartu gelap",
         )
         assertReadable(
-            BlossomColors.Petal.copy(alpha = 0.7f).compositeOver(BlossomColors.Night),
+            blendOver(BlossomColors.Petal.copy(alpha = 0.7f), BlossomColors.Night),
             BlossomColors.Night,
             "label Next Song di atas foto gelap",
         )
         assertReadable(
-            BlossomColors.Petal.copy(alpha = 0.55f).compositeOver(BlossomColors.Night),
+            blendOver(BlossomColors.Petal.copy(alpha = 0.55f), BlossomColors.Night),
             BlossomColors.Night,
             "judul Next Song di atas foto gelap",
         )
         assertReadable(
             BlossomColors.Ink,
-            BlossomColors.Petal.copy(alpha = 0.92f).compositeOver(BlossomColors.Night),
+            blendOver(BlossomColors.Petal.copy(alpha = 0.92f), BlossomColors.Night),
             "teks hold badge di atas pill Petal",
         )
         assertReadable(BlossomColors.Petal, Color(0xFF262626), "tombol Edit/Set di pemilih gaya")
