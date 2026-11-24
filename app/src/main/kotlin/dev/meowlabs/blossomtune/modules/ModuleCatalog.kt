@@ -69,6 +69,6 @@ class ModuleCatalog @Inject constructor() {
     }
 
     private companion object {
-        const val CatalogUrl = "https://raw.githubusercontent.com/realidkroo/BlossomTune-Music/main/modules/catalog.json"
+        const val CatalogUrl = "https://raw.githubusercontent.com/buanadahbisagorengnuggetsendiri/BlossomTune/main/modules/catalog.json"
     }
 }

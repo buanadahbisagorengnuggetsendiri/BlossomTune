@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,12 +50,14 @@ import dev.meowlabs.blossomtune.ui.component.AppSwitch
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -79,8 +82,10 @@ fun rememberDevicesLink(): DevicesLink {
     }
 }
 
-internal val Muted = Color.White.copy(alpha = 0.6f)
-internal val Faint = Color.White.copy(alpha = 0.1f)
+internal val Muted: Color
+    @Composable @ReadOnlyComposable get() = BlossomInk.Muted
+internal val Faint: Color
+    @Composable @ReadOnlyComposable get() = BlossomInk.Divider
 internal val LiveGreen = Color(0xFF5BD68A)
 internal val CardShape = RoundedCornerShape(22.dp)
 
@@ -143,14 +148,14 @@ internal fun PillButton(text: String, modifier: Modifier = Modifier, bright: Boo
         fontSize = 13.sp,
         color = when {
             bright -> Color.Black
-            enabled -> Color.White
-            else -> Color.White.copy(alpha = 0.35f)
+            enabled -> BlossomInk.Primary
+            else -> BlossomInk.Primary.copy(alpha = 0.35f)
         },
         maxLines = 1,
         modifier = modifier
             .pressBounce(interaction, pressedScale = 0.95f)
             .clip(CircleShape)
-            .background(if (bright) Color.White else Color.White.copy(alpha = 0.12f))
+            .background(if (bright) Color.White else BlossomInk.Primary.copy(alpha = 0.10f))
             .clickable(interactionSource = interaction, indication = RemoteFocus, enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp),
     )
@@ -160,16 +165,18 @@ internal fun PillButton(text: String, modifier: Modifier = Modifier, bright: Boo
 @Composable
 internal fun SheetButton(text: String, modifier: Modifier = Modifier, bright: Boolean = false, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
+    val accent = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
+    val brightText = if (LocalBlossomDark.current) BlossomColors.Ink else Color.White
     Box(
         modifier = modifier
             .pressBounce(interaction, pressedScale = 0.97f)
             .height(50.dp)
             .clip(CircleShape)
-            .background(if (bright) Color.White else Color.White.copy(alpha = 0.26f))
+            .background(if (bright) accent else BlossomInk.Primary.copy(alpha = 0.12f))
             .clickable(interactionSource = interaction, indication = RemoteFocus, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp, color = if (bright) Color.Black else Color.White)
+        Text(text, fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp, color = if (bright) brightText else BlossomInk.Primary)
     }
 }
 
@@ -205,7 +212,7 @@ internal fun ToggleRow(
                 color = BlossomInk.Primary.copy(alpha = if (enabled) 1f else 0.4f),
             )
             if (detail != null) {
-                Text(detail, fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 16.sp, color = Muted.copy(alpha = if (enabled) 0.6f else 0.3f))
+                Text(detail, fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 16.sp, color = Muted.copy(alpha = if (enabled) 1f else 0.4f))
             }
         }
         Spacer(Modifier.width(10.dp))
@@ -235,9 +242,9 @@ internal fun ActionRow(text: String, danger: Boolean = false, enabled: Boolean =
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         color = when {
-            !enabled -> Color.White.copy(alpha = 0.35f)
-            danger -> Color(0xFFFF8A80)
-            else -> Color.White
+            !enabled -> BlossomInk.Primary.copy(alpha = 0.35f)
+            danger -> if (LocalBlossomDark.current) Color(0xFFFF8A80) else BlossomColors.DeepRose
+            else -> BlossomInk.Primary
         },
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,

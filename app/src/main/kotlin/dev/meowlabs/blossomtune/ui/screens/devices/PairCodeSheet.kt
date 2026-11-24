@@ -63,6 +63,7 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
+// dark in both modes, so the text on it stays white even in light mode
 private val BoxColor = Color(0xFF2A2A2E)
 
 // the code from the other device's screen, typed into six boxes on a sheet; peer is null when it's linked by its address instead
@@ -137,7 +138,7 @@ private fun ColumnScope.PairCodeContent(link: DevicesLink, tv: LinkPeer?, onClos
                         value = address,
                         onValueChange = { address = it.filter { char -> char.isDigit() || char == '.' || char == ':' }.take(21) },
                         singleLine = true,
-                        textStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = BlossomInk.Primary),
+                        textStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White),
                         cursorBrush = SolidColor(Color.White),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier
@@ -147,7 +148,7 @@ private fun ColumnScope.PairCodeContent(link: DevicesLink, tv: LinkPeer?, onClos
                             .focusRequester(addressFocus)
                             .padding(horizontal = 16.dp, vertical = 14.dp),
                         decorationBox = { inner ->
-                            if (address.isEmpty()) Text(stringResource(R.string.tv_pair_address_hint), color = BlossomInk.Primary.copy(alpha = 0.3f), fontSize = 18.sp, fontFamily = InterFontFamily)
+                            if (address.isEmpty()) Text(stringResource(R.string.tv_pair_address_hint), color = Color.White.copy(alpha = 0.5f), fontSize = 18.sp, fontFamily = InterFontFamily)
                             inner()
                         },
                     )
@@ -210,7 +211,7 @@ private fun CodeBoxes(code: String, focus: FocusRequester, onCode: (String) -> U
                         fontFamily = InterFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp,
-                        color = BlossomInk.Primary,
+                        color = Color.White,
                     )
                 }
             }

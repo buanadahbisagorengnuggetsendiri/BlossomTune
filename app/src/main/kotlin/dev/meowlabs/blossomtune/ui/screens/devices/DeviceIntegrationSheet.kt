@@ -214,7 +214,7 @@ private fun DeviceRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(7.dp).clip(CircleShape).background(if (live != null) LiveGreen else Color.White.copy(alpha = 0.3f)))
+                Box(Modifier.size(7.dp).clip(CircleShape).background(if (live != null) LiveGreen else Muted.copy(alpha = 0.6f)))
                 Spacer(Modifier.width(6.dp))
                 Text(
                     statusOf(device, live, steering, now),
@@ -240,7 +240,7 @@ private fun DeviceRow(
             Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
+                .background(Muted.copy(alpha = 0.12f))
                 .clickable(onClick = onOpen),
             contentAlignment = Alignment.Center,
         ) {
@@ -265,7 +265,7 @@ internal fun statusOf(device: PairedDevice, live: LiveDevice?, steering: Boolean
 // the dashed box under the list that opens "add device"; greyed out once the phone has all it keeps
 @Composable
 private fun AddDevicesBox(full: Boolean, onClick: () -> Unit) {
-    val edge = Color.White.copy(alpha = if (full) 0.15f else 0.35f)
+    val edge = Muted.copy(alpha = if (full) 0.15f else 0.35f)
     Column(
         Modifier
             .fillMaxWidth()

@@ -97,11 +97,12 @@ import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
 /**
  * The lab's own kit. Dark in dark mode; in light mode the 0.5.x values (white cards,
- * ice stage, ink text) — the Mochy merge overwrote them with the dark ones, so the
+ * rose stage, ink text) — the Mochy merge overwrote them with the dark ones, so the
  * whole Audio Lab stayed black in light mode.
  *
- * Secondary is InkSoft, not the 0.5.x InkMuted: InkMuted is 4.48 on the ice stage,
- * just under AA, while InkSoft is 5.77 there and 7.05 on paper.
+ * Secondary is Deep Rose on the rose stage (5.54) and pale rose on the night card
+ * (8.70), both above AA; the old ice blue is gone, the lab now sits on the
+ * Cherry Blossom palette.
  *
  * `node()` stays a plain function: the node colours are the same in both modes, and
  * the equalizer graph reads them from a draw scope, which cannot call a @Composable
@@ -110,25 +111,29 @@ import dev.meowlabs.blossomtune.ui.component.RemoteFocus
  */
 object LabColors {
     val Card: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) BlossomColors.NightCard else Color(0xFFFFFFFF)
     val Stage: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF0E0E10) else Color(0xFFDCEAF9)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) BlossomColors.Night else BlossomColors.RosePale
     val StageLine: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF2E2E32) else Color(0xFFCFE3F7)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) BlossomColors.BlossomContainer else BlossomColors.Line
     val Row: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF26262A) else Color(0xFFFFFFFF)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) BlossomColors.BlossomContainer else BlossomColors.PetalPanel
     val RowSelected: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF34343A) else Color(0xFFE4EFFC)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF4A1A2B) else BlossomColors.RosePale
     val Chip: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF232327) else Color(0xFFDCEAF9)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) BlossomColors.BlossomContainer else BlossomColors.RosePale
     val Primary: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color.White else Color(0xFF0E1B2C)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) BlossomColors.Petal else BlossomColors.Ink
     val Secondary: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF9A9AA0) else Color(0xFF3F5B78)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFFD3A9B6) else BlossomColors.DeepRose
+    /** teks redup di atas pill/baris yang gelap di kedua mode (quality pills, provider order):
+     *  pill-nya tidak ikut mode, jadi warnanya dipaku terang di kedua mode. Nilainya sama
+     *  dengan Secondary di mode gelap, jadi render gelap tidak berubah. */
+    val OnDark: Color = Color(0xFFD3A9B6)
     val Faint: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF5C5C63) else Color(0xFF4E6C8A)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFFA98A96) else BlossomColors.InkMuted
     val Ink: Color
-        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFF8A8A92) else Color(0xFF4E6C8A)
+        @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFFC9A8B4) else BlossomColors.InkMuted
 
     /** the equalizer's node colours, soft enough to sit on blossomtune's greys and apart enough to tell */
     val Nodes = listOf(

@@ -1,32 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- the unlit settings tab, the outline mark from icon new - transparent 2.svg -->
+<!-- BlossomTune flower mark, Cherry Blossom palette (VectorCraft logo) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="135.16"
-    android:viewportHeight="135.16">
-    <group
-        android:translateX="-55.67"
-        android:translateY="-50.42">
-        <path
-            android:pathData="M163.5 96.3493C180.167 105.972 180.167 130.028 163.5 139.651L108 171.694C91.3333 181.316 70.5 169.288 70.5 150.043V85.9569C70.5 66.7119 91.3333 54.6838 108 64.3063L163.5 96.3493Z"
-            android:fillColor="#00000000"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="19"
-            android:strokeLineJoin="round" />
-        <path
-            android:pathData="M97 112L108.5 98L120 112"
-            android:fillColor="#00000000"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="11"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
-        <path
-            android:pathData="M110.325 125C111.871 133.439 121.868 148.704 142.944 149.92"
-            android:fillColor="#00000000"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="11"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
-    </group>
+    android:viewportWidth="256"
+    android:viewportHeight="256">
+    <path android:fillColor="#C84870" android:pathData="M128 34 C152 52 156 92 128 116 C100 92 104 52 128 34 Z"/>
+    <path android:fillColor="#C84870" android:pathData="M217 99 C208 127 171 144 139 124 C154 90 193 82 217 99 Z"/>
+    <path android:fillColor="#C84870" android:pathData="M183 204 C153 204 127 174 135 138 C172 141 192 175 183 204 Z"/>
+    <path android:fillColor="#C84870" android:pathData="M73 204 C64 175 84 141 121 138 C130 174 103 204 73 204 Z"/>
+    <path android:fillColor="#C84870" android:pathData="M39 99 C63 82 102 90 117 124 C85 144 48 127 39 99 Z"/>
+    <path android:fillColor="#9A3050" android:pathData="M112 128 A16 16 0 1 1 144 128 A16 16 0 1 1 112 128 Z"/>
 </vector>

@@ -2885,9 +2885,21 @@ class MusicService :
 
     fun toggleLike() {
         scope.launch {
+            // A stream that was never saved has no row to flip, and the old code
+            // silently did nothing while the burst label claimed it worked. Save
+            // it first, already liked, so the tap lands and the heart fills.
+            val savedFirst = currentSong.first() == null
+            if (savedFirst) {
+                val metadata = currentMediaMetadata.value ?: return@launch
+                database.query {
+                    insert(metadata) { it.toggleLike() }
+                }
+            }
             val songToToggle = currentSong.first()
             songToToggle?.let {
-                val song = it.song.toggleLike()
+                // The insert above already liked it; only flip when a concurrent
+                // recoverSong saved it unliked first.
+                val song = if (savedFirst && it.song.liked) it.song else it.song.toggleLike()
                 database.query {
                     update(song)
                     syncUtils.likeSong(song)

@@ -43,7 +43,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import dev.meowlabs.blossomtune.ui.component.HighlightColor
 import dev.meowlabs.blossomtune.ui.component.PillEdgeInset
 import dev.meowlabs.blossomtune.ui.component.PillGap
 import dev.meowlabs.blossomtune.ui.component.SlabInset
@@ -56,6 +55,7 @@ import dev.meowlabs.blossomtune.ui.screens.audiolab.rememberOnScreen
 import dev.meowlabs.blossomtune.ui.screens.audiolab.rememberPicturesHeld
 import dev.meowlabs.blossomtune.ui.screens.audiolab.trackOnScreen
 import dev.meowlabs.blossomtune.ui.component.drawSwipeWash
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val RowHeight = 60.dp
 
@@ -157,6 +157,7 @@ fun SwipePreview(action: SongSwipeAction, toRight: Boolean, modifier: Modifier =
 /** a stand-in song row: cover, two lines of text and the round button at the end, on its slab */
 @Composable
 private fun SampleRow(modifier: Modifier = Modifier, wash: DrawScope.() -> Unit) {
+    val slabColor = BlossomInk.Divider
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -164,7 +165,7 @@ private fun SampleRow(modifier: Modifier = Modifier, wash: DrawScope.() -> Unit)
             .drawBehind {
                 val inset = SlabInset.toPx()
                 drawRoundRect(
-                    color = HighlightColor,
+                    color = slabColor,
                     topLeft = Offset(inset, 0f),
                     size = Size(size.width - inset * 2f, size.height),
                     cornerRadius = CornerRadius(size.height / 2f),
@@ -173,13 +174,13 @@ private fun SampleRow(modifier: Modifier = Modifier, wash: DrawScope.() -> Unit)
             }
             .padding(horizontal = SlabInset + 10.dp),
     ) {
-        Box(Modifier.size(40.dp).clip(RoundedCornerShape(11.dp)).background(Color.White.copy(alpha = 0.14f)))
+        Box(Modifier.size(40.dp).clip(RoundedCornerShape(11.dp)).background(BlossomInk.Primary.copy(alpha = 0.14f)))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            Box(Modifier.fillMaxWidth(0.55f).height(8.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.22f)))
-            Box(Modifier.fillMaxWidth(0.32f).height(8.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.13f)))
+            Box(Modifier.fillMaxWidth(0.55f).height(8.dp).clip(CircleShape).background(BlossomInk.Primary.copy(alpha = 0.22f)))
+            Box(Modifier.fillMaxWidth(0.32f).height(8.dp).clip(CircleShape).background(BlossomInk.Primary.copy(alpha = 0.13f)))
         }
         Spacer(Modifier.width(12.dp))
-        Box(Modifier.size(26.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.5f)))
+        Box(Modifier.size(26.dp).clip(CircleShape).background(BlossomInk.Primary.copy(alpha = 0.5f)))
     }
 }

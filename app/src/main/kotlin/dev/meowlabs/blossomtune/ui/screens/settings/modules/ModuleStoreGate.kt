@@ -54,7 +54,7 @@ import kotlinx.coroutines.flow.first
 /** bump it when the terms change, and everyone is asked again before their next visit */
 internal const val StoreTermsVersion = 1
 
-private const val ReleasesUrl = "https://github.com/realidkroo/Mochy-Music/releases"
+private const val ReleasesUrl = "https://github.com/buanadahbisagorengnuggetsendiri/BlossomTune/releases"
 private val WelcomeSurface = Color(0xFF1E1E1E)
 private val TermsShape = RoundedCornerShape(28.dp)
 private val ArtHeight = 210.dp

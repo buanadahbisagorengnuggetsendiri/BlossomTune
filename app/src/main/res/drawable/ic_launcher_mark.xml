@@ -1,24 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- BlossomTune mark: lima kelopak azure, ujung membulat, lubang es di pusat. -->
+<!-- BlossomTune flower mark, Cherry Blossom palette (VectorCraft logo) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <group android:pivotX="54" android:pivotY="54" android:rotation="0">
-        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#2368D8"/>
-    </group>
-    <group android:pivotX="54" android:pivotY="54" android:rotation="72">
-        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#2368D8"/>
-    </group>
-    <group android:pivotX="54" android:pivotY="54" android:rotation="144">
-        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#2368D8"/>
-    </group>
-    <group android:pivotX="54" android:pivotY="54" android:rotation="216">
-        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#2368D8"/>
-    </group>
-    <group android:pivotX="54" android:pivotY="54" android:rotation="288">
-        <path android:pathData="M47.5 47 C44.2 38.5 45.8 27.4 49.6 24.1 A5.2 5.2 0 0 1 58.4 24.1 C62.2 27.4 63.8 38.5 60.5 47 C56 50.2 52 50.2 47.5 47 Z" android:fillColor="#2368D8"/>
-    </group>
-    <path android:pathData="M54 57.4 A3.4 3.4 0 1 1 54 50.6 A3.4 3.4 0 1 1 54 57.4 Z" android:fillColor="#E8F3FE"/>
+    android:viewportWidth="256"
+    android:viewportHeight="256">
+    <path android:fillColor="#C84870" android:pathData="M128 34 C152 52 156 92 128 116 C100 92 104 52 128 34 Z"/>
+    <path android:fillColor="#C84870" android:pathData="M217 99 C208 127 171 144 139 124 C154 90 193 82 217 99 Z"/>
+    <path android:fillColor="#C84870" android:pathData="M183 204 C153 204 127 174 135 138 C172 141 192 175 183 204 Z"/>
+    <path android:fillColor="#C84870" android:pathData="M73 204 C64 175 84 141 121 138 C130 174 103 204 73 204 Z"/>
+    <path android:fillColor="#C84870" android:pathData="M39 99 C63 82 102 90 117 124 C85 144 48 127 39 99 Z"/>
+    <path android:fillColor="#9A3050" android:pathData="M112 128 A16 16 0 1 1 144 128 A16 16 0 1 1 112 128 Z"/>
 </vector>

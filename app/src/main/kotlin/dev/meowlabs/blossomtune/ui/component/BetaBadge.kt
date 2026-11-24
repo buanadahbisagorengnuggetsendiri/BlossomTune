@@ -15,12 +15,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.R
 
-/** [label] in a thin pill of [color], a yellow "BETA" unless told otherwise */
+/** [label] in a thin pill of [color], a deep rose "BETA" unless told otherwise */
 @Composable
 fun BetaBadge(
     modifier: Modifier = Modifier,
     label: String = stringResource(R.string.modules_beta),
-    color: Color = BetaYellow,
+    color: Color = BetaRose,
 ) {
     Text(
         label,
@@ -34,4 +34,4 @@ fun BetaBadge(
     )
 }
 
-private val BetaYellow = Color(0xFFF5E27A)
+private val BetaRose = Color(0xFF9A3050)

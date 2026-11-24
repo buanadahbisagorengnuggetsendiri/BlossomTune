@@ -64,7 +64,10 @@ import dev.meowlabs.blossomtune.constants.PlayerStatusBarDefault
 import dev.meowlabs.blossomtune.constants.PlayerStatusBarKey
 import dev.meowlabs.blossomtune.ui.component.AppSwitch
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.ui.utils.AnimationSpeeds
 import dev.meowlabs.blossomtune.ui.utils.animationSpeedLabel
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
@@ -134,7 +137,7 @@ internal fun BlurSection(modifier: Modifier = Modifier) {
                         .background(LabColors.Row)
                         .padding(horizontal = 12.dp, vertical = 9.dp),
                 ) {
-                    Text(stringResource(R.string.appearance_blur_quality), style = PillTextStyle, color = Color.White)
+                    Text(stringResource(R.string.appearance_blur_quality), style = PillTextStyle, color = BlossomInk.Primary)
                     Spacer(Modifier.height(7.dp))
                     MiniSegmented(
                         options = listOf(stringResource(R.string.appearance_low), stringResource(R.string.appearance_high)),
@@ -180,7 +183,7 @@ internal fun ElementBlurSection(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.customise_element_blur_desc),
             style = CaptionStyle,
-            color = Color.White.copy(alpha = 0.5f),
+            color = BlossomInk.Muted,
         )
     }
 }
@@ -205,7 +208,7 @@ internal fun AnimationSection(modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(if (speed == 1f) R.string.customise_animation_follows else R.string.customise_animation_on_top),
                 style = CaptionStyle,
-                color = Color.White.copy(alpha = 0.5f),
+                color = BlossomInk.Muted,
             )
         }
         Spacer(Modifier.height(11.dp))
@@ -308,7 +311,7 @@ internal fun TopBarSection(modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(R.string.customise_top_bar_desc),
                 style = CaptionStyle,
-                color = Color.White.copy(alpha = 0.5f),
+                color = BlossomInk.Muted,
             )
         }
     }
@@ -329,7 +332,7 @@ internal fun BottomBarSection(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.customise_bottom_bar_desc),
             style = CaptionStyle,
-            color = Color.White.copy(alpha = 0.5f),
+            color = BlossomInk.Muted,
         )
     }
 }
@@ -389,7 +392,7 @@ private fun EffectCard(
     }
 }
 
-// a dark pill with a small label and a shrunken switch, for a setting inside a card
+// a pill with a small label and a shrunken switch, for a setting inside a card
 @Composable
 private fun PillSwitchRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, enabled: Boolean) {
     Row(
@@ -401,7 +404,7 @@ private fun PillSwitchRow(title: String, checked: Boolean, onCheckedChange: (Boo
             .clickable(enabled = enabled) { onCheckedChange(!checked) }
             .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
     ) {
-        Text(title, style = PillTextStyle, color = Color.White, modifier = Modifier.weight(1f))
+        Text(title, style = PillTextStyle, color = BlossomInk.Primary, modifier = Modifier.weight(1f))
         Box(Modifier.size(width = 38.dp, height = 24.dp), contentAlignment = Alignment.Center) {
             AppSwitch(
                 checked = checked,
@@ -413,7 +416,7 @@ private fun PillSwitchRow(title: String, checked: Boolean, onCheckedChange: (Boo
     }
 }
 
-// a small two-way picker with a white pill sliding to the chosen side
+// a small two-way picker with a rose pill sliding to the chosen side
 @Composable
 private fun MiniSegmented(options: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit, enabled: Boolean) {
     BoxWithConstraints(
@@ -425,6 +428,8 @@ private fun MiniSegmented(options: List<String>, selectedIndex: Int, onSelect: (
             .padding(2.dp),
     ) {
         val segment = maxWidth / options.size
+        val pillColor = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
+        val selectedText = if (LocalBlossomDark.current) BlossomColors.Ink else Color.White
         val offset by animateDpAsState(segment * selectedIndex, spring(dampingRatio = 0.82f, stiffness = 520f), label = "miniSegment")
         Box(
             Modifier
@@ -432,12 +437,12 @@ private fun MiniSegmented(options: List<String>, selectedIndex: Int, onSelect: (
                 .width(segment)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(10.dp))
-                .background(Color.White),
+                .background(pillColor),
         )
         Row(Modifier.fillMaxWidth().fillMaxHeight()) {
             options.forEachIndexed { index, label ->
                 val color by animateColorAsState(
-                    if (index == selectedIndex) Color.Black else Color.White,
+                    if (index == selectedIndex) selectedText else BlossomInk.Primary,
                     tween(160),
                     label = "miniSegmentText",
                 )

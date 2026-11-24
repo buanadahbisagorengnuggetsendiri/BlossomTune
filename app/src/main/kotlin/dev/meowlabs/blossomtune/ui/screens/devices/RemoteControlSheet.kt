@@ -69,7 +69,9 @@ import dev.meowlabs.blossomtune.ui.component.PopupSheetHandle
 import dev.meowlabs.blossomtune.ui.component.PopupSheetState
 import dev.meowlabs.blossomtune.ui.menu.AddToPlaylistDialog
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.utils.makeTimeString
 import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
@@ -242,6 +244,8 @@ private fun NowPlayingCard(now: RemoteNow?, onLike: () -> Unit, onSave: () -> Un
 // the song's place on the device, moved on every frame from its last answer; tap or drag to seek there
 @Composable
 private fun SeekBar(now: RemoteNow?, onSeek: (Long) -> Unit) {
+    val trackColor = BlossomInk.Divider
+    val fillColor = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
     val clock = remember { mutableLongStateOf(System.currentTimeMillis()) }
     val playing = now?.playing == true
     LaunchedEffect(playing) {
@@ -287,8 +291,8 @@ private fun SeekBar(now: RemoteNow?, onSeek: (Long) -> Unit) {
                 val height = 4.dp.toPx()
                 val top = (size.height - height) / 2
                 val radius = CornerRadius(height / 2)
-                drawRoundRect(Color.White.copy(alpha = 0.18f), Offset(0f, top), Size(size.width, height), radius)
-                drawRoundRect(Color.White, Offset(0f, top), Size(size.width * fraction.value, height), radius)
+                drawRoundRect(trackColor, Offset(0f, top), Size(size.width, height), radius)
+                drawRoundRect(fillColor, Offset(0f, top), Size(size.width * fraction.value, height), radius)
             },
     )
     Row(Modifier.fillMaxWidth()) {
@@ -306,6 +310,8 @@ private fun finishDrag(now: RemoteNow?, dragging: androidx.compose.runtime.Mutab
 
 @Composable
 private fun Transport(playing: Boolean, enabled: Boolean, onPrevious: () -> Unit, onToggle: () -> Unit, onNext: () -> Unit) {
+    val accent = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
+    val playIcon = if (LocalBlossomDark.current) BlossomColors.Ink else Color.White
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onPrevious, enabled = enabled) {
             Icon(painterResource(R.drawable.skip_previous), contentDescription = stringResource(R.string.remote_previous), tint = BlossomInk.Primary, modifier = Modifier.size(30.dp))
@@ -314,14 +320,14 @@ private fun Transport(playing: Boolean, enabled: Boolean, onPrevious: () -> Unit
             Modifier
                 .size(64.dp)
                 .clip(CircleShape)
-                .background(if (enabled) Color.White else Color.White.copy(alpha = 0.3f))
+                .background(if (enabled) accent else accent.copy(alpha = 0.3f))
                 .clickable(enabled = enabled, onClick = onToggle),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painterResource(if (playing) R.drawable.pause else R.drawable.play),
                 contentDescription = stringResource(R.string.remote_play_pause),
-                tint = Color.Black,
+                tint = playIcon,
                 modifier = Modifier.size(30.dp),
             )
         }

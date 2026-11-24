@@ -49,7 +49,9 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.ShowFormatBadgeKey
 import dev.meowlabs.blossomtune.constants.ShowFormatSampleRateKey
 import dev.meowlabs.blossomtune.extensions.togglePlayPause
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
@@ -165,23 +167,27 @@ fun TurntableControls(
  */
 @Composable
 fun TurntablePills(modifier: Modifier = Modifier, likeBurst: LikeBurstState? = null, horizontal: Boolean = false,
-    /** the Turntable wears these on its ice page; the Poster wears them over its cover photo, so it passes white */
+    /** the Turntable wears these on its rose page; the Poster wears them over its cover photo, so it passes white */
     ink: Color = PlayerInk,
 ) {
     val pillFill = ink.copy(alpha = 0.10f)
     val connection = LocalPlayerConnection.current ?: return
     val track by connection.uiState.trackInfo.collectAsState()
     val transport by connection.uiState.transportState.collectAsState()
+    val liked = track.liked
+    val likeAccent = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
+    // the Poster passes white for its cover photo; only the Turntable's own ink turns rose when liked
+    val likeTint = if (ink == PlayerInk) likeAccent else ink
+    val likeFill = if (liked) likeTint.copy(alpha = 0.15f) else pillFill
 
     val holdSpeed = remember(connection) { HoldSpeed(connection.player) }
     DisposableEffect(holdSpeed) { onDispose { holdSpeed.end() } }
 
     val pills: @Composable () -> Unit = {
-        Pill(fill = pillFill) {
-            val liked = track.liked
+        Pill(fill = likeFill) {
             PressScaleIcon(
                 icon = if (liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-                tint = if (liked) ink else ink.copy(alpha = 0.85f),
+                tint = if (liked) likeTint else ink.copy(alpha = 0.85f),
                 onClick = {
                     if (likeBurst != null) likeBurst.likeFromButton(LikeSlot.PLAYER, liked, connection::toggleLike)
                     else connection.toggleLike()

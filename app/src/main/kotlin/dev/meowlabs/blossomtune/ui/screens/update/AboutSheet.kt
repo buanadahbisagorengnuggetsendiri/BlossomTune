@@ -104,16 +104,10 @@ private data class ContributorEntry(
 private val LeadDevs =
     listOf(
         LeadDevEntry(
-            name = "Roo",
-            githubUser = "realidkroo",
+            name = "Buana",
+            githubUser = "buanadahbisagorengnuggetsendiri",
             devSpaceIndex = 0,
-            fallbackAvatar = R.drawable.frame_51_3,
-        ),
-        LeadDevEntry(
-            name = "key",
-            githubUser = "realkeichi",
-            devSpaceIndex = 1,
-            fallbackAvatar = R.drawable.dev_keycii,
+            fallbackAvatar = R.drawable.ic_blossomtune_mark,
         ),
     )
 
@@ -250,14 +244,9 @@ private val ExtraContributors =
 private val FallbackContributors =
     listOf(
         ContributorEntry(
-            login = "realidkroo",
-            avatarUrl = githubAvatarUrl("realidkroo"),
-            profileUrl = "https://github.com/realidkroo",
-        ),
-        ContributorEntry(
-            login = "realkeichi",
-            avatarUrl = githubAvatarUrl("realkeichi"),
-            profileUrl = "https://github.com/realkeichi",
+            login = "buanadahbisagorengnuggetsendiri",
+            avatarUrl = githubAvatarUrl("buanadahbisagorengnuggetsendiri"),
+            profileUrl = "https://github.com/buanadahbisagorengnuggetsendiri",
         ),
     ) + ExtraContributors
 

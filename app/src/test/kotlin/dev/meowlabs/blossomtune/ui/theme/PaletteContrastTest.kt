@@ -2,6 +2,7 @@ package dev.meowlabs.blossomtune.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -168,4 +169,35 @@ class PaletteContrastTest {
         assertReadable(BlossomColors.White, DarkPalette.background, "tinta pemutar gelap di latar malam")
     }
 
+
+    /**
+     * Pill/baris kualitas di layar Audio Quality gelap di kedua mode, jadi deskripsinya
+     * tidak boleh pakai Secondary yang ikut mode (Deep Rose di terang = 2.62 di atas
+     * #111113). [LabColors.OnDark] dipaku terang dan harus lolos AA di semua latar
+     * pill yang dipakai: #111113, #2A2A2E (terpilih), #242428 (baris terangkat).
+     */
+    @Test
+    fun darkQualityPills_keepDescriptionReadableInBothModes() {
+        assertReadable(LabColors.OnDark, Color(0xFF111113), "deskripsi quality di pill gelap")
+        assertReadable(LabColors.OnDark, Color(0xFF2A2A2E), "deskripsi quality di pill terpilih")
+        assertReadable(LabColors.OnDark, Color(0xFF242428), "status provider di baris terangkat")
+    }
+
+    /**
+     * Kartu Top Result di Search gelap di kedua mode (artwork blur + scrim hitam
+     * di atas Tile), jadi judul/detailnya dipaku terang dan tidak boleh ikut mode.
+     * Latar paling terang yang bisa muncul di belakang baris teks adalah artwork
+     * putih polos di bawah scrim yang diperkuat (0.72 di 0.55, 0.92 di bawah):
+     * #363636 di baris judul. Kasus nyata yang dilaporkan ("Dancin'") latarnya
+     * #862D48 dengan scrim lama, dan #612134 dengan scrim baru. Petal dan OnDark
+     * harus lolos AA di keduanya.
+     */
+    @Test
+    fun topResultCard_staysReadableOnDarkArtworkCard() {
+        assertReadable(BlossomColors.Petal, Color(0xFF363636), "judul Top Result di artwork putih")
+        assertReadable(LabColors.OnDark, Color(0xFF363636), "detail Top Result di artwork putih")
+        assertReadable(BlossomColors.Petal, Color(0xFF612134), "judul Top Result di artwork Dancin'")
+        assertReadable(LabColors.OnDark, Color(0xFF612134), "detail Top Result di artwork Dancin'")
+    }
 }
+

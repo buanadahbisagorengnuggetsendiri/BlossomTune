@@ -1,5 +1,36 @@
 [
   {
+    "versionName": "0.6.4",
+    "publishedAt": "2026-11-24",
+    "summary": "Tema Cherry Blossom kini menyeluruh di mode terang dan gelap, logo baru bunga sakura, profil Buana, dan semua tautan diarahkan ke repo BlossomTune.",
+    "sections": [
+      {
+        "title": "Tema Cherry Blossom",
+        "items": [
+          "Audio Lab: panggung dan teks kini memakai palet rose di mode terang dan plum malam di mode gelap.",
+          "Kustomisasi: halaman, kartu, dan slider kini terbaca di kedua mode; tidak ada lagi teks putih di atas kartu putih.",
+          "Perangkat: status dan detail perangkat kini memakai tinta tema.",
+          "Sakelar di seluruh aplikasi kini menyala Deep Rose di mode terang dan Cherry Blossom di mode gelap.",
+          "Hati lagu yang disukai kini Deep Rose di mode terang dan Cherry Blossom di mode gelap.",
+          "Lencana BETA kini Deep Rose, bukan lagi kuning."
+        ]
+      },
+      {
+        "title": "Logo dan profil",
+        "items": [
+          "Logo baru: bunga sakura lima kelopak Cherry Blossom, menggantikan mark Mochy di launcher, splash, navigasi, dan intro.",
+          "Profil pengembang kini hanya Buana, dengan bio \"Dibuat oleh Buana\"."
+        ]
+      },
+      {
+        "title": "Repo",
+        "items": [
+          "Semua tautan update, changelog, commit, modul, dan dokumentasi kini mengarah ke buanadahbisagorengnuggetsendiri/BlossomTune."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.6.3",
     "publishedAt": "2026-11-24",
     "summary": "Basis Mochy diperbarui dari 8.4.2 ke 8.4.6: cloud backup, Audio Lab 3D dan 8D, module store, preset AudioFX, serta perbaikan baterai dan memory leak. Tema Cherry Blossom dan perbaikan kontras tetap dipertahankan.",
