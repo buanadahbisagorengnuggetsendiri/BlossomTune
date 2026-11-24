@@ -39,6 +39,12 @@ class PaletteContrastTest {
         assertTrue("$where: kontras %.2f < 3.0".format(r), r >= 3.0)
     }
 
+    /** Baris yang sudah lewat boleh pudar, tapi jangan sampai hilang total. */
+    private fun assertFadedButPresent(fg: Color, bg: Color, where: String) {
+        val r = contrast(fg, bg)
+        assertTrue("$where: kontras %.2f < 1.5".format(r), r >= 1.5)
+    }
+
     /**
      * `Color.compositeOver` tidak ada di versi Compose proyek ini, jadi blend
      * dihitung sendiri: fg di atas bg dengan alpha fg.
@@ -244,6 +250,13 @@ class PaletteContrastTest {
      * 0.6.5: lirik duduk di atas halaman Petal (terang) / Night (gelap). Baris aktif
      * tinta primer penuh; baris berikut primer 0.65 (segera) dan 0.55 (nanti),
      * teks besar jadi ambangnya 3:1.
+     *
+     * Ini menguji salinan polosnya (plain copy), bukan efek soft-light: halaman lirik
+     * selalu berjalan di jalur soft-lit (blend != null), dan soft-light putih di atas
+     * latar terang hanya memberi 1.1:1 - perbaikan pertama yang hanya menyentuh jalur
+     * tanpa blend tidak pernah sampai ke halaman ini. Salinan polos di tinta primer
+     * pada alpha istirahatnya adalah jaminan kontrasnya; salinan soft di bawahnya
+     * hanya mewarnai cover. Baris lampau di 0.24 hanya dijamin hadir, bukan terbaca.
      */
     @Test
     fun lyricsLines_areReadableInBothModes() {
@@ -268,6 +281,36 @@ class PaletteContrastTest {
             blendOver(BlossomColors.Petal.copy(alpha = 0.55f), BlossomColors.Night),
             BlossomColors.Night,
             "lirik nanti di halaman gelap",
+        )
+        assertLargeTextReadable(
+            blendOver(BlossomColors.Ink.copy(alpha = 0.5f), BlossomColors.Petal),
+            BlossomColors.Petal,
+            "kata belum dinyanyikan di baris aktif terang",
+        )
+        assertFadedButPresent(
+            blendOver(BlossomColors.Ink.copy(alpha = 0.24f), BlossomColors.Petal),
+            BlossomColors.Petal,
+            "lirik lampau di halaman terang",
+        )
+        assertFadedButPresent(
+            blendOver(BlossomColors.Petal.copy(alpha = 0.24f), BlossomColors.Night),
+            BlossomColors.Night,
+            "lirik lampau di halaman gelap",
+        )
+    }
+
+    /** Titik jeda antar baris lirik: tinta primer juga, bukan putih. */
+    @Test
+    fun lyricsInterludeDots_areReadableInBothModes() {
+        assertReadable(
+            blendOver(BlossomColors.Ink.copy(alpha = 0.75f), BlossomColors.Petal),
+            BlossomColors.Petal,
+            "titik jeda lirik di halaman terang",
+        )
+        assertReadable(
+            blendOver(BlossomColors.Petal.copy(alpha = 0.75f), BlossomColors.Night),
+            BlossomColors.Night,
+            "titik jeda lirik di halaman gelap",
         )
     }
 
