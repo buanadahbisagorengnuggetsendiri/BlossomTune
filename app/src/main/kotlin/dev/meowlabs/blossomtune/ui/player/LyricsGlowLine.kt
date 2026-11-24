@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -132,9 +131,9 @@ internal fun blurEffectForRadius(radius: Float): androidx.compose.ui.graphics.Re
         .also { BlurEffectCache[step] = it }
 }
 
-private const val UpcomingAlpha = 0.5f
+private const val UpcomingAlpha = 0.65f
 private const val PastAlpha = 0.24f
-private const val DefaultAlpha = 0.38f
+private const val DefaultAlpha = 0.55f
 
 /** How bright a line rests in [state]. The lyrics share starts its flying copy from here too. */
 internal fun restingAlphaOf(state: LyricsLineState): Float = when (state) {
@@ -192,6 +191,11 @@ private const val ActiveUnsungAlpha = 0.58f
 
 // with tinted lyrics the words still to come are only a faint white in the plain copy; the soft-lit copy under them gives them the background's colour
 private const val TintedUnsungAlpha = 0.22f
+
+// in the light the soft copy cannot lift faint words (it would bleach them white),
+// so the sung line's unsung words rest at this share of the theme ink instead: 3.26:1
+// on Petal, the same order as the plain path's 0.58
+private const val PlainUnsungAlpha = 0.5f
 
 // how far the soft copy lifts those faint words, back up to solid white
 private const val SweepSoftBoost = 1f / TintedUnsungAlpha
@@ -287,14 +291,28 @@ fun LyricsGlowLine(
         spec = tween(durationMillis = 350),
     )
 
-    val baseColor = LocalContentColor.current
+    // The lines take the theme ink in both paths now (dark by day, Petal by night).
+    // 0.6.5 tried this only when blend == null, but the lyrics page always runs the
+    // soft-lit path (blend != null: the default cover styles take soft light), so the
+    // page kept its old white lines - 1.1:1 on the light backdrop - and the fix never
+    // showed. White soft-lit onto a light backdrop can only lighten it a touch; it
+    // cannot make a readable line there. Dark ink soft-lights the other way instead.
+    val pageInk = dev.meowlabs.blossomtune.ui.theme.BlossomInk.Primary
+    val isDark = dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark.current
     // eased with the alpha and scale, and read only while drawing so the fade doesn't recompose the line every frame
     val lineColor = dev.meowlabs.blossomtune.ui.utils.animateColorOnChange(
-        target = if (state == LyricsLineState.ACTIVE) Color.White else baseColor,
+        target = pageInk,
         spec = tween(durationMillis = 600),
     )
     val textColor = remember(lineColor) { ColorProducer { lineColor.value } }
-    val unsungAlpha = if (blend != null) TintedUnsungAlpha else ActiveUnsungAlpha
+    // Unsung words of the sung line: in the dark the soft copy lifts them back to solid
+    // white, so they can stay faint; in the light there is no lift (see softBoost
+    // below), so they rest at the plain-path share instead of vanishing.
+    val unsungAlpha = if (blend != null) {
+        if (isDark) TintedUnsungAlpha else PlainUnsungAlpha
+    } else {
+        ActiveUnsungAlpha
+    }
     val unsungColor = remember(lineColor, unsungAlpha) { ColorProducer { lineColor.value.copy(alpha = unsungAlpha) } }
     val readingColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.4f) } }
     val subLineColor = remember(lineColor) { ColorProducer { lineColor.value.copy(alpha = 0.6f) } }
@@ -382,13 +400,25 @@ fun LyricsGlowLine(
                             val sung = if (sweepsWords) ActiveSoftFill * waveAmplitude else 0f
                             (resting + sung).coerceIn(0f, 1f)
                         },
-                        litAlpha = { waveAmplitude },
+                        // Resting lines used to have no plain copy at all: only the soft-lit
+                        // one, which on a light backdrop is ~1.1:1 and on a dark one ~2.5:1.
+                        // Every state now also draws its plain copy at its resting alpha, in
+                        // the theme ink - the soft copy underneath only tints the cover.
+                        // That plain copy is the whole contrast guarantee.
+                        litAlpha = { alpha },
                         // while the sweep is up its unsung words are faint, so the soft copy draws them back up to solid white; it eases off as the line lets go, or its translation snapped dim when the sweep ended
                         softBoost = {
-                            when {
-                                !sweepsWords -> 1f
-                                state == LyricsLineState.ACTIVE -> SweepSoftBoost
-                                else -> 1f + (SweepSoftBoost - 1f) * waveAmplitude
+                            // The boost lifts faint words to solid WHITE before soft-lighting
+                            // them. In the dark that is the point; in the light it would bleach
+                            // the dark ink back to an invisible white glow under the plain copy.
+                            if (!isDark) {
+                                1f
+                            } else {
+                                when {
+                                    !sweepsWords -> 1f
+                                    state == LyricsLineState.ACTIVE -> SweepSoftBoost
+                                    else -> 1f + (SweepSoftBoost - 1f) * waveAmplitude
+                                }
                             }
                         },
                         blur = { if (suppressEffects) null else blurEffectForRadius(blurRadius) },
@@ -449,7 +479,7 @@ fun LyricsGlowLine(
                 fontWeight = LyricsSungWeight,
                 baseColor = unsungColor,
 
-                highlightColor = Color.White,
+                highlightColor = pageInk,
                 // The reading is drawn below, in one place for both paths. It used to move into
                 // the karaoke block when the line went active (above any backing vocal, and at a
                 // dimmer colour) and back out when it ended, so it jumped every line change.
@@ -459,6 +489,7 @@ fun LyricsGlowLine(
                 ruby = ruby,
                 rubyPlacement = rubyPlacement,
                 rubyColor = readingColor,
+                rubyLitColor = textColor,
             )
         } else if (leadText.isNotEmpty()) {
             // Inactive lines carry their readings too, so the ruby doesn't pop in and out as the
@@ -1078,6 +1109,8 @@ internal fun KaraokeSweepText(
     ruby: List<dev.meowlabs.blossomtune.lyrics.RubyToken>? = null,
     rubyPlacement: RubyPlacement = RubyPlacement.BELOW,
     rubyColor: ColorProducer = DefaultRubyColor,
+    /** The readings' lit colour: the theme ink, so a sung reading stays readable in the light instead of going white. */
+    rubyLitColor: ColorProducer = LitRubyColor,
     motionStyle: dev.meowlabs.blossomtune.constants.LyricsMotionStyle =
         dev.meowlabs.blossomtune.constants.LyricsMotionStyle.MOTION,
     /**
@@ -1137,7 +1170,7 @@ internal fun KaraokeSweepText(
         textLength = text.length,
         placement = rubyPlacement,
         dimColor = rubyColor,
-        litColor = LitRubyColor,
+        litColor = rubyLitColor,
         headProvider = { head.offset.floatValue },
     )
 
@@ -1452,7 +1485,8 @@ private fun BackingVocalLine(
                 positionProvider = positionProvider,
                 waveAmplitudeProvider = waveAmplitudeProvider,
                 baseColor = { color().copy(alpha = ActiveUnsungAlpha) },
-                highlightColor = Color.White,
+                // the backing line's ink, like the lead's: its sung words were white on the light page too
+                highlightColor = color(),
                 fontSize = BackingVocalFontSize,
                 lineHeight = BackingVocalLineHeight,
                 highBloom = highBloom,

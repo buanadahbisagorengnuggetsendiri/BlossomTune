@@ -23,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
@@ -87,6 +86,8 @@ fun LyricsInterludeDots(
     /** told where the first dot's left edge and middle are inside the row (px), for the dots the card grows into */
     onDotsStart: ((Offset) -> Unit)? = null,
 ) {
+    // the dots are the theme ink like the lines: white dots on the light page were as invisible as the white lines
+    val dotInk = dev.meowlabs.blossomtune.ui.theme.BlossomInk.Primary
     // the row's own frame, so the first dot can say where it sits inside it
     val rowCoords = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
     val span = (endMs - startMs).coerceAtLeast(1L)
@@ -217,7 +218,7 @@ fun LyricsInterludeDots(
                         // read in draw so the per-frame fill never recomposes the row
                         .drawBehind {
                             val fill = fills[index].floatValue
-                            drawCircle(Color.White.copy(alpha = 0.75f + 0.25f * fill), size.minDimension / 2f)
+                            drawCircle(dotInk.copy(alpha = 0.75f + 0.25f * fill), size.minDimension / 2f)
                         }
                 )
                 if (index < DotCount - 1) Spacer(modifier = Modifier.size(DotGap))

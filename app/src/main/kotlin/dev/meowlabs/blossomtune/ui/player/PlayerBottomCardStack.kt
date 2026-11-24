@@ -73,6 +73,7 @@ import dev.meowlabs.blossomtune.viewmodels.LyricsScreenViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 /** The card's visible height. Its body carries on below the screen edge - see [BottomBleed]. */
@@ -608,7 +609,7 @@ private fun NextSongRow(
             Text(
                 text = stringResource(R.string.pc_next_song),
                 style = MaterialTheme.typography.labelSmall.copy(lineHeight = 11.sp),
-                color = PlayerInk.copy(alpha = 0.5f),
+                color = BlossomColors.Petal.copy(alpha = 0.7f),
             )
             Text(
                 text = if (nextTitle != null) {
@@ -619,7 +620,7 @@ private fun NextSongRow(
                 },
                 style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 15.sp),
                 fontWeight = FontWeight.SemiBold,
-                color = if (nextTitle != null) PlayerInk else PlayerInk.copy(alpha = 0.55f),
+                color = if (nextTitle != null) BlossomColors.Petal else BlossomColors.Petal.copy(alpha = 0.55f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 softWrap = false,
