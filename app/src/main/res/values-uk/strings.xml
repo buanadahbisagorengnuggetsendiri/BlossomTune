@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<!-- Upstream InnerTune strings -->
+<!-- Do not add new features here -->
+<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
+<!-- "InnerTune" is replaced with "blossomtune" -->
+<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
+<resources>
     <string name="home">Головна</string>
     <string name="songs">Музика</string>
     <string name="artists">Виконавці</string>
@@ -79,6 +84,7 @@
     <string name="view_album">Перейти до альбому</string>
     <string name="refetch">Оновити</string>
     <string name="share">Поділитися</string>
+    <string name="more_options">Більше параметрів</string>
     <string name="delete">Видалити</string>
     <string name="remove_from_history">Видалити з історії</string>
     <string name="remove_from_playlist">Видалити з плейлиста</string>
@@ -223,8 +229,11 @@
     <string name="small">Малий</string>
     <string name="big">Великий</string>
     <string name="content">Контент</string>
+    <string name="action_logout">Вийти</string>
+    <string name="action_login">Увійти</string>
     <string name="login">Логін</string>
     <string name="not_logged_in">Не авторизовано</string>
+    <string name="login_failed">Помилка входу</string>
     <string name="content_language">Мова контенту</string>
     <string name="content_country">Країна контенту</string>
     <string name="system_default">Використовувати налаштування системи</string>
@@ -265,10 +274,12 @@
     <string name="pause_listen_history">Призупинити історію прослуховування</string>
     <string name="clear_listen_history">Очистити історію прослуховування</string>
     <string name="clear_listen_history_confirm">Ви впевнені, що хочете очистити всю історію прослуховування?</string>
-    <string name="pause_search_history">Призупинити історію пошуку</string>
     <string name="search_history">Історія пошуку</string>
+    <string name="pause_search_history">Призупинити історію пошуку</string>
     <string name="clear_search_history">Очистити історію пошуку</string>
     <string name="clear_search_history_confirm">Ви впевнені, що хочете очистити всю історію пошуку?</string>
+    <string name="use_login_for_browse">Використовуйте логін для перегляду вмісту</string>
+    <string name="use_login_for_browse_desc">Це може вплинути на те, який вміст ви бачите, і, наприклад, показує лише платні альбоми, якщо ви ввійшли в обліковий запис Premium</string>
     <string name="disable_screenshot">Вимкнути знімок екрана</string>
     <string name="disable_screenshot_desc">Якщо ця опція увімкнена, знімки екрана та відображення програми в списку останніх відключаються.</string>
     <string name="enable_lrclib">Увімкнути провайдера текстів LrcLib</string>
@@ -286,15 +297,45 @@
     <string name="dismiss">Закрити</string>
     <string name="options">Налаштування</string>
     <string name="preview">Попередній перегляд</string>
-    <string name="login_failed">Помилка входу</string>
-    <string name="action_logout">Вийти</string>
     <string name="enable_discord_rpc">Увімкнути Rich Presenсe</string>
     <string name="about">Про програму</string>
     <string name="app_version">Версія застосунку</string>
     <string name="new_version_available">Доступна нова версія</string>
     <string name="translation_models">Моделі перекладу</string>
     <string name="clear_translation_models">Очистити моделі перекладу</string>
-    <string name="use_login_for_browse_desc">Це може вплинути на те, який вміст ви бачите, і, наприклад, показує лише платні альбоми, якщо ви ввійшли в обліковий запис Premium</string>
-    <string name="use_login_for_browse">Використовуйте логін для перегляду вмісту</string>
-    <string name="action_login">Увійти</string>
+    <!-- Player action -->
+    <!-- Queue Title -->
+    <!-- Notification name -->
+    <!-- Settings -->
+    <string name="theme_desc">Customize your app theme</string>
+    <string name="theme_colors">Theme &amp; Colors</string>
+    <string name="theme_mode">Theme Mode</string>
+    <string name="color_palette">Color Palette</string>
+    <string name="use_system_colors">Use system colors</string>
+    <string name="apple_music">Apple Music</string>
+    <string name="show_audio_quality_badge">Show audio quality badge</string>
+    <string name="network_ip_version">Network IP Version</string>
+    <string name="ip_version_auto">Automatic</string>
+    <string name="ip_version_ipv4">Forced IPv4</string>
+    <string name="ip_version_ipv6">Forced IPv6</string>
+    <string name="audio_quality_medium">Medium</string>
+    <string name="clear_downloaded_updates">Clear downloaded updates</string>
+    <string name="clear_downloaded_updates_desc">Remove downloaded APK files to free up space</string>
+    <string name="bluetooth_permission_required">Bluetooth permission is required to discover audio devices.</string>
+    <string name="streaming_to">Streaming to</string>
+    <string name="this_phone">This phone</string>
+    <string name="wired_headphones">Wired headphones</string>
+    <string name="hdmi">HDMI</string>
+    <string name="phone_speaker">Phone speaker</string>
+    <string name="audio_quality_title">Audio Quality</string>
+    <string name="battery_content_desc">Battery Level</string>
+    <string name="done">Done</string>
+    <string name="audio_devices">Audio devices</string>
+    <string name="bluetooth_headphones">Bluetooth headphones</string>
+    <string name="license">GNU General Public License v3.0</string>
+    <string name="standard_lyrics_blur">Standard lyrics blur</string>
+    <string name="listen_together_smart_resync">Smart Network Resync</string>
+    <string name="listen_together_smart_resync_desc">Automatically catch up with the host after a connection drop</string>
+    <string name="error_stream_unavailable_title">Couldn\'t play this track</string>
+    <string name="playback_error_channel_name">Playback errors</string>
 </resources>

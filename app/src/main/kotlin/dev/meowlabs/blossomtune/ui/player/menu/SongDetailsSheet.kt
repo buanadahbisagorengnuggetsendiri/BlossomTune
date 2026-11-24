@@ -64,6 +64,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 /** tapping the player's title opens this: the song, a few lines about it, its artists and album, then about song and stream info */
 @Composable
@@ -170,6 +171,7 @@ private fun ColumnScope.SheetColumn(content: @Composable ColumnScope.() -> Unit)
             .weight(1f, fill = false)
             // the full video mode's card is only as tall as the phone is wide, so the rows scroll there
             .verticalScroll(rememberScrollState())
+            .padding(top = sheetHandleRoom())
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 20.dp)

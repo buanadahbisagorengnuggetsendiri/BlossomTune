@@ -34,6 +34,7 @@ import dev.meowlabs.blossomtune.ui.component.PopupSheetState
 import dev.meowlabs.blossomtune.ui.component.SheetLabel
 import dev.meowlabs.blossomtune.ui.component.SheetOptionRow
 import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // picking a part adds it and closes the sheet, so the new dot is right there to drag
 internal fun PopupSheetState.showStageAddSheet(stage: State<StageSettings>, onAdd: (StageSource) -> Unit) {
@@ -56,7 +57,7 @@ private fun StageAddPicker(stage: State<StageSettings>, onPick: (StageSource) ->
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 12.dp + navBottom),
+            .padding(top = sheetHandleRoom(), bottom = 12.dp + navBottom),
     ) {
         SheetLabel(stringResource(R.string.stage_add_title), Modifier.padding(start = 4.dp, bottom = 4.dp))
         for (source in StageSource.entries) {

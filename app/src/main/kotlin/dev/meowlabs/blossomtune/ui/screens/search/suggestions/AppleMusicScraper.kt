@@ -14,6 +14,8 @@ object AppleMusicScraper {
 
     private val client by lazy {
         OkHttpClient.Builder()
+            .dispatcher(dev.meowlabs.blossomtune.utils.AppProxy.dispatcher)
+            .connectionPool(dev.meowlabs.blossomtune.utils.AppProxy.connectionPool)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .build()

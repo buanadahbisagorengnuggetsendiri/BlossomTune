@@ -22,9 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -44,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -68,6 +65,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import androidx.compose.ui.zIndex
+import dev.meowlabs.blossomtune.ui.component.LocalSheetHandleRoom
+import dev.meowlabs.blossomtune.ui.component.SheetHandleRoom
+import dev.meowlabs.blossomtune.ui.component.SheetHandleRow
+import dev.meowlabs.blossomtune.ui.component.rememberSheetGrabberBend
+import dev.meowlabs.blossomtune.ui.component.underSheetHandle
 
 /** Latar sheet — ikut mode lewat [BlossomSurface]; gelap = `#0B0B0C` seperti basis. */
 val MenuSurface: Color
@@ -90,13 +93,17 @@ private const val RecedeScale = 0.9f
 
 /**
  * ...and rises until this much of its top edge shows above the sheet in front. Larger than
- * PopupSheet's 24dp because this sheet's handle pill sits lower (12dp padding inside a 38dp row) -
- * this leaves the same ~8dp of strip above the front sheet's edge under the pill.
+ * PopupSheet's 24dp because this sheet's handle bar sits lower (6dp under the middle of a 38dp row) -
+ * this leaves the same ~8dp of strip above the front sheet's edge under the bar.
  */
 private val PeekHeight = 32.dp
 
 /** Space kept between the status bar and the highest a sheet (or its peek strip) can reach. */
 private val StatusBarGap = 6.dp
+
+// the handle's row at the sheet's top, and how far a pull goes before its bar turns into an arrow
+private val HandleRowHeight = 38.dp
+private val ArrowAfterPull = 8.dp
 
 // set where a sheet floats as a card in the middle instead of rising from the bottom edge (the full video mode, turned sideways)
 val LocalMenuSheetFloating = staticCompositionLocalOf { false }
@@ -351,6 +358,37 @@ fun MenuSheetSurface(
             ) { value, _ -> setOffset(value) }
         }
 
+        // true while a finger pulls the sheet down from where the pull began, so its bar folds into an arrow
+        var pulling by remember { mutableStateOf(false) }
+        var pullStartPx by remember { mutableFloatStateOf(0f) }
+        val arrowAfterPx = with(density) { ArrowAfterPull.toPx() }
+
+        fun startPull() {
+            if (pulling) return
+            pulling = true
+            pullStartPx = offsetPx.floatValue
+        }
+
+        // a sheet that can't be dismissed only rubber-bands, so its bar just stays a line
+        val bend = rememberSheetGrabberBend {
+            dismissEnabled && (closing || (pulling && offsetPx.floatValue > pullStartPx + arrowAfterPx))
+        }
+
+        // the sheet's colour, stepping up to the row gray as it recedes; the fade behind its bar matches it
+        val menuSurface = MenuSurface
+        val menuRowSurface = MenuRowSurface
+        val surfaceColor: () -> Color = remember(stack, entry, menuSurface, menuRowSurface) {
+            {
+                var recede = 0f
+                if (stack != null) {
+                    val entries = stack.entries
+                    val index = entries.indexOf(entry)
+                    if (index >= 0) recede = entries.depthAbove(index).coerceAtMost(1f)
+                }
+                lerp(menuSurface, menuRowSurface, recede)
+            }
+        }
+
         val animateTo: (Float, () -> Unit) -> Unit = { target, onEnd ->
             scope.launch {
                 animate(
@@ -395,6 +433,7 @@ fun MenuSheetSurface(
         )
 
         fun settle(velocity: Float) {
+            pulling = false
             val current = offsetPx.floatValue
             val target = when {
                 !dismissEnabled -> restingOffsetPx
@@ -430,6 +469,7 @@ fun MenuSheetSurface(
 
                     if (available.y > 0f && !dismissEnabled) return Offset.Zero
                     if (available.y > 0f) {
+                        startPull()
                         setOffset((offsetPx.floatValue + available.y).coerceAtMost(fullHeightPx))
                         return available
                     }
@@ -512,13 +552,7 @@ fun MenuSheetSurface(
                 .drawBehind {
                     // Steps up to the row gray as it recedes, so the strip peeking above the
                     // sheet in front reads as its own layer instead of melting into it.
-                    var recede = 0f
-                    if (stack != null) {
-                        val entries = stack.entries
-                        val index = entries.indexOf(entry)
-                        if (index >= 0) recede = entries.depthAbove(index).coerceAtMost(1f)
-                    }
-                    drawRect(lerp(sheetSurface, rowSurface, recede))
+                    drawRect(surfaceColor())
                 }
         ) {
             val dragHandle = Modifier.draggable(
@@ -533,29 +567,35 @@ fun MenuSheetSurface(
                     }
                 },
                 orientation = Orientation.Vertical,
+                onDragStarted = { startPull() },
                 onDragStopped = { velocity -> settle(velocity) },
             )
 
-            Box(
+            SheetHandleRow(
+                bend = remember(bend) { { bend.value } },
+                fade = surfaceColor,
+                // the bar sits low in its row, so the strip a covered sheet peeks above the one in front still shows it
+                barOffset = 6.dp,
                 modifier = Modifier
-                    .fillMaxWidth()
-
-                    .height(38.dp)
+                    // drawn after the content, so rows scrolled up under this row stay beneath the bar
+                    .zIndex(1f)
+                    .height(HandleRowHeight)
                     .then(dragHandle),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .padding(top = 12.dp)
-                        .width(64.dp)
-                        .height(4.dp)
-                        .clip(CircleShape)
-                        .background(handleInk.copy(alpha = 0.5f))
-                )
-            }
+            )
 
-            CompositionLocalProvider(LocalMenuSheetClose provides closeSheet) {
-                content(dragHandle)
+            val room = remember { SheetHandleRoom(HandleRowHeight) }
+            CompositionLocalProvider(
+                LocalMenuSheetClose provides closeSheet,
+                LocalSheetHandleRoom provides room,
+            ) {
+                Column(
+                    Modifier
+                        .underSheetHandle(room)
+                        .fillMaxWidth()
+                        .weight(1f, fill = false),
+                ) {
+                    content(dragHandle)
+                }
             }
         }
     }

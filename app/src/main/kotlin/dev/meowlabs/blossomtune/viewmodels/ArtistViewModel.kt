@@ -30,6 +30,8 @@ import dev.meowlabs.blossomtune.utils.dataStore
 import dev.meowlabs.blossomtune.utils.get
 import dev.meowlabs.blossomtune.utils.reportException
 import dev.meowlabs.blossomtune.ui.utils.resize
+import dev.meowlabs.blossomtune.extensions.filterExplicit
+import dev.meowlabs.blossomtune.utils.ArtistBannerLook
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -90,6 +92,10 @@ class ArtistViewModel @Inject constructor(
 
     // a song's canvas, only looked for when Apple has no motion for the banner
     private val _canvasMotion = MutableStateFlow<String?>(null)
+
+    // null until apple and the canvas search have both answered, so the page knows whether the banner stays the bare photo
+    private val _bannerLook = MutableStateFlow(ArtistPageCache.bannerLook(artistId))
+    val bannerLook: StateFlow<ArtistBannerLook?> = _bannerLook
 
     private val _subscribed = MutableStateFlow<Boolean?>(null)
     val subscribed: StateFlow<Boolean?> = _subscribed
@@ -170,7 +176,14 @@ class ArtistViewModel @Inject constructor(
                     ?: AppleMusicArtistBackgroundProvider.getArtistEditorial(name)
             }
             _apple.value = editorial
-            if (editorial?.motionSquareUrl == null && editorial?.motionVideoUrl == null) findCanvasMotion()
+            val appleMotion = editorial?.motionSquareUrl != null || editorial?.motionVideoUrl != null
+            if (!appleMotion) findCanvasMotion()
+            val look = ArtistBannerLook(
+                hasStill = editorial?.previewFrameUrl != null,
+                hasMotion = appleMotion || _canvasMotion.value != null,
+            )
+            ArtistPageCache.putBannerLook(artistId, look)
+            _bannerLook.value = look
         }
     }
 
@@ -265,7 +278,8 @@ class ArtistViewModel @Inject constructor(
 
     private suspend fun findCanvasMotion() {
         if (!context.dataStore.get(ShowArtistVideoKey, true)) return
-        val page = _page.filterNotNull().first()
+        // a page that couldn't load (a local artist, no connection) has no songs to look through, and waiting on it would leave the banner unsettled forever
+        val page = combine(_page, _loadFailed, ::Pair).first { (page, failed) -> page != null || failed }.first ?: return
         val songs = page.sections
             .firstOrNull { (it.items.firstOrNull() as? SongItem)?.album != null }
             ?.items?.filterIsInstance<SongItem>()

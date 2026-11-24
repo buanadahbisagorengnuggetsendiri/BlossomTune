@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<!-- Upstream InnerTune strings -->
+<!-- Do not add new features here -->
+<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
+<!-- "InnerTune" is replaced with "blossomtune" -->
+<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
+<resources>
     <string name="home">Главная</string>
     <string name="songs">Композиции</string>
     <string name="artists">Исполнители</string>
@@ -79,6 +84,7 @@
     <string name="view_album">Перейти к альбому</string>
     <string name="refetch">Обновить</string>
     <string name="share">Поделиться</string>
+    <string name="more_options">Больше настроек</string>
     <string name="delete">Удалить</string>
     <string name="remove_from_history">Удалить из истории</string>
     <string name="remove_from_playlist">Удалить из плейлиста</string>
@@ -223,8 +229,11 @@
     <string name="small">Маленький</string>
     <string name="big">Большой</string>
     <string name="content">Контент</string>
+    <string name="action_logout">Выйти</string>
+    <string name="action_login">Войти</string>
     <string name="login">Логин</string>
     <string name="not_logged_in">Не авторизовано</string>
+    <string name="login_failed">Ошибка входа</string>
     <string name="content_language">Язык контента</string>
     <string name="content_country">Страна контента</string>
     <string name="system_default">По умолчанию системы</string>
@@ -269,6 +278,8 @@
     <string name="pause_search_history">Приостановить историю поиска</string>
     <string name="clear_search_history">Очистить историю поиска</string>
     <string name="clear_search_history_confirm">Вы уверены, что хотите очистить всю историю поиска?</string>
+    <string name="use_login_for_browse">Авторизуйтесь для просмотра контента</string>
+    <string name="use_login_for_browse_desc">Это влияет на отображение контента и, в частности, открывает доступ к премиум-альбомам при входе с премиум-учётной записью</string>
     <string name="disable_screenshot">Отключить снимок экрана</string>
     <string name="disable_screenshot_desc">При включении этой опции скриншоты и отображение приложения в списке последних отключаются.</string>
     <string name="enable_lrclib">Включить провайдера текстов LrcLib</string>
@@ -286,15 +297,45 @@
     <string name="dismiss">Закрыть</string>
     <string name="options">Настройки</string>
     <string name="preview">Предпросмотр</string>
-    <string name="login_failed">Ошибка входа</string>
-    <string name="action_logout">Выйти</string>
     <string name="enable_discord_rpc">Включить Rich Presence</string>
     <string name="about">О приложении</string>
     <string name="app_version">Версия приложения</string>
     <string name="new_version_available">Доступна новая версия</string>
     <string name="translation_models">Модели перевода</string>
     <string name="clear_translation_models">Очистить модели перевода</string>
-    <string name="use_login_for_browse">Авторизуйтесь для просмотра контента</string>
-    <string name="use_login_for_browse_desc">Это влияет на отображение контента и, в частности, открывает доступ к премиум-альбомам при входе с премиум-учётной записью</string>
-    <string name="action_login">Войти</string>
+    <!-- Player action -->
+    <!-- Queue Title -->
+    <!-- Notification name -->
+    <!-- Settings -->
+    <string name="theme_desc">Customize your app theme</string>
+    <string name="theme_colors">Theme &amp; Colors</string>
+    <string name="theme_mode">Theme Mode</string>
+    <string name="color_palette">Color Palette</string>
+    <string name="use_system_colors">Use system colors</string>
+    <string name="apple_music">Apple Music</string>
+    <string name="show_audio_quality_badge">Show audio quality badge</string>
+    <string name="network_ip_version">Network IP Version</string>
+    <string name="ip_version_auto">Automatic</string>
+    <string name="ip_version_ipv4">Forced IPv4</string>
+    <string name="ip_version_ipv6">Forced IPv6</string>
+    <string name="audio_quality_medium">Medium</string>
+    <string name="clear_downloaded_updates">Clear downloaded updates</string>
+    <string name="clear_downloaded_updates_desc">Remove downloaded APK files to free up space</string>
+    <string name="bluetooth_permission_required">Bluetooth permission is required to discover audio devices.</string>
+    <string name="streaming_to">Streaming to</string>
+    <string name="this_phone">This phone</string>
+    <string name="wired_headphones">Wired headphones</string>
+    <string name="hdmi">HDMI</string>
+    <string name="phone_speaker">Phone speaker</string>
+    <string name="audio_quality_title">Audio Quality</string>
+    <string name="battery_content_desc">Battery Level</string>
+    <string name="done">Done</string>
+    <string name="audio_devices">Audio devices</string>
+    <string name="bluetooth_headphones">Bluetooth headphones</string>
+    <string name="license">GNU General Public License v3.0</string>
+    <string name="standard_lyrics_blur">Standard lyrics blur</string>
+    <string name="listen_together_smart_resync">Smart Network Resync</string>
+    <string name="listen_together_smart_resync_desc">Automatically catch up with the host after a connection drop</string>
+    <string name="error_stream_unavailable_title">Couldn\'t play this track</string>
+    <string name="playback_error_channel_name">Playback errors</string>
 </resources>

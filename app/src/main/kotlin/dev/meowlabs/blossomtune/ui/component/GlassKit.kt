@@ -47,6 +47,17 @@ class GlassState {
      */
     var renderNode by mutableStateOf<Any?>(null)
     var rootPosition by mutableStateOf(Offset.Zero)
+
+    // drops the recorded screen display list when the window hides so gpu textures can be reclaimed
+    fun discard() {
+        val node = renderNode ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) glassNodeDiscard(node)
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.Q)
+private fun glassNodeDiscard(node: Any) {
+    (node as RenderNode).discardDisplayList()
 }
 
 /*
@@ -551,10 +562,10 @@ fun ProgressiveGlassBackground(
         }
         return
     }
-    val smooth = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-        LocalBlurQuality.current == dev.meowlabs.blossomtune.constants.BlurQuality.HIGH
+    // low quality too: its stacked steps each drew and blurred the list again, three to five times per scroll frame
+    val smooth = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     if (smooth) {
-        // high quality: one pass whose radius grows row by row, faded in where the first step used to fade in
+        // one pass whose radius grows row by row, faded in where the first step used to fade in (low draws it in one band, see BandPlan)
         val fade = 1f / steps.coerceAtLeast(1)
         val mask = remember(direction, fade) {
             if (direction == BlurDirection.TopToBottom) {

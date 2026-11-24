@@ -14,6 +14,7 @@ import dev.meowlabs.blossomtune.constants.DiscRotatingAnimationKey
 import dev.meowlabs.blossomtune.constants.PlayVideoBackgroundKey
 import dev.meowlabs.blossomtune.constants.PlayerCoverStyle
 import dev.meowlabs.blossomtune.constants.YtVideoBackgroundLyricsSyncKey
+import dev.meowlabs.blossomtune.constants.PlayerCoverZoomKey
 
 val PlayerCoverStyle.isDisc: Boolean
     get() = when (this) {
@@ -74,6 +75,14 @@ sealed interface CoverOption {
         val key: Preferences.Key<String>,
         val placeholder: String,
     ) : CoverOption
+
+    data class Slider(
+        override val title: String,
+        override val description: String,
+        @param:DrawableRes override val icon: Int,
+        val key: Preferences.Key<Float>,
+        val default: Float,
+    ) : CoverOption
 }
 
 @Composable
@@ -129,13 +138,22 @@ private fun discOptions() = listOf(
     ),
 )
 
+@Composable
+private fun coverZoomOption() = CoverOption.Slider(
+    title = stringResource(R.string.ps_cover_zoom),
+    description = stringResource(R.string.ps_cover_zoom_desc),
+    icon = R.drawable.crop,
+    key = PlayerCoverZoomKey,
+    default = 1f,
+)
+
 @get:Composable
 val PlayerCoverStyle.options: List<CoverOption>
     get() = when (this) {
-        PlayerCoverStyle.SQUARED -> listOf(animatedCanvasOption())
+        PlayerCoverStyle.SQUARED -> listOf(coverZoomOption(), animatedCanvasOption())
         PlayerCoverStyle.EDGE_TO_EDGE -> {
             val ytVideo = ytVideoOption()
-            listOf(ytVideo, timestampMatchingOption(ytVideo), animatedCanvasOption())
+            listOf(coverZoomOption(), ytVideo, timestampMatchingOption(ytVideo), animatedCanvasOption())
         }
         else -> discOptions()
     }

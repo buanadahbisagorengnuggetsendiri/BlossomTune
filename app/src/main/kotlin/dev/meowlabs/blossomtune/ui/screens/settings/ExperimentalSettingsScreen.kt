@@ -39,6 +39,7 @@ import dev.meowlabs.blossomtune.ui.component.SettingsItem
 import dev.meowlabs.blossomtune.utils.dataStore
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.constants.SimulateForkKey
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,6 +68,7 @@ fun ExperimentalSettingsScreen(navController: NavController) {
     val crossmixTools = crossmixTestItems(isVisible = crossmixTestTools)
     val (sourceBanner, onSourceBannerChange) = rememberPreference(ShowStreamSourceToastKey, defaultValue = false)
     val (forcePlayback, onForcePlaybackChange) = rememberPreference(ForcePlaybackKey, defaultValue = false)
+    val (simulateFork, onSimulateForkChange) = rememberPreference(SimulateForkKey, defaultValue = false)
     val (streamBackend, onStreamBackendChange) = rememberEnumPreference(
         dev.meowlabs.blossomtune.constants.StreamBackendKey,
         defaultValue = dev.meowlabs.blossomtune.constants.StreamBackend.INNERTUBEX,
@@ -183,6 +185,19 @@ fun ExperimentalSettingsScreen(navController: NavController) {
                             onClick = { onForcePlaybackChange(!forcePlayback) },
                             trailingContent = {
                                 AppSwitch(checked = forcePlayback, onCheckedChange = onForcePlaybackChange)
+                            }
+                        )
+                    )
+                    add(
+                        SettingsItem(
+                            title = { Text(stringResource(R.string.experimental_simulate_fork_title)) },
+                            highlightKey = "Pretend to be a fork",
+                            descriptionText = stringResource(R.string.experimental_simulate_fork_desc),
+                            icon = painterResource(R.drawable.lock),
+                            iconShape = androidx.compose.foundation.shape.CircleShape,
+                            onClick = { onSimulateForkChange(!simulateFork) },
+                            trailingContent = {
+                                AppSwitch(checked = simulateFork, onCheckedChange = onSimulateForkChange)
                             }
                         )
                     )

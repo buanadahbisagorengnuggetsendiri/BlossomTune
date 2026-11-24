@@ -90,6 +90,7 @@ import dev.meowlabs.blossomtune.utils.rememberPreference
 import kotlinx.coroutines.flow.flowOf
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 /**
  * @param fromLyrics true when the menu was opened from the lyrics page. The lyrics tools are only
@@ -166,6 +167,7 @@ fun PlayerActionMenu(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
+                    .padding(top = sheetHandleRoom())
                     .navigationBarsPadding()
                     .padding(horizontal = 20.dp)
                     .padding(top = 16.dp, bottom = 24.dp)
@@ -289,7 +291,8 @@ fun PlayerActionMenu(
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 SheetActionCardRow {
-                    SheetDownloadCard(
+                    // a song imported from the phone is already a file here; downloading it only looked it up online by name
+                    if (currentMetadata?.id?.startsWith("LOCAL_") != true) SheetDownloadCard(
                         downloadState = download?.state,
                         onDownload = {
                             currentMetadata?.let { metadata ->

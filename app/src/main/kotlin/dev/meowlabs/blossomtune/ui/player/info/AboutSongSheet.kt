@@ -66,6 +66,7 @@ import dev.meowlabs.blossomtune.utils.makeTimeString
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 /** where the "about" text comes from; the chip beside the title swaps it */
 enum class AboutSource(val id: String, val label: String) {
@@ -97,6 +98,7 @@ fun AboutSongSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
+                    .padding(top = sheetHandleRoom())
                     .navigationBarsPadding(),
             ) {
                 // a tablet or a phone on its side keeps the column readable instead of stretching it

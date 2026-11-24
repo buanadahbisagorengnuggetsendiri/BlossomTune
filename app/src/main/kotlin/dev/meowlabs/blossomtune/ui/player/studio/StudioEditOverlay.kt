@@ -190,7 +190,14 @@ fun StudioEditOverlay(
  * beside it, and the content under it frosted and darkened toward the top.
  */
 @Composable
-private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
+internal fun StudioTopBar(
+    studio: PlayerStudioState,
+    glassState: GlassState,
+    // a module player's editor names its own: the open part's title, its own hint ("" for none), its own way back
+    titleOverride: String? = null,
+    subtitleOverride: String? = null,
+    onBack: () -> Unit = { studio.back() },
+) {
     val r = rememberResponsive()
     val statusTop = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
     val editBackground = stringResource(R.string.ps_studio_edit_background)
@@ -259,7 +266,7 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
                     .size(30.dp)
                     .clip(CircleShape)
                     .background(Color.Black.copy(alpha = 0.45f))
-                    .clickable(enabled = studio.stage >= StudioStage.EDIT) { studio.back() },
+                    .clickable(enabled = studio.stage >= StudioStage.EDIT) { onBack() },
             ) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back_ios),
@@ -271,7 +278,7 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
             Spacer(Modifier.width(14.dp))
             Column {
                 AnimatedContent(
-                    targetState = title,
+                    targetState = titleOverride ?: title,
                     transitionSpec = {
                         (slideInVertically(tween(420)) { it } + fadeIn(tween(300))) togetherWith
                             (slideOutVertically(tween(360)) { -it } + fadeOut(tween(220)))
@@ -281,13 +288,13 @@ private fun StudioTopBar(studio: PlayerStudioState, glassState: GlassState) {
                     Text(text, color = BlossomInk.Primary, style = inter(StudioType.Title))
                 }
                 // what the first page's tiles are for; it goes as a tile opens
-                val onTiles = studio.stage == StudioStage.EDIT
+                val onTiles = if (subtitleOverride != null) subtitleOverride.isNotEmpty() else studio.stage == StudioStage.EDIT
                 androidx.compose.animation.AnimatedVisibility(
                     visible = onTiles,
                     enter = fadeIn(tween(240)) + androidx.compose.animation.expandVertically(tween(300)),
                     exit = fadeOut(tween(160)) + androidx.compose.animation.shrinkVertically(tween(260)),
                 ) {
-                    Text(stringResource(R.string.ps_studio_hold_to_adjust), color = BlossomInk.Primary.copy(alpha = 0.7f), style = inter(StudioType.Subtitle, FontWeight.Medium))
+                    Text(subtitleOverride?.takeIf { it.isNotEmpty() } ?: stringResource(R.string.ps_studio_hold_to_adjust), color = BlossomInk.Primary.copy(alpha = 0.7f), style = inter(StudioType.Subtitle, FontWeight.Medium))
                 }
             }
         }
@@ -402,10 +409,19 @@ private fun CoverEditor(
                 }
             ),
     ) {
+        val landscape = w > h
+        val startInset = WindowInsets.navigationBars.asPaddingValues().calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
         // every other cover style, waiting beside the live cover; only the ones in view are drawn
         coverStyles.forEachIndexed { index, style ->
             key(style) {
-                val box = remember(style, maxW, maxH, statusTop, coverOffset) { coverArtBox(style, maxW, maxH, statusTop, coverOffset) }
+                val box = remember(style, maxW, maxH, statusTop, coverOffset, landscape, startInset) {
+                    if (landscape) {
+                        val r = dev.meowlabs.blossomtune.ui.player.flagship.landscapeCoverBounds(style, maxW, maxH, startInset)
+                        dev.meowlabs.blossomtune.ui.player.customize.CoverArtBox(r.left.dp, r.top.dp, r.width.dp, r.height.dp)
+                    } else {
+                        coverArtBox(style, maxW, maxH, statusTop, coverOffset)
+                    }
+                }
                 Box(
                     modifier = Modifier
                         .offset(box.x, box.y)
@@ -448,7 +464,14 @@ private fun CoverEditor(
                 ) {
                     if (index != studio.backdropCommitted) {
                         PlayerBackgroundPreview(style = style, thumbnailUrl = track.thumbnailUrl, width = maxW, height = maxH, animate = false, warp = false, modifier = Modifier.fillMaxSize())
-                        val box = remember(coverStyle, maxW, maxH, statusTop, coverOffset) { coverArtBox(coverStyle, maxW, maxH, statusTop, coverOffset) }
+                        val box = remember(coverStyle, maxW, maxH, statusTop, coverOffset, landscape, startInset) {
+                            if (landscape) {
+                                val r = dev.meowlabs.blossomtune.ui.player.flagship.landscapeCoverBounds(coverStyle, maxW, maxH, startInset)
+                                dev.meowlabs.blossomtune.ui.player.customize.CoverArtBox(r.left.dp, r.top.dp, r.width.dp, r.height.dp)
+                            } else {
+                                coverArtBox(coverStyle, maxW, maxH, statusTop, coverOffset)
+                            }
+                        }
                         Box(Modifier.offset(box.x, box.y).size(box.width, box.height)) {
                             CoverArt(coverStyle, track, false, queue.currentIndex)
                         }
@@ -519,11 +542,25 @@ private fun CoverEditor(
                 }
             }
         }
+        // in landscape put the style picker controls cleanly on the right beside the cover so nothing overlaps
         Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .padding(start = 26.dp, end = 26.dp, bottom = navBottom + 60.dp)
+                .align(if (landscape && !inBackdrop) Alignment.CenterEnd else Alignment.BottomStart)
+                .then(
+                    if (landscape && !inBackdrop) {
+                        Modifier
+                            .width(maxW * 0.46f)
+                            .padding(start = 12.dp, end = 28.dp)
+                    } else if (landscape) {
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 26.dp, end = 26.dp, bottom = navBottom + 44.dp)
+                    } else {
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 26.dp, end = 26.dp, bottom = navBottom + 60.dp)
+                    },
+                )
                 .graphicsLayer { translationY = (1f - studio.cover.value) * 320.dp.toPx() },
         ) {
             AnimatedContent(

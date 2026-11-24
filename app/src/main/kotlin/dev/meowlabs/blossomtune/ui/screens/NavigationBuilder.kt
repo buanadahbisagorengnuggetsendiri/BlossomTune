@@ -116,7 +116,7 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.util.UUID
 
-private val CoverRoutes = listOf("album/", "local_playlist/", "online_playlist/", "auto_playlist/")
+private val CoverRoutes = listOf("album/", "local_playlist/", "online_playlist/", "auto_playlist/", "module_store/")
 
 private fun String?.opensFromCover(): Boolean = this != null && CoverRoutes.any { startsWith(it) }
 
@@ -198,7 +198,11 @@ private fun NavGraphBuilder.composable(
     exitTransition = { motionExit { exitTransition?.invoke(this) } },
     popEnterTransition = { motionEnter { popEnterTransition?.invoke(this) } },
     popExitTransition = { motionExit { popExitTransition?.invoke(this) } },
-    content = content,
+    // a module's page can stand in for any page here, every route at once (ModuleTakeover)
+    content = { entry ->
+        val scope = this
+        dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleTakeover(route, entry) { scope.content(entry) }
+    },
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -432,6 +436,10 @@ fun NavGraphBuilder.navigationBuilder(
         dev.meowlabs.blossomtune.ui.screens.settings.integrations.discord.DiscordScreen(navController = navController)
     }
 
+    composable(dev.meowlabs.blossomtune.ui.screens.settings.integrations.backup.BackupRoute) {
+        dev.meowlabs.blossomtune.ui.screens.settings.integrations.backup.BackupScreen(navController = navController)
+    }
+
     composable(
         route = dev.meowlabs.blossomtune.ui.screens.settings.integrations.ScrobbleServiceRoute,
         arguments = listOf(navArgument("site") { type = NavType.StringType }),
@@ -552,8 +560,27 @@ fun NavGraphBuilder.navigationBuilder(
     composable(dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulesRoute) {
         dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulesScreen(navController = navController)
     }
-    composable(dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleBrowserRoute) {
+    // a module's card grows into its store page like a playlist's cover, and the store recedes behind it
+    coverSourceComposable(dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleBrowserRoute) {
         dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleBrowserScreen(navController = navController)
+    }
+    composable(
+        route = dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleStoreRoutePattern,
+        arguments = listOf(navArgument("post") { type = NavType.StringType }),
+        enterTransition = { fadeIn(tween(300)) },
+        popExitTransition = {
+            scaleOut(animationSpec = tween(260), targetScale = 0.82f, transformOrigin = TransformOrigin(0.5f, 0.22f)) + fadeOut(tween(180))
+        },
+    ) { entry ->
+        // the store page borrows the browser's list, so opening a module never waits on the feed again
+        val browser = remember(entry) { navController.getBackStackEntry(dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleBrowserRoute) }
+        CompositionLocalProvider(LocalNavAnimatedContentScope provides this) {
+            dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleStoreScreen(
+                navController = navController,
+                post = entry.arguments?.getString("post").orEmpty(),
+                viewModel = hiltViewModel(browser),
+            )
+        }
     }
 
     composable(

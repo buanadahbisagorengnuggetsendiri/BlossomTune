@@ -50,6 +50,8 @@ import dev.meowlabs.blossomtune.ui.screens.audiolab.LabSelect
 import dev.meowlabs.blossomtune.ui.screens.settings.integrations.spotify.SpotifyRoute
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.constants.LyricsSoftLightKey
+import dev.meowlabs.blossomtune.ui.player.SoftLightSupported
 
 const val NowPlayingSettingsRoute = "now_playing_settings"
 
@@ -109,6 +111,7 @@ private fun lyricsItems(): List<SettingsItem> {
     val (syncLyricsToVideo, onSyncLyricsToVideoChange) = rememberPreference(SyncLyricsToVideoKey, defaultValue = true)
     val (romanizeAsMain, onRomanizeAsMainChange) = rememberPreference(LyricsRomanizeAsMainKey, defaultValue = false)
     val (highBloom, onHighBloomChange) = rememberPreference(LyricsHighBloomKey, defaultValue = true)
+    val (softLight, onSoftLightChange) = rememberPreference(LyricsSoftLightKey, defaultValue = true)
     val (lyricsStyle) = rememberEnumPreference(LyricsMotionStyleKey, defaultValue = LyricsMotionStyle.MOTION)
     val (floatingLyrics, onFloatingLyricsChange) = rememberFloatingLyricsSwitch()
     return listOf(
@@ -147,6 +150,16 @@ private fun lyricsItems(): List<SettingsItem> {
             checked = highBloom,
             onCheckedChange = onHighBloomChange,
             visible = lyricsStyle.shaded,
+        ),
+        // the blend needs android 10, older phones never see it
+        switchItem(
+            key = "Tinted lyrics",
+            title = stringResource(R.string.appearance_lyrics_soft_light),
+            description = stringResource(R.string.appearance_lyrics_soft_light_desc),
+            icon = painterResource(R.drawable.palette),
+            checked = softLight,
+            onCheckedChange = onSoftLightChange,
+            visible = SoftLightSupported,
         ),
         switchItem(
             key = "Floating lyrics overlay bubble",

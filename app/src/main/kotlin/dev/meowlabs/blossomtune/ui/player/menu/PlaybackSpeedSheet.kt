@@ -54,6 +54,7 @@ import kotlin.math.abs
 import kotlin.math.log2
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 private val CardSurface: Color
     @Composable @ReadOnlyComposable get() = MenuRowSurface
@@ -115,6 +116,7 @@ fun PlaybackSpeedSheet(onDismiss: () -> Unit) {
                 .weight(1f, fill = false)
                 // the full video mode's card is only as tall as the phone is wide, so the sliders scroll there
                 .verticalScroll(rememberScrollState())
+                .padding(top = sheetHandleRoom())
                 .padding(horizontal = 24.dp)
                 .padding(top = 10.dp, bottom = 28.dp)
         ) {

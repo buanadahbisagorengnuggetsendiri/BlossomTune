@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,6 +31,7 @@ import dev.meowlabs.blossomtune.ui.component.PopupSheetHandleHeight
 import dev.meowlabs.blossomtune.ui.component.PopupSheetState
 import dev.meowlabs.blossomtune.ui.screens.update.openUrl
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.R
 
 // the band ends around her chest, above where her fade starts (56%), or the letters show through her
 private const val BandEndsOnCharacter = 0.53f
@@ -37,7 +39,7 @@ private const val BandEndsOnCharacter = 0.53f
 /** shows the support sheet, donate us! pushes the donate sheet on top of it */
 fun PopupSheetState.showSupportSheet() {
     val popup = this
-    show(fullBleed = true, buttonBar = { SupportButtons(popup) }) {
+    show(fullBleed = true, topFade = false, buttonBar = { SupportButtons(popup) }) {
         SupportSheetContent()
     }
 }
@@ -71,14 +73,14 @@ private fun SupportSheetContent() {
             DonateCharacter(width = characterWidth)
             Spacer(Modifier.height(14.dp))
             Text(
-                text = "Enjoying BlossomTune Music?",
+                text = stringResource(R.string.supplemental_support_enjoying),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = DonateSoftText,
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "Support BlossomTune’s development!",
+                text = stringResource(R.string.supplemental_support_title),
                 fontSize = 32.sp,
                 lineHeight = 36.sp,
                 fontWeight = FontWeight.Bold,
@@ -88,9 +90,7 @@ private fun SupportSheetContent() {
             )
             Spacer(Modifier.height(14.dp))
             Text(
-                text = "thanks for trying it out! btw, BlossomTune Music will always be free, forever yours! <3\n\n" +
-                    "It would be very useful for us if you support the developer, no matter how small it is!! <3\n" +
-                    "giving a star to BlossomTune’s repo is already enough. and thanks again!",
+                text = stringResource(R.string.supplemental_support_body),
                 fontSize = 13.5.sp,
                 lineHeight = 18.sp,
                 fontWeight = FontWeight.Bold,
@@ -108,13 +108,18 @@ private fun SupportButtons(popup: PopupSheetState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DonatePillButton(
-                text = "Star the repo!",
+                text = stringResource(R.string.supplemental_support_donate),
+                onClick = { popup.showDonateSheet() },
+                modifier = Modifier.weight(1f),
+            )
+            DonatePillButton(
+                text = stringResource(R.string.supplemental_support_star),
                 onClick = { context.openUrl(GithubRepoUrl) },
                 modifier = Modifier.weight(1f),
             )
         }
         DonatePillButton(
-            text = "get these beggar outta here, No!",
+            text = stringResource(R.string.supplemental_support_dismiss),
             onClick = popup::dismiss,
             quiet = true,
         )

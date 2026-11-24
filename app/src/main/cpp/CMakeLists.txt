@@ -5,7 +5,11 @@ project(blossomtunepass LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(blossomtunepass SHARED usb_pass.cpp exclusive_pass.cpp)
+add_library(blossomtunepass SHARED usb_pass.cpp exclusive_pass.cpp store_guard.cpp)
+if(DEFINED STORE_GUARD_DIR)
+    target_include_directories(blossomtunepass PRIVATE "${STORE_GUARD_DIR}")
+    target_compile_definitions(blossomtunepass PRIVATE HAS_STORE_GUARD_DATA=1)
+endif()
 target_compile_options(blossomtunepass PRIVATE -O2 -Wall -fvisibility=hidden)
 # aaudio is opened at runtime, so only the log and the loader are linked; that keeps the library loadable on android 7
 target_link_libraries(blossomtunepass log dl)

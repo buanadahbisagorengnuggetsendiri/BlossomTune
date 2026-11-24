@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Upstream InnerTune strings -->
+<!-- Do not add new features here -->
+<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
+<!-- "InnerTune" is replaced with "blossomtune" -->
+<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
 <resources>
     <string name="home">ホーム</string>
     <string name="songs">曲</string>
@@ -14,11 +19,11 @@
     <string name="account">アカウント</string>
     <string name="quick_picks">おすすめ</string>
     <string name="quick_picks_empty">何曲か再生するとおすすめを生成します</string>
-    <string name="new_release_albums">新作アルバム</string>
     <string name="forgotten_favorites">忘れられているお気に入り</string>
     <string name="keep_listening">視聴を維持</string>
     <string name="your_youtube_playlists">あなたのYouTubeの再生リスト</string>
     <string name="similar_to">これに似ている</string>
+    <string name="new_release_albums">新作アルバム</string>
     <string name="today">今日</string>
     <string name="yesterday">昨日</string>
     <string name="this_week">今週</string>
@@ -76,6 +81,7 @@
     <string name="view_album">アルバムを表示</string>
     <string name="refetch">再取得</string>
     <string name="share">共有</string>
+    <string name="more_options">その他のオプション</string>
     <string name="delete">削除</string>
     <string name="remove_from_history">履歴から削除</string>
     <string name="remove_from_playlist">再生リストから削除</string>
@@ -196,8 +202,11 @@
     <string name="small">小</string>
     <string name="big">大</string>
     <string name="content">コンテンツ</string>
+    <string name="action_logout">ログアウト</string>
+    <string name="action_login">ログイン</string>
     <string name="login">ログイン</string>
     <string name="not_logged_in">ログインしていません</string>
+    <string name="login_failed">ログイン失敗</string>
     <string name="content_language">コンテンツの既定の言語</string>
     <string name="content_country">コンテンツの既定の国</string>
     <string name="system_default">システムに従う</string>
@@ -242,6 +251,8 @@
     <string name="pause_search_history">検索履歴の記録を一時停止</string>
     <string name="clear_search_history">検索履歴を消去</string>
     <string name="clear_search_history_confirm">すべての検索履歴を消去しますか？</string>
+    <string name="use_login_for_browse">表示されるコンテンツをアカウントと結び付ける</string>
+    <string name="use_login_for_browse_desc">例えば、Premiumのアカウントでログインした時に、Premium限定のアルバムが表示されるようになります</string>
     <string name="disable_screenshot">スクリーンショットを無効にする</string>
     <string name="disable_screenshot_desc">スクリーンショットと最近使用したアプリの表示を無効にします。</string>
     <string name="enable_lrclib">歌詞の提供元 LrcLib を使用</string>
@@ -259,15 +270,45 @@
     <string name="dismiss">非表示</string>
     <string name="options">オプション</string>
     <string name="preview">プレビュー</string>
-    <string name="login_failed">ログイン失敗</string>
-    <string name="action_logout">ログアウト</string>
     <string name="enable_discord_rpc">リッチプレゼンスを使用</string>
     <string name="about">アプリについて</string>
     <string name="app_version">アプリのバージョン</string>
     <string name="new_version_available">最新版あり</string>
     <string name="translation_models">翻訳モデル</string>
     <string name="clear_translation_models">翻訳モデルを消去</string>
-    <string name="use_login_for_browse_desc">例えば、Premiumのアカウントでログインした時に、Premium限定のアルバムが表示されるようになります</string>
-    <string name="use_login_for_browse">表示されるコンテンツをアカウントと結び付ける</string>
-    <string name="action_login">ログイン</string>
+    <!-- Player action -->
+    <!-- Queue Title -->
+    <!-- Notification name -->
+    <!-- Settings -->
+    <string name="theme_desc">Customize your app theme</string>
+    <string name="theme_colors">Theme &amp; Colors</string>
+    <string name="theme_mode">Theme Mode</string>
+    <string name="color_palette">Color Palette</string>
+    <string name="use_system_colors">Use system colors</string>
+    <string name="apple_music">Apple Music</string>
+    <string name="show_audio_quality_badge">Show audio quality badge</string>
+    <string name="network_ip_version">Network IP Version</string>
+    <string name="ip_version_auto">Automatic</string>
+    <string name="ip_version_ipv4">Forced IPv4</string>
+    <string name="ip_version_ipv6">Forced IPv6</string>
+    <string name="audio_quality_medium">Medium</string>
+    <string name="clear_downloaded_updates">Clear downloaded updates</string>
+    <string name="clear_downloaded_updates_desc">Remove downloaded APK files to free up space</string>
+    <string name="bluetooth_permission_required">Bluetooth permission is required to discover audio devices.</string>
+    <string name="streaming_to">Streaming to</string>
+    <string name="this_phone">This phone</string>
+    <string name="wired_headphones">Wired headphones</string>
+    <string name="hdmi">HDMI</string>
+    <string name="phone_speaker">Phone speaker</string>
+    <string name="audio_quality_title">Audio Quality</string>
+    <string name="battery_content_desc">Battery Level</string>
+    <string name="done">Done</string>
+    <string name="audio_devices">Audio devices</string>
+    <string name="bluetooth_headphones">Bluetooth headphones</string>
+    <string name="license">GNU General Public License v3.0</string>
+    <string name="standard_lyrics_blur">Standard lyrics blur</string>
+    <string name="listen_together_smart_resync">Smart Network Resync</string>
+    <string name="listen_together_smart_resync_desc">Automatically catch up with the host after a connection drop</string>
+    <string name="error_stream_unavailable_title">Couldn\'t play this track</string>
+    <string name="playback_error_channel_name">Playback errors</string>
 </resources>

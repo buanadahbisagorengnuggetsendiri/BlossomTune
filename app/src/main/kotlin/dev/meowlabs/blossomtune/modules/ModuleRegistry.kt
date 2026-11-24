@@ -43,6 +43,9 @@ import dev.meowlabs.blossomtune.modules.web.WebModule
 import dev.meowlabs.blossomtune.modules.web.WebModuleManifest
 import dev.meowlabs.blossomtune.utils.dataStore
 import dev.meowlabs.blossomtune.utils.get
+import dev.meowlabs.blossomtune.modules.skin.LookValues
+import dev.meowlabs.blossomtune.modules.web.FieldRange
+import dev.meowlabs.blossomtune.modules.web.FieldRanges
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dalvik.system.PathClassLoader
 import kotlinx.coroutines.CoroutineScope
@@ -91,6 +94,8 @@ data class ModuleEntry(
     val values: Map<String, String> = emptyMap(),
     /** when it was added, null for built-in ones and ones added before blossomtune kept the date */
     val addedAt: Long? = null,
+    /** when this copy went in: every update moves it, unlike [addedAt], so the store can tell a newer zip from this one */
+    val installedAt: Long? = null,
     /** the github project or link it can update from, null for one added from a file */
     val source: ModuleSource? = null,
     /** a newer copy waiting at [source] */
@@ -99,6 +104,8 @@ data class ModuleEntry(
     val checkedAt: Long? = null,
     /** the name of a look above this one that takes some of what it brings, null when nothing of it is covered */
     val coveredBy: String? = null,
+    /** the settings drawn as sliders, with their ends */
+    val ranges: Map<String, FieldRange> = emptyMap(),
 ) {
     val id: String get() = module.info.id
 
@@ -124,6 +131,8 @@ class ModuleRegistry @Inject constructor(
 
     private val client by lazy {
         OkHttpClient.Builder()
+            .dispatcher(dev.meowlabs.blossomtune.utils.AppProxy.dispatcher)
+            .connectionPool(dev.meowlabs.blossomtune.utils.AppProxy.connectionPool)
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .build()
@@ -141,6 +150,9 @@ class ModuleRegistry @Inject constructor(
     val entries: StateFlow<List<ModuleEntry>> = _entries.asStateFlow()
 
     init {
+        // the module player picked last time, kept here beside the switches
+        ActiveSkin.restorePick(prefs.getString(PlayerPickKey, null).orEmpty())
+        ActiveSkin.onPick = { key -> prefs.edit { putString(PlayerPickKey, key) } }
         // lyrics modules have to be in the lyrics sources before the first song asks for lyrics
         scope.launch { refresh() }
     }
@@ -155,7 +167,8 @@ class ModuleRegistry @Inject constructor(
     fun setEnabled(id: String, on: Boolean) {
         val module = module(id)
         prefs.edit { putBoolean("enabled_$id", on) }
-        // a look turned on goes to the top of the looks, so what it brings shows over the others straight away
+        // a look turned on goes to the top of the looks, so what it brings shows over the others straight away, its first player included
+        if (on && module != null && (module as? SkinSource)?.skin?.players?.isNotEmpty() == true) ActiveSkin.pick("$id/")
         if (on && module != null && restyles(module)) raise(id) else refresh()
     }
 
@@ -223,23 +236,29 @@ class ModuleRegistry @Inject constructor(
                 fields = runCatching { (module as? ModuleFields)?.fields }.getOrNull().orEmpty(),
                 values = valuesFor(module),
                 addedAt = prefs.getLong("added_$id", 0L).takeIf { it > 0L },
+                // copies from before this was kept count from when they were first added
+                installedAt = prefs.getLong("installed_$id", 0L).takeIf { it > 0L } ?: prefs.getLong("added_$id", 0L).takeIf { it > 0L },
                 source = updates.source(id),
                 update = updates.update(id),
                 checkedAt = updates.checkedAt(id),
+                ranges = (module as? FieldRanges)?.ranges.orEmpty(),
             )
         }.sortedBy { entry -> order.indexOf(entry.id).let { if (it < 0) Int.MAX_VALUE else it } }
         // the looks that are on, highest first: where two bring the same setting, player, font or glass, the higher one wins
         val looks = list.filter { it.active && restyles(it.module) }
         _entries.value = list.map { entry -> coveredBy(entry, looks)?.let { entry.copy(coveredBy = it) } ?: entry }
-        val player = looks.firstOrNull { it.skin?.player != null }
         val glass = looks.firstOrNull { it.glass != null }
         ActiveSkin.publish(
             SkinParts(
-                player = player?.skin,
-                playerValues = player?.values.orEmpty(),
+                // every look's players can be picked, so they never cover each other
+                players = looks.mapNotNull { entry -> entry.skin?.takeIf { it.players.isNotEmpty() }?.let { LookValues(it, entry.values) } },
                 font = looks.firstOrNull { it.skin?.font?.wholeApp == true }?.skin,
                 glassSkin = glass?.skin,
                 glass = glass?.glass,
+                bar = looks.firstOrNull { it.skin?.bar != null }?.let { entry -> entry.skin?.let { LookValues(it, entry.values) } },
+                mini = looks.firstOrNull { it.skin?.mini != null }?.let { entry -> entry.skin?.let { LookValues(it, entry.values) } },
+                // a page can take one of blossomtune's over from any module that's on, not only a look
+                pages = list.filter { it.active }.mapNotNull { entry -> entry.skin?.takeIf { it.takeovers.isNotEmpty() }?.let { LookValues(it, entry.values) } },
             ),
             scope,
         )
@@ -255,12 +274,13 @@ class ModuleRegistry @Inject constructor(
 
     private val ModuleEntry.glass: SkinGlass? get() = (module as? SkinSource)?.glass
 
-    // what a look brings that another could also bring: its settings by name, and its player, font and glass
+    // what a look brings that another could also bring: its settings by name, and its font, glass, nav bar and mini player; players all stay pickable, so they don't count
     private fun partsOf(entry: ModuleEntry): Set<String> = buildSet {
         (entry.module as? LookModule)?.look?.keys?.let(::addAll)
-        if (entry.skin?.player != null) add("player")
         if (entry.skin?.font?.wholeApp == true) add("font")
         if (entry.glass != null) add("glass")
+        if (entry.skin?.bar != null) add("bar")
+        if (entry.skin?.mini != null) add("mini")
     }
 
     // the first look above [entry] that takes something [entry] also brings, for its page to say so
@@ -448,6 +468,7 @@ class ModuleRegistry @Inject constructor(
                 prefs.edit { putString(LocalModulesKey, JSONArray(saved + entry).toString()) }
             }
             if (!prefs.contains("added_$id")) prefs.edit { putLong("added_$id", System.currentTimeMillis()) }
+            prefs.edit { putLong("installed_$id", System.currentTimeMillis()) }
             module.attach(hostFor(module))
             handValues(module)
             loaded = modules.filter { it.first.info.id != id } + (module to origin)
@@ -470,6 +491,7 @@ class ModuleRegistry @Inject constructor(
             // the old copy's folder goes on the next start, its code may still be finishing a call
             (module(id) as? BridgedModule)?.close()
             if (!prefs.contains("added_$id")) prefs.edit { putLong("added_$id", System.currentTimeMillis()) }
+            prefs.edit { putLong("installed_$id", System.currentTimeMillis()) }
             fresh.attach(hostFor(fresh))
             handValues(fresh)
             loaded = modules.filter { it.first.info.id != id } + (fresh to ModuleOrigin.Code(ready.from))
@@ -528,6 +550,7 @@ class ModuleRegistry @Inject constructor(
                 }
                 remove("enabled_$id")
                 remove("added_$id")
+                remove("installed_$id")
                 module.choices.forEach { remove("pick_${id}_${it.id}") }
                 runCatching { (module as? ModuleFields)?.fields }.getOrNull().orEmpty().forEach { remove("field_${id}_${it.id}") }
             }
@@ -655,6 +678,7 @@ class ModuleRegistry @Inject constructor(
         private const val LocalModulesKey = "local_modules"
         private const val CodeModulesKey = "code_modules"
         private const val ModuleOrderKey = "module_order"
+        private const val PlayerPickKey = "player_pick"
         // a zip is only searched this far for its manifest, and a manifest bigger than this isn't one
         private const val MaxZipEntries = 200
         private const val MaxManifestBytes = 256 * 1024

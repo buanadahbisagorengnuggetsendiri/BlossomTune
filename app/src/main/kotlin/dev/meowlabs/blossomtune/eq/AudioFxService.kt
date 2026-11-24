@@ -7,12 +7,16 @@ import dev.meowlabs.blossomtune.eq.audio.SpatialParams
 import dev.meowlabs.blossomtune.eq.audio.VolumeCurve
 import dev.meowlabs.blossomtune.eq.stage.StageNative
 import dev.meowlabs.blossomtune.eq.stage.StageParams
+import dev.meowlabs.blossomtune.eq.audio.EightDParams
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /** the audio fx settings every player's effects read at the start of each buffer */
 @Singleton
 class AudioFxService @Inject constructor() {
+    @Volatile
+    var eightD: EightDParams = EightDParams()
+
     @Volatile
     var reverb: ReverbParams = ReverbParams()
 

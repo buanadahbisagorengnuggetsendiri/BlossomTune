@@ -68,7 +68,6 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.CompositingStrategy
 import dev.meowlabs.blossomtune.constants.ShowPlayerBottomCardKey
 import dev.meowlabs.blossomtune.ui.component.GlassState
-import dev.meowlabs.blossomtune.ui.player.ClassicCardLook
 import dev.meowlabs.blossomtune.ui.player.ControlsDrawShift
 import dev.meowlabs.blossomtune.ui.player.PlayerDeckHeight
 import dev.meowlabs.blossomtune.ui.player.PlayerDeckPreview
@@ -172,10 +171,8 @@ internal fun FlagshipPreview(
         if (flagship) FlagshipBackgroundStyleKey else PlayerBackgroundStyleKey,
         if (flagship) PlayerBackgroundStyle.AMBIENT else PlayerBackgroundStyle.COVER_GRADIENT,
     )
-    // the Turntable is built on the new flagship, so it shares the new bottom bar, as on the live player
-    val newBottomBar = flagship || turntable
     val barStyle by rememberEnumPreference(
-        if (newBottomBar) FlagshipBottomBarStyleKey else PlayerBottomBarStyleKey,
+        FlagshipBottomBarStyleKey,
         PlayerBottomBarStyle.STACK,
     )
     val (showBottomCard) = rememberPreference(ShowPlayerBottomCardKey, defaultValue = true)
@@ -226,28 +223,18 @@ internal fun FlagshipPreview(
                         onDrawBehind { drawRect(shade) }
                     },
             )
-        } else if (!flagship && !turntable) {
-            // the classic's band of the cover's colour behind the title, without the blur it has live
-            SeamBlur(
-                glassState = remember { GlassState() },
-                progressProvider = { 1f },
-                trackInfo = track,
-                maxHeight = maxHeight,
-                noBlur = true,
-            )
         }
 
         // what sits under the controls, by the live player's own sums, so the buttons land where they do there
         val belowControls = when {
-            showVolumeBar && newBottomBar -> flagshipBarFootprint()
-            showVolumeBar -> playerVolumeBarFootprint()
+            showVolumeBar -> flagshipBarFootprint()
             showDeck -> PlayerDeckHeight
             else -> navBottom + 8.dp
         }
         if (turntable) {
             // the Turntable's own pills and title row, standing above the card as in its frame
             TurntableControls(
-                isExpandMenuOpen = false,
+                isExpandMenuOpen = { false },
                 onToggleExpandMenu = {},
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -272,13 +259,13 @@ internal fun FlagshipPreview(
                 }
                 Spacer(Modifier.height(transportSpacer))
                 Box(modifier = Modifier.offset(y = -buttonsLift)) {
-                    if (flagship) FlagshipTransportRow(layout = transportLayout) else PlayerTransportRow()
+                    FlagshipTransportRow(layout = transportLayout)
                 }
             }
         }
 
         when {
-            showVolumeBar && newBottomBar -> FlagshipBottomBar(
+            showVolumeBar -> FlagshipBottomBar(
                 isActive = { false },
                 onAction = {},
                 preview = true,
@@ -287,18 +274,9 @@ internal fun FlagshipPreview(
                     .padding(bottom = flagshipBarFootprint() - FlagshipBarHeight)
                     .padding(horizontal = 26.dp),
             )
-            showVolumeBar -> PlayerVolumeBar(
-                isActive = { false },
-                onAction = {},
-                preview = true,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = playerVolumeBarFootprint() - PlayerVolumeBarHeight)
-                    .padding(horizontal = 26.dp),
-            )
             // the deck as it rests on the live player: the front card running off the bottom, the one behind peeking over it
             showDeck -> PlayerDeckPreview(
-                look = if (newBottomBar) FlagshipCardLook else ClassicCardLook,
+                look = FlagshipCardLook,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 26.dp),

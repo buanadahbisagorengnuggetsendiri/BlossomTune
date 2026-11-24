@@ -21,6 +21,7 @@ import dev.meowlabs.blossomtune.ui.component.SheetIcon
 import dev.meowlabs.blossomtune.ui.component.SheetLabel
 import dev.meowlabs.blossomtune.ui.component.SheetOptionRow
 import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // how a size reads: "720p", and 4k by the name people know it by
 @Composable
@@ -54,7 +55,7 @@ private fun VideoQualityPicker(selected: VideoQuality, onPick: (VideoQuality) ->
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 12.dp + navBottom),
+            .padding(top = sheetHandleRoom(), bottom = 12.dp + navBottom),
     ) {
         SheetLabel(stringResource(R.string.video_quality), Modifier.padding(start = 4.dp, bottom = 4.dp))
         for (quality in VideoQuality.entries) {

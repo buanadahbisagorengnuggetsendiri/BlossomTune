@@ -1,4 +1,4 @@
-// turns a manifest's player into a layout: backgrounds, blocks, loops, keyframes, states, entrances and settings that switch blocks on and off, every number kept in range
+// turns a manifest's players into layouts: backgrounds, blocks, loops, keyframes, states, entrances, sub-styles and settings that switch blocks on and off, every number kept in range
 
 package dev.meowlabs.blossomtune.modules.skin
 
@@ -15,6 +15,46 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 
 internal object SkinPlayerParser {
+
+    /** "player" and "players" together, the single one first; each with its sub-styles, and no two with the same id */
+    fun players(single: JsonElement?, list: JsonElement?, fallbackName: String, fromZip: Boolean): List<SkinPlayer> {
+        val raw = listOfNotNull(single as? JsonObject) + (list as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
+        return raw.take(MaxPlayers)
+            .mapIndexedNotNull { i, o -> withVariants(o, fallbackName, fromZip, defaultId = if (i == 0) "main" else "player$i") }
+            .distinctBy { it.id }
+    }
+
+    private fun withVariants(o: JsonObject, fallbackName: String, fromZip: Boolean, defaultId: String): SkinPlayer? {
+        val id = o.string("id")?.lowercase()?.takeIf { PlayerId.matches(it) } ?: defaultId
+        val base = player(o, fallbackName, fromZip)?.copy(id = id) ?: return null
+        val list = (o["variants"] as? JsonArray) ?: (o["substyles"] as? JsonArray)
+        val variants = list.orEmpty()
+            .mapNotNull { (it as? JsonObject)?.let { v -> variant(o, v, base, fallbackName, fromZip) } }
+            .distinctBy { it.id }
+            .take(MaxVariants)
+        return base.copy(variants = variants)
+    }
+
+    // a sub-style is the base player with its own fields laid over it; styles and keyframes merge by name so it only has to bring what it changes
+    private fun variant(base: JsonObject, v: JsonObject, parsed: SkinPlayer, fallbackName: String, fromZip: Boolean): SkinVariant? {
+        val id = v.string("id")?.lowercase()?.takeIf { PlayerId.matches(it) } ?: return null
+        val own = JsonObject(v - "id" - "name" - "values")
+        val merged = buildMap {
+            putAll(base - "variants" - "substyles")
+            putAll(own)
+            for (key in MergedKeys) {
+                val a = base[key] as? JsonObject
+                val b = own[key] as? JsonObject
+                if (a != null && b != null) put(key, JsonObject(a + b))
+            }
+        }
+        val player = player(JsonObject(merged), fallbackName, fromZip) ?: return null
+        val values = (v["values"] as? JsonObject).orEmpty().entries
+            .mapNotNull { (key, e) -> (e as? JsonPrimitive)?.contentOrNull?.let { key.take(60) to it.take(200) } }
+            .take(MaxVariantValues)
+            .toMap()
+        return SkinVariant(id, v.string("name")?.take(40) ?: id, player.copy(id = parsed.id, name = parsed.name, editor = parsed.editor), values)
+    }
 
     /** null when it has no block blossomtune knows; shaders only count from a zip, the same as a glass */
     fun player(o: JsonObject, fallbackName: String, fromZip: Boolean): SkinPlayer? {
@@ -43,8 +83,36 @@ internal object SkinPlayerParser {
             menuButton = menuButton(o["menuButton"]),
             header = reader.blocks(o["header"], depth = 1).take(MaxHeader),
             scroll = o.bool("scroll") ?: false,
+            editor = o.string("editor")?.lowercase()?.takeIf { PlayerId.matches(it) },
+            size = SkinSize.of(o),
+            edit = editParts(o["edit"]),
         )
     }
+
+    /** a look's mini player: blocks in a row over the pill, and no background of its own unless it names one, so blossomtune's glass shows */
+    fun mini(o: JsonObject, fallbackName: String, fromZip: Boolean): SkinPlayer? {
+        val parsed = player(o, fallbackName, fromZip) ?: return null
+        return parsed.copy(
+            id = "mini",
+            padding = (o.float("padding") ?: 0f).coerceIn(0f, 32f).dp,
+            background = if (o["background"] == null) SkinBackground.Tones else parsed.background,
+        )
+    }
+
+    // "edit": [ { "part": "cover", "title": "Cover", "choose": "shape", "settings": ["spin"], "hold": "coverSize" } ]
+    private fun editParts(element: JsonElement?): List<SkinEditPart> =
+        (element as? JsonArray).orEmpty().mapNotNull { item ->
+            val o = item as? JsonObject ?: return@mapNotNull null
+            val id = (o.string("part") ?: o.string("id"))?.lowercase()?.takeIf { PlayerId.matches(it) } ?: return@mapNotNull null
+            val settings = (o["settings"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf(String::isNotEmpty)?.take(60) }
+            SkinEditPart(
+                id = id,
+                title = o.string("title")?.take(30) ?: id.replaceFirstChar { it.uppercase() },
+                choose = o.string("choose")?.take(60),
+                settings = settings.distinct().take(MaxCustomise),
+                hold = o.string("hold")?.take(60),
+            )
+        }.distinctBy { it.id }.take(MaxEditParts)
 
     // "menuButton": "start", "hidden", false, or { "side": "start", "color": "cover", "fill": "#00000000" }
     private fun menuButton(element: JsonElement?): SkinMenuButton {
@@ -100,7 +168,44 @@ internal object SkinPlayerParser {
                 val fallback = (o["fallback"] as? JsonObject)?.takeIf { it.string("type")?.lowercase() != "shader" }?.let(::background) ?: Ambient
                 shader(o)?.let { SkinBackground.Shader(it, fallback) } ?: fallback
             }
+            // the song's video or animated cover across the whole screen, over the blurred cover unless it names another fallback
+            "livecover" -> {
+                val fallback = (o["fallback"] as? JsonObject)?.takeIf { it.string("type")?.lowercase() != "livecover" }?.let(::background)
+                SkinBackground.Live(coverMedia(o["media"]).ifEmpty { listOf(CoverMedia.Auto) }, fallback ?: BlurredCover)
+            }
             else -> Ambient
+        }
+
+        // "media": "video", or a list tried in order: video, animated, auto, and loops of the module's own
+        fun coverMedia(element: JsonElement?): List<CoverMedia> {
+            val names = when (element) {
+                is JsonArray -> element.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+                is JsonPrimitive -> listOfNotNull(element.contentOrNull)
+                else -> emptyList()
+            }
+            return names.mapNotNull { raw ->
+                val name = raw.trim()
+                when (name.lowercase()) {
+                    "animated", "canvas" -> CoverMedia.Animated
+                    "video", "youtube" -> CoverMedia.Video
+                    "auto", "true" -> CoverMedia.Auto
+                    else -> name.takeIf { LoopFile.containsMatchIn(it.substringBefore('?')) }?.let(CoverMedia::Loop)
+                }
+            }.distinct().take(MaxMedia)
+        }
+
+        // "16:9", "9:16" or a plain number, always width over height
+        private fun aspect(element: JsonElement?): Float? {
+            val raw = (element as? JsonPrimitive)?.contentOrNull?.trim() ?: return null
+            val sides = raw.split(':', '/')
+            val ratio = if (sides.size == 2) {
+                val w = sides[0].trim().toFloatOrNull()
+                val h = sides[1].trim().toFloatOrNull()
+                if (w != null && h != null && h > 0f) w / h else null
+            } else {
+                raw.toFloatOrNull()
+            }
+            return ratio?.takeIf { it.isFinite() && it > 0f }?.coerceIn(0.25f, 4f)
         }
 
         fun blocks(element: JsonElement?, depth: Int): List<SkinBlock> =
@@ -131,6 +236,7 @@ internal object SkinPlayerParser {
             val states = SkinAnimationParser.states(o["states"])
             val transition = SkinAnimationParser.transition(o["transition"]) ?: SkinAnimationParser.DefaultTransition.takeIf { states.isNotEmpty() }
             val triggers = SkinAnimationParser.triggers(o["on"], library)
+            val part = o.string("part")?.lowercase()?.takeIf { PlayerId.matches(it) }
             val opacity = (o.float("opacity") ?: 1f).coerceIn(0f, 1f)
             val x = (o.float("x") ?: 0f).coerceIn(-400f, 400f)
             val y = (o.float("y") ?: 0f).coerceIn(-400f, 400f)
@@ -139,12 +245,12 @@ internal object SkinPlayerParser {
             val blur = (o.float("blur") ?: 0f).coerceIn(0f, SkinAnimationParser.MaxBlur)
             val (originX, originY) = origin(o)
             val plain = motions.isEmpty() && timelines.isEmpty() && enter == null && condition == null && states.isEmpty() && triggers.isEmpty() &&
-                opacity == 1f && x == 0f && y == 0f && rotate == 0f && scale == 1f && blur == 0f
+                opacity == 1f && x == 0f && y == 0f && rotate == 0f && scale == 1f && blur == 0f && part == null
             if (plain) return inner
             return SkinBlock.Styled(
                 inner, motions, enter, condition, opacity, x.dp, y.dp, rotate,
                 scale = scale, blur = blur, originX = originX, originY = originY,
-                timelines = timelines, states = states, transition = transition, triggers = triggers,
+                timelines = timelines, states = states, transition = transition, triggers = triggers, part = part,
             )
         }
 
@@ -193,22 +299,32 @@ internal object SkinPlayerParser {
                 frame = o.string("frame"),
                 shadow = o.bool("shadow") ?: false,
                 spinSpeed = (o.float("spinSpeed") ?: 1f).coerceIn(0.1f, 4f),
+                width = o.float("width")?.coerceIn(16f, 600f)?.dp,
+                height = o.float("height")?.coerceIn(16f, 800f)?.dp,
+                aspect = aspect(o["aspect"]) ?: 1f,
+                fit = o.string("fit")?.lowercase() == "fit",
+                media = coverMedia(o["media"]),
             )
             "title" -> SkinBlock.Title(textOf(o, 24f, FontWeight.Bold, SkinColor.Ink))
             "artist" -> SkinBlock.Artist(textOf(o, 16f, FontWeight.Medium, SkinColor.InkSoft))
             "album" -> SkinBlock.Album(textOf(o, 14f, FontWeight.Medium, SkinColor.InkSoft))
             "text" -> o.string("text")?.take(200)?.let { SkinBlock.Label(it, textOf(o, 14f, FontWeight.Medium, SkinColor.InkSoft)) }
-            "image" -> o.string("image")?.let {
+            "image" -> o.string("image")?.let { raw ->
                 SkinBlock.Picture(
-                    image = it,
+                    image = raw,
                     width = o.float("width")?.coerceIn(8f, 600f)?.dp,
                     height = (o.float("height") ?: 120f).coerceIn(8f, 600f).dp,
                     corner = (o.float("corner") ?: 12f).coerceIn(0f, 80f).dp,
                     fit = o.string("fit")?.lowercase() == "fit",
                     tint = skinColor(o.string("tint")),
+                    source = pictureSource(raw),
+                    fallback = o.string("fallback"),
                 )
             }
             "box", "panel", "card" -> box(o, depth)
+            "bottombar", "deck" -> bottomBar(o)
+            "queue", "upnext" -> queueList(o)
+            "volume" -> volume(o)
             "path", "vector", "svg" -> vector(o)
             "progress" -> SkinBlock.Progress(
                 style = when (o.string("style")?.lowercase()) {
@@ -230,14 +346,16 @@ internal object SkinPlayerParser {
             "lyrics" -> {
                 // a flowing list is small words, the sung-through kind needs room for its big ones
                 val flow = o.string("style")?.lowercase() == "flow"
+                val custom = if (o.string("style")?.lowercase() == "custom") SkinLyricsParser.style(o, library, ::lyricShader) else null
                 SkinBlock.Lyrics(
-                    height = (o.float("height") ?: if (flow) 72f else 160f).coerceIn(if (flow) 16f else 60f, 600f).dp,
+                    height = (o.float("height") ?: if (flow) 72f else if (custom != null) 260f else 160f).coerceIn(if (flow) 16f else 60f, 800f).dp,
                     size = (o.float("size") ?: if (flow) 14f else 28f).coerceIn(if (flow) 8f else 14f, 60f).sp,
                     color = skinColor(o.string("color")) ?: SkinColor.Ink,
                     flow = flow,
                     active = skinColor(o.string("active")),
                     prefix = o.string("prefix")?.take(8).orEmpty(),
                     align = skinAlign(o.string("align")),
+                    custom = custom,
                 )
             }
             "space" -> SkinBlock.Space(size = (o.float("size") ?: 16f).coerceIn(0f, 300f).dp, grow = o.bool("grow") ?: false)
@@ -331,6 +449,75 @@ internal object SkinPlayerParser {
                 width = o.float("width")?.coerceIn(8f, 600f)?.dp,
                 height = o.float("height")?.coerceIn(8f, 800f)?.dp,
                 shadow = o.bool("shadow") ?: false,
+                target = target(o),
+            )
+        }
+
+        // { "type": "queue", "limit": 5, "covers": true, "tap": "play" }: upcoming songs right in the player
+        private fun queueList(o: JsonObject): SkinBlock = SkinBlock.QueueList(
+            limit = (o.float("limit")?.toInt() ?: 4).coerceIn(1, 20),
+            covers = o.bool("covers") ?: true,
+            coverSize = (o.float("coverSize") ?: 40f).coerceIn(24f, 72f).dp,
+            corner = (o.float("corner") ?: 10f).coerceIn(0f, 36f).dp,
+            gap = (o.float("gap") ?: 10f).coerceIn(0f, 32f).dp,
+            text = textOf(o, 14f, FontWeight.SemiBold, SkinColor.Ink),
+            artistColor = skinColor(o.string("artistColor")) ?: SkinColor.InkSoft,
+            times = o.bool("times") ?: false,
+            numbers = o.bool("numbers") ?: false,
+            tap = when (o.string("tap")?.lowercase()) {
+                "queue", "open" -> QueueTap.Queue
+                "none", "off", "false" -> QueueTap.None
+                else -> QueueTap.Play
+            },
+            height = o.float("height")?.coerceIn(60f, 600f)?.dp,
+            empty = o.string("empty")?.take(80),
+        )
+
+        // { "type": "volume", "style": "line", "color": "ink", "icons": true }
+        private fun volume(o: JsonObject): SkinBlock = SkinBlock.Volume(
+            style = when (o.string("style")?.lowercase()) {
+                "thick" -> ProgressStyle.Thick
+                "pill" -> ProgressStyle.Pill
+                else -> ProgressStyle.Line
+            },
+            color = skinColor(o.string("color")) ?: SkinColor.Ink,
+            track = skinColor(o.string("track")) ?: SkinColor.Chip,
+            icons = o.bool("icons") ?: true,
+        )
+
+        // an image block can point at {cover}, {prevCover} or {nextCover}..{next10Cover} instead of a static file
+        private fun pictureSource(raw: String): SkinPictureSource {
+            val clean = raw.trim()
+            if (clean.equals("{cover}", ignoreCase = true)) return SkinPictureSource.CurrentCover
+            if (clean.equals("{prevCover}", ignoreCase = true)) return SkinPictureSource.QueueCover(-1)
+            val next = NextCoverToken.matchEntire(clean)
+            if (next != null) {
+                val offset = next.groupValues[1].toIntOrNull() ?: 1
+                return SkinPictureSource.QueueCover(offset)
+            }
+            return SkinPictureSource.Asset(raw)
+        }
+
+        // { "type": "bottomBar", "style": "cards", "glass": true } or "pills", or blossomtune's own "volume"
+        private fun bottomBar(o: JsonObject): SkinBlock {
+            val kind = when (o.string("style")?.lowercase()) {
+                "pills", "pill", "buttons" -> BottomBarKind.Pills
+                "volume" -> BottomBarKind.Volume
+                else -> BottomBarKind.Cards
+            }
+            val glass = when (val g = o["glass"]) {
+                is JsonPrimitive -> g.booleanOrNull?.let { if (it) DefaultGlassBlur else null } ?: g.contentOrNull?.toFloatOrNull()
+                is JsonObject -> g.float("blur") ?: DefaultGlassBlur
+                else -> null
+            }?.coerceIn(0f, SkinAnimationParser.MaxBlur)
+            return SkinBlock.BottomBar(
+                kind = kind,
+                height = (o.float("height") ?: if (kind == BottomBarKind.Pills) 48f else 76f).coerceIn(36f, 160f).dp,
+                corner = (o.float("corner") ?: 22f).coerceIn(0f, 80f).dp,
+                fill = colors(o["colors"]) ?: listOfNotNull(skinColor(o.string("fill"))),
+                glass = glass,
+                color = skinColor(o.string("color")),
+                gap = (o.float("gap") ?: 10f).coerceIn(0f, 40f).dp,
             )
         }
 
@@ -370,6 +557,14 @@ internal object SkinPlayerParser {
             if (!fromZip) return null
             val file = o.string("shader")?.takeIf { name -> ShaderKinds.any { name.endsWith(it, ignoreCase = true) } } ?: return null
             return SkinShaderSource(file, shaderUniforms(o["uniforms"], PlayerUniforms))
+        }
+
+        // the lyrics' fill and effect, "shader" or a plain file name, with the lyrics' own uniforms kept for blossomtune
+        private fun lyricShader(element: JsonElement?): SkinShaderSource? {
+            if (!fromZip) return null
+            val o = (element as? JsonObject) ?: (element as? JsonPrimitive)?.contentOrNull?.let { JsonObject(mapOf("shader" to JsonPrimitive(it))) } ?: return null
+            val file = o.string("shader")?.takeIf { name -> ShaderKinds.any { name.endsWith(it, ignoreCase = true) } } ?: return null
+            return SkinShaderSource(file, shaderUniforms(o["uniforms"], LyricUniforms))
         }
     }
 
@@ -435,9 +630,16 @@ internal object SkinPlayerParser {
         "shuffle" -> ButtonKind.Shuffle
         "repeat" -> ButtonKind.Repeat
         "lyrics" -> ButtonKind.Lyrics
+        "queue" -> ButtonKind.Queue
+        "forward", "forward10", "seekforward" -> ButtonKind.Forward
+        "rewind", "back10", "replay10", "seekback" -> ButtonKind.Rewind
+        "othermenu", "more" -> ButtonKind.OtherMenu
+        "artist" -> ButtonKind.Artist
+        "album" -> ButtonKind.Album
         "menu" -> ButtonKind.Menu
         "customise", "customize" -> ButtonKind.Customise
         "close" -> ButtonKind.Close
+        "editor", "edit" -> ButtonKind.Editor
         else -> null
     }
 
@@ -450,7 +652,11 @@ internal object SkinPlayerParser {
     }
 
     private val Ambient = SkinBackground.Player(PlayerBackgroundStyle.AMBIENT)
+    private val BlurredCover = SkinBackground.Player(PlayerBackgroundStyle.APPLE_MUSIC)
     private val ShaderKinds = listOf(".agsl", ".sksl")
+    // the loops a cover can play: videos blossomtune streams itself, and pictures android animates
+    private val LoopFile = Regex("""\.(mp4|webm|m3u8|gif|webp)$""", RegexOption.IGNORE_CASE)
+    private const val MaxMedia = 4
     private const val MaxBlocks = 40
     private const val MaxDepth = 4
     private const val MaxLoops = 4
@@ -465,6 +671,20 @@ internal object SkinPlayerParser {
     private const val MaxStyles = 40
     private const val MaxMenu = 4
     private const val MaxHeader = 8
+    private const val MaxPlayers = 6
+    private const val MaxEditParts = 8
+    private const val MaxVariants = 8
+    private const val MaxVariantValues = 24
+    private val PlayerId = Regex("[a-z0-9_-]{1,40}")
+    // matches {nextCover} and {next1Cover}..{next10Cover}, with both braces escaped for android's regex engine
+    private val NextCoverToken = Regex("""\{next([1-9]|10)?cover\}""", RegexOption.IGNORE_CASE)
+    // a sub-style adds to these by name instead of replacing them whole
+    private val MergedKeys = listOf("styles", "keyframes")
     // what blossomtune hands every player shader itself
-    val PlayerUniforms = setOf("size", "time", "progress", "level", "bass", "mid", "treble", "playing", "density", "played", "remaining", "cover", "accent")
+    val PlayerUniforms = setOf(
+        "size", "time", "progress", "level", "bass", "mid", "treble", "playing", "density", "played", "remaining", "cover", "accent",
+        "line", "lineCount", "lineProgress", "wordProgress", "singing", "position", "duration",
+    )
+    // the lyrics' shaders get the player's and their own: how far a line is from the sung one, and the drawn words
+    val LyricUniforms = PlayerUniforms + setOf("lineOffset", "content")
 }

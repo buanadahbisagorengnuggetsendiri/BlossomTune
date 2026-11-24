@@ -67,6 +67,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 private const val SearchSettleMs = 400L
 
@@ -163,7 +164,7 @@ private fun VideoPickerContent(state: VideoPickState) {
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(top = 8.dp, bottom = 12.dp),
+            .padding(top = sheetHandleRoom() + 8.dp, bottom = 12.dp),
     ) {
         Box(
             contentAlignment = Alignment.Center,
