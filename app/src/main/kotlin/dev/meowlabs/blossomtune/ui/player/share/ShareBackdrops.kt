@@ -49,8 +49,6 @@ import dev.meowlabs.blossomtune.ui.component.createAgslShader
 import dev.meowlabs.blossomtune.ui.component.setAgslInputShader
 import dev.meowlabs.blossomtune.ui.component.setAgslUniform
 import dev.meowlabs.blossomtune.ui.player.flagship.downscaledLayer
-import dev.meowlabs.blossomtune.ui.utils.SoftBlurTransformation
-import dev.meowlabs.blossomtune.ui.utils.resize
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt

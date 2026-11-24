@@ -68,24 +68,7 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import kotlinx.coroutines.launch
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.ui.component.PopupSheetState
-import dev.meowlabs.blossomtune.ui.component.SheetPillButton
-import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
-import dev.meowlabs.blossomtune.ui.player.share.EditOutlines
-import dev.meowlabs.blossomtune.ui.player.share.ShareHeight
-import dev.meowlabs.blossomtune.ui.player.share.ShareMuted
-import dev.meowlabs.blossomtune.ui.player.share.ShareRegions
-import dev.meowlabs.blossomtune.ui.player.share.ShareTitle
-import dev.meowlabs.blossomtune.ui.player.share.ShareWidth
-import dev.meowlabs.blossomtune.ui.player.share.showWordEditor
-import dev.meowlabs.blossomtune.ui.player.share.song.export.ShareApp
-import dev.meowlabs.blossomtune.ui.player.share.song.export.takesSticker
-import dev.meowlabs.blossomtune.ui.screens.audiolab.LabCard
-import dev.meowlabs.blossomtune.ui.screens.audiolab.LabSlider
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // the picture, the background that moves under your fingers, and, for a video, the part of the song it plays

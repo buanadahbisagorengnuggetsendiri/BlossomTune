@@ -34,15 +34,6 @@ import dev.meowlabs.blossomtune.ui.component.PopupSheetState
 import dev.meowlabs.blossomtune.ui.component.SheetLabel
 import dev.meowlabs.blossomtune.ui.component.SheetOptionRow
 import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.eq.stage.StageNative
-import dev.meowlabs.blossomtune.eq.stage.StageSettings
-import dev.meowlabs.blossomtune.eq.stage.StageSource
-import dev.meowlabs.blossomtune.ui.component.PopupSheetHandle
-import dev.meowlabs.blossomtune.ui.component.PopupSheetState
-import dev.meowlabs.blossomtune.ui.component.SheetLabel
-import dev.meowlabs.blossomtune.ui.component.SheetOptionRow
-import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // picking a part adds it and closes the sheet, so the new dot is right there to drag

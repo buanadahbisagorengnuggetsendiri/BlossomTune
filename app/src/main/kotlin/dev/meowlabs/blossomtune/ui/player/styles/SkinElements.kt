@@ -45,20 +45,9 @@ import dev.meowlabs.blossomtune.playback.PlayerConnection
 import dev.meowlabs.blossomtune.ui.player.menu.openModuleTarget
 import dev.meowlabs.blossomtune.utils.makeTimeString
 import androidx.compose.ui.unit.dp
-import dev.meowlabs.blossomtune.LocalPlayerConnection
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.extensions.toggleRepeatMode
-import dev.meowlabs.blossomtune.modules.skin.ButtonKind
 import dev.meowlabs.blossomtune.modules.skin.ProgressStyle
-import dev.meowlabs.blossomtune.modules.skin.ShapeKind
-import dev.meowlabs.blossomtune.modules.skin.SkinBlock
-import dev.meowlabs.blossomtune.modules.skin.SkinTarget
-import dev.meowlabs.blossomtune.modules.skin.TimeKind
-import dev.meowlabs.blossomtune.playback.PlayerConnection
-import dev.meowlabs.blossomtune.ui.player.menu.openModuleTarget
 import dev.meowlabs.blossomtune.ui.player.rememberMusicVolume
 import dev.meowlabs.blossomtune.ui.screens.settings.modules.modulePageRoute
-import dev.meowlabs.blossomtune.utils.makeTimeString
 import androidx.media3.common.Player
 
 /** one control or custom action as a circle, with blossomtune's icon or the module's own picture */

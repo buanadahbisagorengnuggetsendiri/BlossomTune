@@ -82,44 +82,6 @@ import dev.meowlabs.blossomtune.ui.player.flagship.FlagshipBarHeight
 import dev.meowlabs.blossomtune.ui.player.flagship.flagshipBarFootprint
 import dev.meowlabs.blossomtune.ui.player.playerVolumeBarFootprint
 import dev.meowlabs.blossomtune.utils.rememberPreference
-import dev.meowlabs.blossomtune.LocalPlayerConnection
-import dev.meowlabs.blossomtune.constants.DefaultPlayerCoverStyle
-import dev.meowlabs.blossomtune.constants.PlayerBackgroundStyle
-import dev.meowlabs.blossomtune.constants.PlayerBackgroundStyleKey
-import dev.meowlabs.blossomtune.constants.PlayerBottomBarStyle
-import dev.meowlabs.blossomtune.constants.PlayerCoverStyle
-import dev.meowlabs.blossomtune.constants.PlayerCoverStyleKey
-import dev.meowlabs.blossomtune.constants.FlagshipBackgroundStyleKey
-import dev.meowlabs.blossomtune.constants.FlagshipBottomBarStyleKey
-import dev.meowlabs.blossomtune.constants.FlagshipTransportLayout
-import dev.meowlabs.blossomtune.constants.FlagshipTransportLayoutKey
-import dev.meowlabs.blossomtune.ui.player.flagship.AmbientBackdrop
-import dev.meowlabs.blossomtune.ui.player.flagship.FlagshipBottomBar
-import dev.meowlabs.blossomtune.ui.player.flagship.FlagshipTransportRow
-import dev.meowlabs.blossomtune.ui.player.flagship.FollowPicture
-import dev.meowlabs.blossomtune.ui.player.flagship.rememberAmbientColors
-import dev.meowlabs.blossomtune.ui.player.PlayerProgressSlider
-import dev.meowlabs.blossomtune.ui.player.FlagshipCardLook
-import dev.meowlabs.blossomtune.ui.player.SongInfoRow
-import dev.meowlabs.blossomtune.ui.player.customize.DiscCoverStack
-import dev.meowlabs.blossomtune.ui.player.customize.PlayerBackgroundPreview
-import dev.meowlabs.blossomtune.ui.player.customize.coverArtBox
-import dev.meowlabs.blossomtune.ui.player.customize.isDisc
-import dev.meowlabs.blossomtune.ui.player.models.TrackInfo
-import dev.meowlabs.blossomtune.ui.utils.resize
-import dev.meowlabs.blossomtune.utils.rememberEnumPreference
-import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
-import dev.meowlabs.blossomtune.constants.ShowPlayerBottomCardKey
-import dev.meowlabs.blossomtune.ui.player.ControlsDrawShift
-import dev.meowlabs.blossomtune.ui.player.PlayerDeckHeight
-import dev.meowlabs.blossomtune.ui.player.PlayerDeckPreview
-import dev.meowlabs.blossomtune.ui.player.SeekBarLift
-import dev.meowlabs.blossomtune.ui.player.TransportGapAboveRow
-import dev.meowlabs.blossomtune.ui.player.TurntableControls
-import dev.meowlabs.blossomtune.ui.player.TurntableControlsLift
-import dev.meowlabs.blossomtune.ui.player.flagship.FlagshipBarHeight
-import dev.meowlabs.blossomtune.ui.player.flagship.flagshipBarFootprint
-import dev.meowlabs.blossomtune.utils.rememberPreference
 
 /** swallows every touch, so a preview shows its content without playing it */
 internal fun Modifier.inert(): Modifier = pointerInput(Unit) {

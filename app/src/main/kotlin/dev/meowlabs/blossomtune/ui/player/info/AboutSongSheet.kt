@@ -66,18 +66,6 @@ import dev.meowlabs.blossomtune.utils.makeTimeString
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.constants.AboutSongSourceKey
-import dev.meowlabs.blossomtune.models.MediaMetadata
-import dev.meowlabs.blossomtune.ui.player.menu.LocalMenuSheetStack
-import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
-import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
-import dev.meowlabs.blossomtune.ui.player.menu.SongHeader
-import dev.meowlabs.blossomtune.ui.player.menu.rememberMenuSheetStack
-import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProviderSquircle
-import dev.meowlabs.blossomtune.utils.makeTimeString
-import dev.meowlabs.blossomtune.utils.rememberPreference
-import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 /** where the "about" text comes from; the chip beside the title swaps it */

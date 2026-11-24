@@ -54,7 +54,6 @@ import kotlin.math.abs
 import kotlin.math.log2
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
-import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 private val CardSurface: Color

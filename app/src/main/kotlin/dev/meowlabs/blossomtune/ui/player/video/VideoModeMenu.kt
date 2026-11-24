@@ -63,34 +63,6 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.resize
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
-import dev.meowlabs.blossomtune.LocalPlayerConnection
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.constants.VideoQuality
-import dev.meowlabs.blossomtune.constants.VideoModeWholeVideoKey
-import dev.meowlabs.blossomtune.constants.VideoQualityKey
-import dev.meowlabs.blossomtune.ui.component.AppSwitch
-import dev.meowlabs.blossomtune.utils.rememberPreference
-import dev.meowlabs.blossomtune.ui.component.SheetActionCard
-import dev.meowlabs.blossomtune.ui.component.SheetActionCardRow
-import dev.meowlabs.blossomtune.ui.component.SheetHeaderGap
-import dev.meowlabs.blossomtune.ui.player.PressScaleActionButton
-import dev.meowlabs.blossomtune.ui.player.menu.LocalMenuSheetClose
-import dev.meowlabs.blossomtune.ui.player.menu.LocalMenuSheetFloating
-import dev.meowlabs.blossomtune.ui.player.menu.LocalMenuSheetStack
-import dev.meowlabs.blossomtune.ui.player.menu.LyricsOffsetSheet
-import dev.meowlabs.blossomtune.ui.player.menu.LyricsProviderSheet
-import dev.meowlabs.blossomtune.ui.player.menu.LyricsTranslationSheet
-import dev.meowlabs.blossomtune.ui.player.menu.MenuRow
-import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
-import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
-import dev.meowlabs.blossomtune.ui.player.menu.PlaybackSpeedSheet
-import dev.meowlabs.blossomtune.ui.player.menu.SleepTimerSheet
-import dev.meowlabs.blossomtune.ui.player.menu.rememberMenuSheetStack
-import dev.meowlabs.blossomtune.ui.screens.settings.videoSizeName
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.ui.utils.resize
-import dev.meowlabs.blossomtune.utils.rememberEnumPreference
-import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // the chevron's menu in the full video mode: a card floating over the video, and every sheet it opens floats the same way

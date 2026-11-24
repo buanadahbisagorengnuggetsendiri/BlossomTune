@@ -24,9 +24,6 @@ import dev.meowlabs.blossomtune.ui.component.asAgslPaintShader
 import dev.meowlabs.blossomtune.ui.component.createAgslShader
 import dev.meowlabs.blossomtune.ui.component.setAgslColorUniform
 import dev.meowlabs.blossomtune.ui.component.setAgslUniform
-import dev.meowlabs.blossomtune.ui.component.asAgslPaintShader
-import dev.meowlabs.blossomtune.ui.component.createAgslShader
-import dev.meowlabs.blossomtune.ui.component.setAgslUniform
 import dev.meowlabs.blossomtune.ui.component.setAgslUniformArray
 import kotlinx.coroutines.isActive
 import kotlin.math.PI

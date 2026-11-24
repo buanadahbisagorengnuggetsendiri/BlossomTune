@@ -53,7 +53,6 @@ import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.OnboardingPage
 import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.PageBadge
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
-import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 /** Opens the editor filled in with the name and picture the profile shows now. */

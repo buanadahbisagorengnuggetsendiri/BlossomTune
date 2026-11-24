@@ -52,7 +52,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import dev.meowlabs.blossomtune.ui.component.BottomSheetState
-import dev.meowlabs.blossomtune.ui.component.BottomSheetState
 import dev.meowlabs.blossomtune.ui.component.drawBendingBar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

@@ -14,15 +14,7 @@ import dev.meowlabs.blossomtune.constants.DiscRotatingAnimationKey
 import dev.meowlabs.blossomtune.constants.PlayVideoBackgroundKey
 import dev.meowlabs.blossomtune.constants.PlayerCoverStyle
 import dev.meowlabs.blossomtune.constants.YtVideoBackgroundLyricsSyncKey
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.constants.CanvasThumbnailAnimationKey
-import dev.meowlabs.blossomtune.constants.DiscNameKey
-import dev.meowlabs.blossomtune.constants.DiscRealisticModeKey
-import dev.meowlabs.blossomtune.constants.DiscRotatingAnimationKey
-import dev.meowlabs.blossomtune.constants.PlayVideoBackgroundKey
-import dev.meowlabs.blossomtune.constants.PlayerCoverStyle
 import dev.meowlabs.blossomtune.constants.PlayerCoverZoomKey
-import dev.meowlabs.blossomtune.constants.YtVideoBackgroundLyricsSyncKey
 
 val PlayerCoverStyle.isDisc: Boolean
     get() = when (this) {

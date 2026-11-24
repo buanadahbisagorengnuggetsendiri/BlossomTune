@@ -12,11 +12,7 @@ import dev.meowlabs.blossomtune.modules.browser.FeedModule
 import dev.meowlabs.blossomtune.modules.browser.FeedResult
 import dev.meowlabs.blossomtune.modules.browser.ModuleFeed
 import dev.meowlabs.blossomtune.constants.SimulateForkKey
-import dev.meowlabs.blossomtune.modules.ModuleRegistry
 import dev.meowlabs.blossomtune.modules.browser.FeedInstall
-import dev.meowlabs.blossomtune.modules.browser.FeedModule
-import dev.meowlabs.blossomtune.modules.browser.FeedResult
-import dev.meowlabs.blossomtune.modules.browser.ModuleFeed
 import dev.meowlabs.blossomtune.modules.browser.PackItem
 import dev.meowlabs.blossomtune.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel

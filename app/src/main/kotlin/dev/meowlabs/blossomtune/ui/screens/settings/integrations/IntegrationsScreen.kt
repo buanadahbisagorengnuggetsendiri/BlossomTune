@@ -17,12 +17,7 @@ import dev.meowlabs.blossomtune.scrobble.ScrobbleSite
 import dev.meowlabs.blossomtune.ui.component.SubSettingsScaffold
 import dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeSyncRoute
 import dev.meowlabs.blossomtune.ui.screens.settings.integrations.discord.DiscordRoute
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.scrobble.ScrobbleSite
-import dev.meowlabs.blossomtune.ui.component.SubSettingsScaffold
-import dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeSyncRoute
 import dev.meowlabs.blossomtune.ui.screens.settings.integrations.backup.BackupRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.integrations.discord.DiscordRoute
 
 const val IntegrationsRoute = "integrations_settings"
 

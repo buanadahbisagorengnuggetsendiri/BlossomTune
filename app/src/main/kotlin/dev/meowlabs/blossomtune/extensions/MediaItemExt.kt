@@ -10,11 +10,7 @@ import dev.meowlabs.blossomtune.db.entities.Song
 import dev.meowlabs.blossomtune.models.MediaMetadata
 import dev.meowlabs.blossomtune.models.toMediaMetadata
 import dev.meowlabs.blossomtune.songedit.SongEdits
-import dev.meowlabs.blossomtune.db.entities.Song
 import dev.meowlabs.blossomtune.importer.LocalArtwork
-import dev.meowlabs.blossomtune.models.MediaMetadata
-import dev.meowlabs.blossomtune.models.toMediaMetadata
-import dev.meowlabs.blossomtune.songedit.SongEdits
 
 val MediaItem.metadata: MediaMetadata?
     get() = localConfiguration?.tag as? MediaMetadata

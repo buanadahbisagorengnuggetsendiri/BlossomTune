@@ -44,7 +44,6 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalDensity
 import dev.meowlabs.blossomtune.ui.component.backdropClick
-import dev.meowlabs.blossomtune.ui.component.backdropClick
 import dev.meowlabs.blossomtune.ui.component.SheetGrabber
 
 private val IMAGE_INSET = 20.dp

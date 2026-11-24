@@ -48,14 +48,7 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
-import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.link.DeviceKind
-import dev.meowlabs.blossomtune.link.phone.PairedDevice
-import dev.meowlabs.blossomtune.ui.component.DefaultDialog
-import dev.meowlabs.blossomtune.ui.component.PopupSheetHandle
-import dev.meowlabs.blossomtune.ui.component.PopupSheetState
-import dev.meowlabs.blossomtune.ui.component.TopToaster
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // one paired device up close: what it is, whether it's around, and the switches for what this phone does with it

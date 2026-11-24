@@ -67,25 +67,9 @@ import dev.meowlabs.blossomtune.ui.screens.settings.devspace.openDevUrl
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.viewmodels.ModulesViewModel
 import dev.meowlabs.blossomtune.LocalPlayerAwareWindowInsets
-import dev.meowlabs.blossomtune.LocalPlayerConnection
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.modules.ModuleEntry
-import dev.meowlabs.blossomtune.modules.skin.ModuleSkin
-import dev.meowlabs.blossomtune.modules.skin.PageBackground
-import dev.meowlabs.blossomtune.modules.skin.PageBlock
 import dev.meowlabs.blossomtune.modules.skin.SkinPage
-import dev.meowlabs.blossomtune.playback.queues.YouTubeQueue
-import dev.meowlabs.blossomtune.ui.component.GlassPillBackground
-import dev.meowlabs.blossomtune.ui.component.GlassState
-import dev.meowlabs.blossomtune.ui.component.SubSettingsScaffold
-import dev.meowlabs.blossomtune.ui.component.glassRoot
 import dev.meowlabs.blossomtune.ui.component.onChrome
 import dev.meowlabs.blossomtune.ui.player.styles.ScaledContent
-import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
-import dev.meowlabs.blossomtune.ui.screens.search.searchRoute
-import dev.meowlabs.blossomtune.ui.screens.settings.devspace.openDevUrl
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.viewmodels.ModulesViewModel
 import com.music.innertube.models.WatchEndpoint
 
 const val ModulePageRoutePattern = "module_page/{id}/{page}"

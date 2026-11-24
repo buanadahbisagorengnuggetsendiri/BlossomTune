@@ -32,10 +32,6 @@ import dev.meowlabs.blossomtune.ui.component.PopupSheetState
 import dev.meowlabs.blossomtune.ui.screens.update.openUrl
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.core.updater.GithubRepoUrl
-import dev.meowlabs.blossomtune.ui.component.PopupSheetHandleHeight
-import dev.meowlabs.blossomtune.ui.component.PopupSheetState
-import dev.meowlabs.blossomtune.ui.screens.update.openUrl
 
 // the band ends around her chest, above where her fade starts (56%), or the letters show through her
 private const val BandEndsOnCharacter = 0.53f

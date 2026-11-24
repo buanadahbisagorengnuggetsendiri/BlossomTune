@@ -64,28 +64,7 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
-import dev.meowlabs.blossomtune.constants.DiscLabelContent
-import dev.meowlabs.blossomtune.constants.DiscLabelContentKey
-import dev.meowlabs.blossomtune.constants.DiscNameKey
-import dev.meowlabs.blossomtune.constants.PlayerCoverStyle
-import dev.meowlabs.blossomtune.constants.PlayerEndTimestamp
-import dev.meowlabs.blossomtune.constants.PlayerEndTimestampKey
-import dev.meowlabs.blossomtune.ui.component.AppSwitch
-import dev.meowlabs.blossomtune.ui.component.ButtonStyle
-import dev.meowlabs.blossomtune.constants.FlagshipTransportLayout
-import dev.meowlabs.blossomtune.ui.player.flagship.TransportLayoutPreview
-import dev.meowlabs.blossomtune.ui.component.PlayerTransportButtons
-import dev.meowlabs.blossomtune.ui.component.SeekBarStyle
-import dev.meowlabs.blossomtune.ui.component.SeekBarTrack
-import dev.meowlabs.blossomtune.ui.component.TransportColors
-import dev.meowlabs.blossomtune.ui.player.customize.CoverOption
-import dev.meowlabs.blossomtune.ui.player.customize.options
 import dev.meowlabs.blossomtune.ui.player.menu.LineSlider
-import dev.meowlabs.blossomtune.ui.player.menu.LocalMenuSheetClose
-import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
-import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
-import dev.meowlabs.blossomtune.utils.rememberEnumPreference
-import dev.meowlabs.blossomtune.utils.rememberPreference
 
 /** the sheet the editor has open, if any */
 @Composable

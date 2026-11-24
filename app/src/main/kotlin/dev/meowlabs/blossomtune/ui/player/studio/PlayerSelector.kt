@@ -65,11 +65,7 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.PlayerStyle
 import dev.meowlabs.blossomtune.ui.player.styles.AlternatePlayerStyle
 import dev.meowlabs.blossomtune.ui.player.styles.StyleActions
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.constants.PlayerStyle
-import dev.meowlabs.blossomtune.ui.player.styles.AlternatePlayerStyle
 import dev.meowlabs.blossomtune.ui.player.styles.LocalModuleStyle
-import dev.meowlabs.blossomtune.ui.player.styles.StyleActions
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor

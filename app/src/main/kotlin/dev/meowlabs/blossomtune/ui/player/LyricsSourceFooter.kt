@@ -53,14 +53,7 @@ import dev.meowlabs.blossomtune.ui.utils.safeOpenUri
 import dev.meowlabs.blossomtune.viewmodels.LyricsMenuViewModel
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.PlayerInk
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.lyrics.EmbeddedLyrics
-import dev.meowlabs.blossomtune.lyrics.LyricsProviderRegistry
 import dev.meowlabs.blossomtune.lyrics.UnisonLyricsProvider
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.ui.utils.safeOpenUri
-import dev.meowlabs.blossomtune.viewmodels.LyricsMenuViewModel
-import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
 private val LabelColor: Color @Composable @androidx.compose.runtime.ReadOnlyComposable get() = PlayerInk.copy(alpha = 0.55f)
 private val ValueColor: Color @Composable @androidx.compose.runtime.ReadOnlyComposable get() = PlayerInk.copy(alpha = 0.38f)

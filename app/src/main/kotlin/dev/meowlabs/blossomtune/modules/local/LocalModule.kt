@@ -18,24 +18,8 @@ import dev.meowlabs.blossomtune.modules.skin.appliedLook
 import dev.meowlabs.blossomtune.modules.web.ManifestSettings
 import dev.meowlabs.blossomtune.modules.web.WebModuleManifest
 import dev.meowlabs.blossomtune.modules.web.resolveModuleArt
-import dev.meowlabs.blossomtune.module.AccountState
-import dev.meowlabs.blossomtune.module.LookModule
-import dev.meowlabs.blossomtune.module.ModuleArt
-import dev.meowlabs.blossomtune.module.ModuleField
-import dev.meowlabs.blossomtune.module.ModuleFields
-import dev.meowlabs.blossomtune.module.ModuleHost
-import dev.meowlabs.blossomtune.module.ModuleInfo
-import dev.meowlabs.blossomtune.module.NO_ACCOUNT_LABEL
-import dev.meowlabs.blossomtune.modules.skin.ModuleSkin
-import dev.meowlabs.blossomtune.modules.skin.SkinGlass
-import dev.meowlabs.blossomtune.modules.skin.SkinParser
-import dev.meowlabs.blossomtune.modules.skin.SkinSource
-import dev.meowlabs.blossomtune.modules.skin.appliedLook
 import dev.meowlabs.blossomtune.modules.web.FieldRange
 import dev.meowlabs.blossomtune.modules.web.FieldRanges
-import dev.meowlabs.blossomtune.modules.web.ManifestSettings
-import dev.meowlabs.blossomtune.modules.web.WebModuleManifest
-import dev.meowlabs.blossomtune.modules.web.resolveModuleArt
 import java.io.File
 
 internal class LocalModule(private val manifest: WebModuleManifest, files: File?) : LookModule, ModuleArt, ModuleFields, SkinSource, FieldRanges {

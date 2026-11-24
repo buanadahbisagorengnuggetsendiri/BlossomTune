@@ -44,15 +44,7 @@ import dev.meowlabs.blossomtune.ui.player.QueueScreen
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
 import dev.meowlabs.blossomtune.ui.theme.PlayerInk
-import dev.meowlabs.blossomtune.LocalPlayerConnection
-import dev.meowlabs.blossomtune.ui.player.LyricsHeaderArtSize
-import dev.meowlabs.blossomtune.ui.player.LyricsHeaderArtTopFromStatusBar
-import dev.meowlabs.blossomtune.ui.player.LyricsHeaderArtX
-import dev.meowlabs.blossomtune.ui.player.LyricsScreen
-import dev.meowlabs.blossomtune.ui.player.QueueScreen
 import dev.meowlabs.blossomtune.ui.player.takesSoftLight
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.ui.utils.stableStatusBarsPadding
 
 /**
  * The song's whole lyrics over a style, from its menu: the flagship's own lyrics page on the

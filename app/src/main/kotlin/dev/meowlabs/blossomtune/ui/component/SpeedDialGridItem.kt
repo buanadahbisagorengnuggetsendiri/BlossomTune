@@ -35,7 +35,6 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.YTItem
-import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.ThumbnailCornerRadius
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 

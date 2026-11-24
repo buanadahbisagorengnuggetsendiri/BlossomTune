@@ -69,26 +69,14 @@ import dev.meowlabs.blossomtune.viewmodels.BrowserFilter
 import dev.meowlabs.blossomtune.viewmodels.ModuleBrowserViewModel
 import dev.meowlabs.blossomtune.viewmodels.ModulesViewModel
 import dev.meowlabs.blossomtune.viewmodels.matching
-import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.ModuleStoreTermsKey
 import dev.meowlabs.blossomtune.constants.UsernameKey
-import dev.meowlabs.blossomtune.core.updater.DiscordUrl
 import dev.meowlabs.blossomtune.modules.ModuleEntry
-import dev.meowlabs.blossomtune.modules.ModuleRegistry.LinkCheck
 import dev.meowlabs.blossomtune.modules.browser.FeedInstall
-import dev.meowlabs.blossomtune.modules.browser.FeedModule
-import dev.meowlabs.blossomtune.modules.browser.FeedResult
 import dev.meowlabs.blossomtune.modules.browser.PackItem
 import dev.meowlabs.blossomtune.ui.component.GlassState
-import dev.meowlabs.blossomtune.ui.component.LocalZoomOutOverlayState
 import dev.meowlabs.blossomtune.ui.component.glassRoot
-import dev.meowlabs.blossomtune.ui.screens.settings.devspace.openDevUrl
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
 import dev.meowlabs.blossomtune.utils.rememberPreference
-import dev.meowlabs.blossomtune.viewmodels.ModuleBrowserViewModel
-import dev.meowlabs.blossomtune.viewmodels.ModulesViewModel
-import dev.meowlabs.blossomtune.viewmodels.matching
 import kotlinx.coroutines.launch
 
 const val ModuleBrowserRoute = "module_browser"

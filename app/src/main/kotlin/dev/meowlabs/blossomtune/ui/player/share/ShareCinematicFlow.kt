@@ -48,14 +48,12 @@ import kotlin.math.max
 import kotlin.math.min
 import androidx.compose.ui.unit.sp
 import dev.meowlabs.blossomtune.constants.LyricsMotionStyle
-import dev.meowlabs.blossomtune.lyrics.LyricsEntry
 import dev.meowlabs.blossomtune.ui.player.KaraokeHead
 import dev.meowlabs.blossomtune.ui.player.MotionBleed
 import dev.meowlabs.blossomtune.ui.player.TimedRange
 import dev.meowlabs.blossomtune.ui.player.advance
 import dev.meowlabs.blossomtune.ui.player.isRtlLine
 import dev.meowlabs.blossomtune.ui.player.karaokeHeadFor
-import dev.meowlabs.blossomtune.ui.player.layerBleed
 import dev.meowlabs.blossomtune.ui.player.rememberBloomModifier
 import dev.meowlabs.blossomtune.ui.player.rememberLegacyWaveModifier
 import dev.meowlabs.blossomtune.ui.player.rememberWordMotionModifier

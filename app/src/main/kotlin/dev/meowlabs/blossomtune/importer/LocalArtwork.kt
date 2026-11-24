@@ -10,7 +10,6 @@ import android.system.Os
 import androidx.core.net.toUri
 import dev.meowlabs.blossomtune.db.MusicDatabase
 import dev.meowlabs.blossomtune.BuildConfig
-import dev.meowlabs.blossomtune.db.MusicDatabase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first

@@ -42,22 +42,8 @@ import dev.meowlabs.blossomtune.ui.screens.library.indexSections
 import dev.meowlabs.blossomtune.ui.utils.backToMain
 import dev.meowlabs.blossomtune.viewmodels.ArtistAlbumsViewModel
 import kotlinx.coroutines.launch
-import dev.meowlabs.blossomtune.LocalPlayerAwareWindowInsets
-import dev.meowlabs.blossomtune.LocalPlayerConnection
-import dev.meowlabs.blossomtune.db.entities.Album
-import dev.meowlabs.blossomtune.ui.component.LocalMenuState
-import dev.meowlabs.blossomtune.ui.component.containerTransformSource
-import dev.meowlabs.blossomtune.ui.component.detail.PlaylistDetailScaffold
-import dev.meowlabs.blossomtune.ui.component.detail.PlaylistTrackRow
-import dev.meowlabs.blossomtune.ui.component.rememberRevealSeenState
-import dev.meowlabs.blossomtune.ui.component.revealOnAppear
-import dev.meowlabs.blossomtune.ui.menu.AlbumMenu
-import dev.meowlabs.blossomtune.ui.screens.library.LibraryIndexRail
 import dev.meowlabs.blossomtune.ui.screens.library.indexLandingUnderBar
-import dev.meowlabs.blossomtune.ui.screens.library.indexSections
 import dev.meowlabs.blossomtune.ui.screens.library.rememberIndexGlide
-import dev.meowlabs.blossomtune.ui.utils.backToMain
-import dev.meowlabs.blossomtune.viewmodels.ArtistAlbumsViewModel
 
 /** the artist's albums in your library: big squares two up, or an A-Z list with the rail */
 @OptIn(ExperimentalMaterial3Api::class)

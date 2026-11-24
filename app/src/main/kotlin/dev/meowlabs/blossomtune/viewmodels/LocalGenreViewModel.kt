@@ -15,9 +15,6 @@ import androidx.lifecycle.viewModelScope
 import dev.meowlabs.blossomtune.db.MusicDatabase
 import dev.meowlabs.blossomtune.db.entities.Song
 import dev.meowlabs.blossomtune.importer.GenreSeparator
-import dev.meowlabs.blossomtune.db.MusicDatabase
-import dev.meowlabs.blossomtune.db.entities.Song
-import dev.meowlabs.blossomtune.importer.GenreSeparator
 import dev.meowlabs.blossomtune.utils.ArtistGenres
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

@@ -55,17 +55,7 @@ import dev.meowlabs.blossomtune.ui.player.share.ShareStyle
 import dev.meowlabs.blossomtune.ui.player.share.ShareWidth
 import dev.meowlabs.blossomtune.ui.player.share.cinematicTimings
 import dev.meowlabs.blossomtune.ui.player.share.drawMusicClouds
-import dev.meowlabs.blossomtune.ui.component.DownscaledBlur
-import dev.meowlabs.blossomtune.ui.player.share.CinematicLayout
 import dev.meowlabs.blossomtune.ui.player.share.LiquidCoverBackdrop
-import dev.meowlabs.blossomtune.ui.player.share.LyricsShareSession
-import dev.meowlabs.blossomtune.ui.player.share.MusicCloudsRestPhase
-import dev.meowlabs.blossomtune.ui.player.share.ShareBackground
-import dev.meowlabs.blossomtune.ui.player.share.ShareHeight
-import dev.meowlabs.blossomtune.ui.player.share.ShareRegions
-import dev.meowlabs.blossomtune.ui.player.share.ShareStyle
-import dev.meowlabs.blossomtune.ui.player.share.ShareWidth
-import dev.meowlabs.blossomtune.ui.player.share.drawMusicClouds
 import kotlin.math.PI
 import kotlin.math.ceil
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus

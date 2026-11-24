@@ -59,11 +59,8 @@ import coil3.compose.AsyncImage
 import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.ui.utils.resize
-import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.LyricsMotionStyle
 import dev.meowlabs.blossomtune.ui.player.MotionBleed
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.ui.utils.resize
 import kotlin.math.sqrt
 
 internal val ShareWidth = 360.dp

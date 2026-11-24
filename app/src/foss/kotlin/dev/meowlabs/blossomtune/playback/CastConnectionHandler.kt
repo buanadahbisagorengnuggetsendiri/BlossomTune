@@ -15,17 +15,7 @@ import dev.meowlabs.blossomtune.cast.RemoteState
 import dev.meowlabs.blossomtune.ui.component.TopToaster
 import dev.meowlabs.blossomtune.ui.utils.resize
 import androidx.media3.common.Player
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.cast.CastDiscovery
 import dev.meowlabs.blossomtune.cast.CastMediaProxy
-import dev.meowlabs.blossomtune.cast.ChromecastRenderer
-import dev.meowlabs.blossomtune.cast.DlnaRenderer
-import dev.meowlabs.blossomtune.cast.FoundReceiver
-import dev.meowlabs.blossomtune.cast.RemoteMedia
-import dev.meowlabs.blossomtune.cast.RemoteRenderer
-import dev.meowlabs.blossomtune.cast.RemoteState
-import dev.meowlabs.blossomtune.ui.component.TopToaster
-import dev.meowlabs.blossomtune.ui.utils.resize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -41,7 +31,6 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import dev.meowlabs.blossomtune.models.MediaMetadata as AppMediaMetadata
 import java.io.File
-import dev.meowlabs.blossomtune.models.MediaMetadata as AppMediaMetadata
 
 /** casting without google play services: chromecasts over the cast protocol and dlna renderers over upnp (docs/notes/cast.md) */
 @Stable

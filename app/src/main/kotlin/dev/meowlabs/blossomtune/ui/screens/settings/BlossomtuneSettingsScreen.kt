@@ -9,7 +9,6 @@ import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.component.navigateToTab
 import dev.meowlabs.blossomtune.modules.browser.ModuleFeed
 import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleBrowserRoute
-import dev.meowlabs.blossomtune.ui.component.navigateToTab
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing

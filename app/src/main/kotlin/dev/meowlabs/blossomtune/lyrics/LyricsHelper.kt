@@ -14,15 +14,6 @@ import dev.meowlabs.blossomtune.utils.NetworkConnectivityObserver
 import dev.meowlabs.blossomtune.utils.dataStore
 import dev.meowlabs.blossomtune.utils.reportException
 import dev.meowlabs.blossomtune.constants.LyricsOrderOverrideKey
-import dev.meowlabs.blossomtune.constants.LyricsProviderOrderKey
-import dev.meowlabs.blossomtune.constants.PreferredLyricsProvider
-import dev.meowlabs.blossomtune.constants.PreferredLyricsProviderKey
-import dev.meowlabs.blossomtune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
-import dev.meowlabs.blossomtune.extensions.toEnum
-import dev.meowlabs.blossomtune.models.MediaMetadata
-import dev.meowlabs.blossomtune.utils.NetworkConnectivityObserver
-import dev.meowlabs.blossomtune.utils.dataStore
-import dev.meowlabs.blossomtune.utils.reportException
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

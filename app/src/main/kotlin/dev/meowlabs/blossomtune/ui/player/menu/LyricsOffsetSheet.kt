@@ -57,7 +57,6 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
-import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 /** The slider and the typed value both stop here: 10 seconds either way, shown in ms. */

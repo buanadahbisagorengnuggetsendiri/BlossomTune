@@ -45,14 +45,11 @@ import dev.meowlabs.blossomtune.ui.player.share.BlossomTuneMark
 import dev.meowlabs.blossomtune.ui.player.share.SweptText
 import dev.meowlabs.blossomtune.ui.player.share.timedPieces
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.lyrics.LyricsEntry
-import dev.meowlabs.blossomtune.lyrics.LyricsUtils
 import dev.meowlabs.blossomtune.ui.player.share.MochyMark
 import dev.meowlabs.blossomtune.ui.player.share.ShareKaraokeLineSpec
 import dev.meowlabs.blossomtune.ui.player.share.ShareKaraokeText
 import dev.meowlabs.blossomtune.ui.player.share.rememberShareKaraokeState
 import dev.meowlabs.blossomtune.ui.player.share.waitingInkOf
-import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 
 private val MusicCardWidth = 172.dp
 private val LyricsCardWidth = 296.dp

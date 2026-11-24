@@ -25,10 +25,6 @@ import dev.meowlabs.blossomtune.modules.skin.ActiveSkin
 import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleOptions
 import dev.meowlabs.blossomtune.viewmodels.ModulesViewModel
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.modules.skin.ActiveSkin
-import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModuleOptions
-import dev.meowlabs.blossomtune.viewmodels.ModulesViewModel
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 @Composable

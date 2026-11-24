@@ -39,24 +39,6 @@ import dev.meowlabs.blossomtune.ui.component.SettingsItem
 import dev.meowlabs.blossomtune.utils.dataStore
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.constants.CrossmixTestToolsKey
-import dev.meowlabs.blossomtune.constants.ForcePlaybackKey
-import dev.meowlabs.blossomtune.constants.ShowStreamSourceToastKey
-import dev.meowlabs.blossomtune.constants.ForceYtBackdropBlur1500Key
-import dev.meowlabs.blossomtune.constants.HapticFocus
-import dev.meowlabs.blossomtune.constants.HapticFocusKey
-import dev.meowlabs.blossomtune.constants.HapticSensitivity
-import dev.meowlabs.blossomtune.constants.MusicHapticsEnabledKey
-import dev.meowlabs.blossomtune.constants.MusicHapticsSensitivityKey
-import dev.meowlabs.blossomtune.constants.SetupCompletedKey
-import dev.meowlabs.blossomtune.ui.component.SettingsGroup
-import dev.meowlabs.blossomtune.ui.component.SettingsGroupStyle
-import dev.meowlabs.blossomtune.ui.component.SubSettingsScaffold
-import dev.meowlabs.blossomtune.ui.component.SettingsItem
-import dev.meowlabs.blossomtune.utils.dataStore
-import dev.meowlabs.blossomtune.utils.rememberEnumPreference
-import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.constants.SimulateForkKey
 import kotlinx.coroutines.launch
 

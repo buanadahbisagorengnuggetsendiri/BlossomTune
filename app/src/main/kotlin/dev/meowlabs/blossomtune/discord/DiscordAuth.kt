@@ -16,15 +16,7 @@ import dev.meowlabs.blossomtune.constants.DiscordProfileKey
 import dev.meowlabs.blossomtune.constants.DiscordRefreshTokenKey
 import dev.meowlabs.blossomtune.constants.DiscordTokenExpiresAtKey
 import dev.meowlabs.blossomtune.utils.dataStore
-import dev.meowlabs.blossomtune.BuildConfig
-import dev.meowlabs.blossomtune.constants.DiscordAccessTokenKey
-import dev.meowlabs.blossomtune.constants.DiscordLoginStateKey
-import dev.meowlabs.blossomtune.constants.DiscordLoginVerifierKey
-import dev.meowlabs.blossomtune.constants.DiscordProfileKey
-import dev.meowlabs.blossomtune.constants.DiscordRefreshTokenKey
-import dev.meowlabs.blossomtune.constants.DiscordTokenExpiresAtKey
 import dev.meowlabs.blossomtune.utils.Pkce
-import dev.meowlabs.blossomtune.utils.dataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

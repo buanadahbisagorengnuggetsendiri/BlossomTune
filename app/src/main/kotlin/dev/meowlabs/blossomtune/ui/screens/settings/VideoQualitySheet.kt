@@ -21,14 +21,6 @@ import dev.meowlabs.blossomtune.ui.component.SheetIcon
 import dev.meowlabs.blossomtune.ui.component.SheetLabel
 import dev.meowlabs.blossomtune.ui.component.SheetOptionRow
 import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
-import dev.meowlabs.blossomtune.R
-import dev.meowlabs.blossomtune.constants.VideoQuality
-import dev.meowlabs.blossomtune.ui.component.PopupSheetHandle
-import dev.meowlabs.blossomtune.ui.component.PopupSheetState
-import dev.meowlabs.blossomtune.ui.component.SheetIcon
-import dev.meowlabs.blossomtune.ui.component.SheetLabel
-import dev.meowlabs.blossomtune.ui.component.SheetOptionRow
-import dev.meowlabs.blossomtune.ui.utils.stableSystemBars
 import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // how a size reads: "720p", and 4k by the name people know it by

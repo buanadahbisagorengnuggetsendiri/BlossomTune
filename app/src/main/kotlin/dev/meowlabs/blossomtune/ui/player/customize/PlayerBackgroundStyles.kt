@@ -32,7 +32,6 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import dev.meowlabs.blossomtune.constants.PlayerBackgroundStyle
 import dev.meowlabs.blossomtune.ui.utils.resize
-import dev.meowlabs.blossomtune.constants.PlayerBackgroundStyle
 import dev.meowlabs.blossomtune.ui.player.flagship.downscaledLayer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
