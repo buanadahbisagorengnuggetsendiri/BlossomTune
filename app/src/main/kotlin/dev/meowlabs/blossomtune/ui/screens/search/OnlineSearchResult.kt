@@ -102,6 +102,8 @@ import dev.meowlabs.blossomtune.ui.menu.YouTubeAlbumMenu
 import dev.meowlabs.blossomtune.ui.menu.YouTubeArtistMenu
 import dev.meowlabs.blossomtune.ui.menu.YouTubePlaylistMenu
 import dev.meowlabs.blossomtune.ui.menu.YouTubeSongMenu
+import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.utils.resize
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.viewmodels.OnlineSearchViewModel
@@ -536,9 +538,9 @@ private fun TopResultCard(
                     .matchParentSize()
                     .background(
                         Brush.verticalGradient(
-                            0f to Color.Black.copy(alpha = 0.35f),
-                            0.55f to Color.Black.copy(alpha = 0.62f),
-                            1f to Color.Black.copy(alpha = 0.88f),
+                            0f to Color.Black.copy(alpha = 0.40f),
+                            0.55f to Color.Black.copy(alpha = 0.72f),
+                            1f to Color.Black.copy(alpha = 0.92f),
                         )
                     )
             )
@@ -561,7 +563,11 @@ private fun TopResultCard(
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                     ),
-                    color = SearchColors.Primary,
+                    // Kartu ini gelap di kedua mode (artwork blur + scrim hitam),
+                    // jadi judulnya dipaku ke Petal, bukan Primary yang ikut mode
+                    // (tinta gelap di terang = 2.07 di atas latar kartu ini).
+                    // Tanpa thumbnail tidak ada scrim, jadi pakai warna mode biasa.
+                    color = if (item.thumbnail != null) BlossomColors.Petal else SearchColors.Primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -569,7 +575,7 @@ private fun TopResultCard(
                 Text(
                     text = detail,
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = SearchColors.Secondary,
+                    color = if (item.thumbnail != null) LabColors.OnDark else SearchColors.Secondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

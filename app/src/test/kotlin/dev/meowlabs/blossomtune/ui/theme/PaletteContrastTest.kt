@@ -182,5 +182,22 @@ class PaletteContrastTest {
         assertReadable(LabColors.OnDark, Color(0xFF2A2A2E), "deskripsi quality di pill terpilih")
         assertReadable(LabColors.OnDark, Color(0xFF242428), "status provider di baris terangkat")
     }
+
+    /**
+     * Kartu Top Result di Search gelap di kedua mode (artwork blur + scrim hitam
+     * di atas Tile), jadi judul/detailnya dipaku terang dan tidak boleh ikut mode.
+     * Latar paling terang yang bisa muncul di belakang baris teks adalah artwork
+     * putih polos di bawah scrim yang diperkuat (0.72 di 0.55, 0.92 di bawah):
+     * #363636 di baris judul. Kasus nyata yang dilaporkan ("Dancin'") latarnya
+     * #862D48 dengan scrim lama, dan #612134 dengan scrim baru. Petal dan OnDark
+     * harus lolos AA di keduanya.
+     */
+    @Test
+    fun topResultCard_staysReadableOnDarkArtworkCard() {
+        assertReadable(BlossomColors.Petal, Color(0xFF363636), "judul Top Result di artwork putih")
+        assertReadable(LabColors.OnDark, Color(0xFF363636), "detail Top Result di artwork putih")
+        assertReadable(BlossomColors.Petal, Color(0xFF612134), "judul Top Result di artwork Dancin'")
+        assertReadable(LabColors.OnDark, Color(0xFF612134), "detail Top Result di artwork Dancin'")
+    }
 }
 
