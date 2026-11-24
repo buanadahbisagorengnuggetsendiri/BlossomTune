@@ -55,7 +55,6 @@ import dev.meowlabs.blossomtune.modules.ModuleEntry
 import dev.meowlabs.blossomtune.modules.skin.ModuleSkin
 import dev.meowlabs.blossomtune.modules.skin.PageBackground
 import dev.meowlabs.blossomtune.modules.skin.PageBlock
-import dev.meowlabs.blossomtune.modules.skin.SkinColor
 import dev.meowlabs.blossomtune.playback.queues.YouTubeQueue
 import dev.meowlabs.blossomtune.ui.component.GlassPillBackground
 import dev.meowlabs.blossomtune.ui.component.GlassState
@@ -246,7 +245,6 @@ private fun PageShaderBlock(block: PageBlock.Shader, skin: ModuleSkin, values: M
     }
 }
 
-private @Composable fun pageColor(color: SkinColor, accent: Color): Color = when (color) {
 private fun pageBrush(colors: List<Color>): Brush =
     if (colors.size == 1) SolidColor(colors[0]) else Brush.verticalGradient(colors.ifEmpty { listOf(Color.Black, Color.Black) })
 

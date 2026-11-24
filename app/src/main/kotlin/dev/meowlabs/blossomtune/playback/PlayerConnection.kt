@@ -287,7 +287,6 @@ class PlayerConnection(
     val currentMediaItemIndex = MutableStateFlow(-1)
     val currentWindowIndex = MutableStateFlow(-1)
 
-    val queueItems: kotlinx.coroutines.flow.StateFlow<List<dev.meowlabs.blossomtune.ui.player.models.QueueItemData>> = queueWindows.map { windows ->
     /**
      * The queue's items and the current song's position in them, published as one value from the
      * same player callback. queueItems and currentWindowIndex arrive separately (one goes through
