@@ -37,8 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -116,11 +119,30 @@ fun SongInfoRow(
     val (showFormatBadge) = rememberPreference(ShowFormatBadgeKey, defaultValue = true)
     val (showSampleRate) = rememberPreference(ShowFormatSampleRateKey, defaultValue = false)
 
+    // The title and artist sit straight on the cover photo, so they need their
+    // own backing: a soft band of the mode's surface (Petal by day, Night by
+    // night) that fades out above and below the row instead of a hard card.
+    // It fades with the title itself when a page takes over (infoAlpha).
+    val scrimColor = if (LocalBlossomDark.current) BlossomColors.Night else BlossomColors.Petal
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = PlayerHorizontalPadding)
+            .drawBehind {
+                val bleed = 12.dp.toPx()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0f to scrimColor.copy(alpha = 0f),
+                        0.25f to scrimColor.copy(alpha = 0.78f),
+                        0.75f to scrimColor.copy(alpha = 0.78f),
+                        1f to scrimColor.copy(alpha = 0f),
+                    ),
+                    topLeft = Offset(0f, -bleed),
+                    size = Size(size.width, size.height + 2 * bleed),
+                    alpha = infoAlpha(),
+                )
+            }
     ) {
         Column(
             modifier = Modifier
@@ -270,12 +292,12 @@ private fun RowChevron(open: () -> Boolean, hidden: () -> Boolean, onClick: () -
         animationSpec = spring(dampingRatio = 0.55f, stiffness = 380f)
     )
     val chevronBgColor by animateColorAsState(
-        targetValue = if (isOpen) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.15f),
+        targetValue = if (isOpen) PlayerInk.copy(alpha = 0.32f) else PlayerInk.copy(alpha = 0.15f),
         label = "chevronBgColor",
         animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
     )
     val chevronTint by animateColorAsState(
-        targetValue = if (isOpen) Color.White else Color.White.copy(alpha = 0.90f),
+        targetValue = if (isOpen) PlayerInk else PlayerInk.copy(alpha = 0.90f),
         label = "chevronTint",
         animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
     )
