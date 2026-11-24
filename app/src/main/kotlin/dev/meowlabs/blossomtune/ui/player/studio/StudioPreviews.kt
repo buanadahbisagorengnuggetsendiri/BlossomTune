@@ -82,6 +82,44 @@ import dev.meowlabs.blossomtune.ui.player.flagship.FlagshipBarHeight
 import dev.meowlabs.blossomtune.ui.player.flagship.flagshipBarFootprint
 import dev.meowlabs.blossomtune.ui.player.playerVolumeBarFootprint
 import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.constants.DefaultPlayerCoverStyle
+import dev.meowlabs.blossomtune.constants.PlayerBackgroundStyle
+import dev.meowlabs.blossomtune.constants.PlayerBackgroundStyleKey
+import dev.meowlabs.blossomtune.constants.PlayerBottomBarStyle
+import dev.meowlabs.blossomtune.constants.PlayerCoverStyle
+import dev.meowlabs.blossomtune.constants.PlayerCoverStyleKey
+import dev.meowlabs.blossomtune.constants.FlagshipBackgroundStyleKey
+import dev.meowlabs.blossomtune.constants.FlagshipBottomBarStyleKey
+import dev.meowlabs.blossomtune.constants.FlagshipTransportLayout
+import dev.meowlabs.blossomtune.constants.FlagshipTransportLayoutKey
+import dev.meowlabs.blossomtune.ui.player.flagship.AmbientBackdrop
+import dev.meowlabs.blossomtune.ui.player.flagship.FlagshipBottomBar
+import dev.meowlabs.blossomtune.ui.player.flagship.FlagshipTransportRow
+import dev.meowlabs.blossomtune.ui.player.flagship.FollowPicture
+import dev.meowlabs.blossomtune.ui.player.flagship.rememberAmbientColors
+import dev.meowlabs.blossomtune.ui.player.PlayerProgressSlider
+import dev.meowlabs.blossomtune.ui.player.FlagshipCardLook
+import dev.meowlabs.blossomtune.ui.player.SongInfoRow
+import dev.meowlabs.blossomtune.ui.player.customize.DiscCoverStack
+import dev.meowlabs.blossomtune.ui.player.customize.PlayerBackgroundPreview
+import dev.meowlabs.blossomtune.ui.player.customize.coverArtBox
+import dev.meowlabs.blossomtune.ui.player.customize.isDisc
+import dev.meowlabs.blossomtune.ui.player.models.TrackInfo
+import dev.meowlabs.blossomtune.ui.utils.resize
+import dev.meowlabs.blossomtune.utils.rememberEnumPreference
+import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.constants.ShowPlayerBottomCardKey
+import dev.meowlabs.blossomtune.ui.player.ControlsDrawShift
+import dev.meowlabs.blossomtune.ui.player.PlayerDeckHeight
+import dev.meowlabs.blossomtune.ui.player.PlayerDeckPreview
+import dev.meowlabs.blossomtune.ui.player.SeekBarLift
+import dev.meowlabs.blossomtune.ui.player.TransportGapAboveRow
+import dev.meowlabs.blossomtune.ui.player.TurntableControls
+import dev.meowlabs.blossomtune.ui.player.TurntableControlsLift
+import dev.meowlabs.blossomtune.ui.player.flagship.FlagshipBarHeight
+import dev.meowlabs.blossomtune.ui.player.flagship.flagshipBarFootprint
+import dev.meowlabs.blossomtune.utils.rememberPreference
 
 /** swallows every touch, so a preview shows its content without playing it */
 internal fun Modifier.inert(): Modifier = pointerInput(Unit) {
@@ -172,10 +210,8 @@ internal fun FlagshipPreview(
         if (flagship) FlagshipBackgroundStyleKey else PlayerBackgroundStyleKey,
         if (flagship) PlayerBackgroundStyle.AMBIENT else PlayerBackgroundStyle.COVER_GRADIENT,
     )
-    // the Turntable is built on the new flagship, so it shares the new bottom bar, as on the live player
-    val newBottomBar = flagship || turntable
     val barStyle by rememberEnumPreference(
-        if (newBottomBar) FlagshipBottomBarStyleKey else PlayerBottomBarStyleKey,
+        FlagshipBottomBarStyleKey,
         PlayerBottomBarStyle.STACK,
     )
     val (showBottomCard) = rememberPreference(ShowPlayerBottomCardKey, defaultValue = true)
@@ -226,28 +262,18 @@ internal fun FlagshipPreview(
                         onDrawBehind { drawRect(shade) }
                     },
             )
-        } else if (!flagship && !turntable) {
-            // the classic's band of the cover's colour behind the title, without the blur it has live
-            SeamBlur(
-                glassState = remember { GlassState() },
-                progressProvider = { 1f },
-                trackInfo = track,
-                maxHeight = maxHeight,
-                noBlur = true,
-            )
         }
 
         // what sits under the controls, by the live player's own sums, so the buttons land where they do there
         val belowControls = when {
-            showVolumeBar && newBottomBar -> flagshipBarFootprint()
-            showVolumeBar -> playerVolumeBarFootprint()
+            showVolumeBar -> flagshipBarFootprint()
             showDeck -> PlayerDeckHeight
             else -> navBottom + 8.dp
         }
         if (turntable) {
             // the Turntable's own pills and title row, standing above the card as in its frame
             TurntableControls(
-                isExpandMenuOpen = false,
+                isExpandMenuOpen = { false },
                 onToggleExpandMenu = {},
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -272,13 +298,13 @@ internal fun FlagshipPreview(
                 }
                 Spacer(Modifier.height(transportSpacer))
                 Box(modifier = Modifier.offset(y = -buttonsLift)) {
-                    if (flagship) FlagshipTransportRow(layout = transportLayout) else PlayerTransportRow()
+                    FlagshipTransportRow(layout = transportLayout)
                 }
             }
         }
 
         when {
-            showVolumeBar && newBottomBar -> FlagshipBottomBar(
+            showVolumeBar -> FlagshipBottomBar(
                 isActive = { false },
                 onAction = {},
                 preview = true,
@@ -287,18 +313,9 @@ internal fun FlagshipPreview(
                     .padding(bottom = flagshipBarFootprint() - FlagshipBarHeight)
                     .padding(horizontal = 26.dp),
             )
-            showVolumeBar -> PlayerVolumeBar(
-                isActive = { false },
-                onAction = {},
-                preview = true,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = playerVolumeBarFootprint() - PlayerVolumeBarHeight)
-                    .padding(horizontal = 26.dp),
-            )
             // the deck as it rests on the live player: the front card running off the bottom, the one behind peeking over it
             showDeck -> PlayerDeckPreview(
-                look = if (newBottomBar) FlagshipCardLook else ClassicCardLook,
+                look = FlagshipCardLook,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 26.dp),

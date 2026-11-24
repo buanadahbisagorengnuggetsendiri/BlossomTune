@@ -48,6 +48,15 @@ import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.link.DeviceKind
+import dev.meowlabs.blossomtune.link.phone.PairedDevice
+import dev.meowlabs.blossomtune.ui.component.DefaultDialog
+import dev.meowlabs.blossomtune.ui.component.PopupSheetHandle
+import dev.meowlabs.blossomtune.ui.component.PopupSheetState
+import dev.meowlabs.blossomtune.ui.component.TopToaster
+import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // one paired device up close: what it is, whether it's around, and the switches for what this phone does with it
 fun PopupSheetState.showDeviceSheet(link: DevicesLink, deviceId: String) {
@@ -76,7 +85,7 @@ private fun ColumnScope.DeviceSheetContent(link: DevicesLink, deviceId: String, 
     val scope = rememberCoroutineScope()
 
     Column(
-        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = sheetHandleRoom()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.height(6.dp))
@@ -106,7 +115,13 @@ private fun ColumnScope.DeviceSheetContent(link: DevicesLink, deviceId: String, 
             ToggleRow(
                 icon = Icons.Rounded.SettingsRemote,
                 title = stringResource(R.string.devices_remote_control),
-                detail = stringResource(if (device.kind.isTv) R.string.devices_remote_control_tv_detail else R.string.devices_remote_control_phone_detail),
+                detail = stringResource(
+                    when {
+                        device.kind.isTv -> R.string.devices_remote_control_tv_detail
+                        device.kind == DeviceKind.Desktop -> R.string.devices_remote_control_computer_detail
+                        else -> R.string.devices_remote_control_phone_detail
+                    },
+                ),
                 checked = device.remoteControl,
             ) { on -> link.host.update(deviceId) { it.copy(remoteControl = on, autoControl = it.autoControl && on) } }
             ToggleRow(

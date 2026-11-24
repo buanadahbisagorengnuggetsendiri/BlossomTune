@@ -39,6 +39,25 @@ import dev.meowlabs.blossomtune.ui.component.SettingsItem
 import dev.meowlabs.blossomtune.utils.dataStore
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.constants.CrossmixTestToolsKey
+import dev.meowlabs.blossomtune.constants.ForcePlaybackKey
+import dev.meowlabs.blossomtune.constants.ShowStreamSourceToastKey
+import dev.meowlabs.blossomtune.constants.ForceYtBackdropBlur1500Key
+import dev.meowlabs.blossomtune.constants.HapticFocus
+import dev.meowlabs.blossomtune.constants.HapticFocusKey
+import dev.meowlabs.blossomtune.constants.HapticSensitivity
+import dev.meowlabs.blossomtune.constants.MusicHapticsEnabledKey
+import dev.meowlabs.blossomtune.constants.MusicHapticsSensitivityKey
+import dev.meowlabs.blossomtune.constants.SetupCompletedKey
+import dev.meowlabs.blossomtune.ui.component.SettingsGroup
+import dev.meowlabs.blossomtune.ui.component.SettingsGroupStyle
+import dev.meowlabs.blossomtune.ui.component.SubSettingsScaffold
+import dev.meowlabs.blossomtune.ui.component.SettingsItem
+import dev.meowlabs.blossomtune.utils.dataStore
+import dev.meowlabs.blossomtune.utils.rememberEnumPreference
+import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.constants.SimulateForkKey
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,6 +86,7 @@ fun ExperimentalSettingsScreen(navController: NavController) {
     val crossmixTools = crossmixTestItems(isVisible = crossmixTestTools)
     val (sourceBanner, onSourceBannerChange) = rememberPreference(ShowStreamSourceToastKey, defaultValue = false)
     val (forcePlayback, onForcePlaybackChange) = rememberPreference(ForcePlaybackKey, defaultValue = false)
+    val (simulateFork, onSimulateForkChange) = rememberPreference(SimulateForkKey, defaultValue = false)
     val (streamBackend, onStreamBackendChange) = rememberEnumPreference(
         dev.meowlabs.blossomtune.constants.StreamBackendKey,
         defaultValue = dev.meowlabs.blossomtune.constants.StreamBackend.INNERTUBEX,
@@ -183,6 +203,19 @@ fun ExperimentalSettingsScreen(navController: NavController) {
                             onClick = { onForcePlaybackChange(!forcePlayback) },
                             trailingContent = {
                                 AppSwitch(checked = forcePlayback, onCheckedChange = onForcePlaybackChange)
+                            }
+                        )
+                    )
+                    add(
+                        SettingsItem(
+                            title = { Text(stringResource(R.string.experimental_simulate_fork_title)) },
+                            highlightKey = "Pretend to be a fork",
+                            descriptionText = stringResource(R.string.experimental_simulate_fork_desc),
+                            icon = painterResource(R.drawable.lock),
+                            iconShape = androidx.compose.foundation.shape.CircleShape,
+                            onClick = { onSimulateForkChange(!simulateFork) },
+                            trailingContent = {
+                                AppSwitch(checked = simulateFork, onCheckedChange = onSimulateForkChange)
                             }
                         )
                     )

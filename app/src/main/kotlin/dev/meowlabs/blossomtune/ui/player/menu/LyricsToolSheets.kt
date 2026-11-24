@@ -79,6 +79,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // ---------------------------------------------------------------------------------------------
 // Editor
@@ -276,6 +278,7 @@ fun LyricsProviderSheet(onDismiss: () -> Unit) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
+                .padding(top = sheetHandleRoom())
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
                 .padding(top = 16.dp, bottom = 24.dp)
@@ -524,6 +527,7 @@ fun LyricsTranslationSheet(onDismiss: () -> Unit) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
+                .padding(top = sheetHandleRoom())
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
                 .padding(top = 16.dp, bottom = 24.dp)

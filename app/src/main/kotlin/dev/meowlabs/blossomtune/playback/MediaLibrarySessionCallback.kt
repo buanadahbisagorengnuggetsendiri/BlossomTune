@@ -52,11 +52,31 @@ import dev.meowlabs.blossomtune.playback.voice.VoiceSearch
 import dev.meowlabs.blossomtune.utils.dataStore
 import dev.meowlabs.blossomtune.utils.get
 import dev.meowlabs.blossomtune.utils.reportException
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.car.CarLyricsSource
+import dev.meowlabs.blossomtune.constants.HideExplicitKey
+import dev.meowlabs.blossomtune.constants.HideVideoSongsKey
+import dev.meowlabs.blossomtune.constants.MediaSessionConstants
+import dev.meowlabs.blossomtune.constants.SongSortType
+import dev.meowlabs.blossomtune.db.MusicDatabase
+import dev.meowlabs.blossomtune.db.entities.PlaylistEntity
+import dev.meowlabs.blossomtune.db.entities.Song
+import dev.meowlabs.blossomtune.extensions.toMediaItem
+import dev.meowlabs.blossomtune.extensions.toggleRepeatMode
+import dev.meowlabs.blossomtune.importer.LocalArtwork
+import dev.meowlabs.blossomtune.models.toMediaMetadata
+import dev.meowlabs.blossomtune.playback.voice.VoicePicker
+import dev.meowlabs.blossomtune.playback.voice.VoiceRequest
+import dev.meowlabs.blossomtune.playback.voice.VoiceSearch
+import dev.meowlabs.blossomtune.utils.dataStore
+import dev.meowlabs.blossomtune.utils.get
+import dev.meowlabs.blossomtune.utils.reportException
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -76,6 +96,10 @@ constructor(
 ) : MediaLibrarySession.Callback {
     private val scope = CoroutineScope(Dispatchers.Main) + Job()
     lateinit var service: MusicService
+
+    fun release() {
+        scope.cancel()
+    }
     private val voice by lazy { VoicePicker(context, database) }
     var toggleLike: () -> Unit = {}
     var setLiked: (Boolean) -> Unit = {}
@@ -256,7 +280,7 @@ constructor(
                                 album.artists.joinToString {
                                     it.name
                                 },
-                                album.album.thumbnailUrl?.toUri(),
+                                LocalArtwork.shareableUri(album.album.thumbnailUrl),
                                 MediaMetadata.MEDIA_TYPE_ALBUM,
                                 singleItemStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM,
                             )
@@ -844,7 +868,7 @@ constructor(
                             "${MusicService.ALBUM}/${album.id}",
                             album.album.title,
                             album.artists.joinToString { it.name },
-                            album.album.thumbnailUrl?.toUri(),
+                            LocalArtwork.shareableUri(album.album.thumbnailUrl),
                             MediaMetadata.MEDIA_TYPE_ALBUM,
                             singleItemStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM,
                         )
@@ -1031,7 +1055,8 @@ constructor(
                     .setTitle(song.title)
                     .setSubtitle(artists.joinToString { it.name })
                     .setArtist(artists.joinToString { it.name })
-                    .setArtworkUri(song.thumbnailUrl?.toUri())
+                    // a local cover goes out through the cover provider: the car can't open a file inside blossomtune's own folder
+                    .setArtworkUri(LocalArtwork.shareableUri(song.thumbnailUrl))
                     .setIsPlayable(isPlayable)
                     .setIsBrowsable(isBrowsable)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)

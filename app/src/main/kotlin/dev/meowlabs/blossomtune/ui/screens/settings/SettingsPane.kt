@@ -35,6 +35,16 @@ import dev.meowlabs.blossomtune.ui.screens.settings.integrations.discord.Discord
 import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulesRoute
 import dev.meowlabs.blossomtune.ui.screens.settings.storage.StorageRoute
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.ui.screens.settings.devspace.DevPlaygroundRoute
+import dev.meowlabs.blossomtune.ui.screens.settings.importsync.ImportSyncRoute
+import dev.meowlabs.blossomtune.ui.screens.settings.integrations.IntegrationsRoute
+import dev.meowlabs.blossomtune.ui.screens.settings.integrations.ScrobbleServiceRoute
+import dev.meowlabs.blossomtune.ui.screens.settings.integrations.backup.BackupRoute
+import dev.meowlabs.blossomtune.ui.screens.settings.integrations.discord.DiscordRoute
+import dev.meowlabs.blossomtune.ui.screens.settings.modules.ModulesRoute
+import dev.meowlabs.blossomtune.ui.screens.settings.storage.StorageRoute
+import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 
 // the settings list's own route; on a wide screen it stays at the left while its pages open beside it
 const val SettingsListRoute = "blossomtune_settings"
@@ -56,6 +66,7 @@ val SettingsPaneRoutes = setOf(
     IntegrationsRoute,
     DiscordRoute,
     ScrobbleServiceRoute,
+    BackupRoute,
     ProxySettingsRoute,
     ModulesRoute,
     "module/{id}",

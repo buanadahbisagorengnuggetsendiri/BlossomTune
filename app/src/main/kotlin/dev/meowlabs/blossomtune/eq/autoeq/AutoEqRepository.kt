@@ -58,6 +58,8 @@ class AutoEqRepository @Inject constructor(
 ) {
     private val client by lazy {
         OkHttpClient.Builder()
+            .dispatcher(dev.meowlabs.blossomtune.utils.AppProxy.dispatcher)
+            .connectionPool(dev.meowlabs.blossomtune.utils.AppProxy.connectionPool)
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .build()

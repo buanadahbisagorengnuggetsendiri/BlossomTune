@@ -69,6 +69,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -101,7 +102,7 @@ val SearchTitleBlockHeight = 62.dp
 val SearchTopClearance = 18.dp
 
 object SearchColors {
-    // Dua mode: nilai gelap tetap persis basis Mochy, nilai terang memakai palet petal/deep rose.
+    // Dua mode: nilai gelap tetap persis basis BlossomTune, nilai terang memakai palet petal/deep rose.
     val Field: Color @Composable @ReadOnlyComposable
         get() = if (LocalBlossomDark.current) Color(0xFF141416) else BlossomColors.Paper
     val FieldFocused: Color @Composable @ReadOnlyComposable
@@ -444,7 +445,7 @@ fun SearchAvatar(
         if (model != null) {
             AsyncImage(
                 model = model,
-                contentDescription = "Profile",
+                contentDescription = stringResource(R.string.profile_label),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -635,15 +636,10 @@ fun MoodTile(
                 .padding(end = 2.dp)
                 .size(width = 84.dp, height = 76.dp)
 
-                .then(
-                    if (titleWraps) {
-                        Modifier.graphicsLayer {
-                            compositingStrategy = CompositingStrategy.Offscreen
-                        }
-                    } else {
-                        Modifier
-                    }
-                )
+                // read in the layer, not in composition: the title's wrap is only known after layout, and every wrapping tile composed twice
+                .graphicsLayer {
+                    compositingStrategy = if (titleWraps) CompositingStrategy.Offscreen else CompositingStrategy.Auto
+                }
                 .drawWithCache {
                     val fade = Brush.horizontalGradient(
                         0.00f to Color.Transparent,

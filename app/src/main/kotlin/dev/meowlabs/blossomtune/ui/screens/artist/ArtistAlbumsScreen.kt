@@ -19,7 +19,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -43,6 +42,22 @@ import dev.meowlabs.blossomtune.ui.screens.library.indexSections
 import dev.meowlabs.blossomtune.ui.utils.backToMain
 import dev.meowlabs.blossomtune.viewmodels.ArtistAlbumsViewModel
 import kotlinx.coroutines.launch
+import dev.meowlabs.blossomtune.LocalPlayerAwareWindowInsets
+import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.db.entities.Album
+import dev.meowlabs.blossomtune.ui.component.LocalMenuState
+import dev.meowlabs.blossomtune.ui.component.containerTransformSource
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistDetailScaffold
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistTrackRow
+import dev.meowlabs.blossomtune.ui.component.rememberRevealSeenState
+import dev.meowlabs.blossomtune.ui.component.revealOnAppear
+import dev.meowlabs.blossomtune.ui.menu.AlbumMenu
+import dev.meowlabs.blossomtune.ui.screens.library.LibraryIndexRail
+import dev.meowlabs.blossomtune.ui.screens.library.indexLandingUnderBar
+import dev.meowlabs.blossomtune.ui.screens.library.indexSections
+import dev.meowlabs.blossomtune.ui.screens.library.rememberIndexGlide
+import dev.meowlabs.blossomtune.ui.utils.backToMain
+import dev.meowlabs.blossomtune.viewmodels.ArtistAlbumsViewModel
 
 /** the artist's albums in your library: big squares two up, or an A-Z list with the rail */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,11 +72,11 @@ fun ArtistAlbumsScreen(
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
 
     val artist by viewModel.artist.collectAsState()
     val albums by viewModel.albums.collectAsState()
     val lazyListState = rememberLazyListState()
+    val glide = rememberIndexGlide(lazyListState, landing = indexLandingUnderBar())
     val revealSeen = rememberRevealSeenState()
     var isGrid by rememberSaveable { mutableStateOf(true) }
 
@@ -99,7 +114,7 @@ fun ArtistAlbumsScreen(
                 LibraryIndexRail(
                     sections = indexed.map { it.first },
                     onSectionSelected = { key ->
-                        sectionStarts[key]?.let { index -> coroutineScope.launch { lazyListState.animateScrollToItem(index) } }
+                        sectionStarts[key]?.let(glide::glideTo)
                     },
                     modifier = Modifier.fillMaxSize(),
                 )

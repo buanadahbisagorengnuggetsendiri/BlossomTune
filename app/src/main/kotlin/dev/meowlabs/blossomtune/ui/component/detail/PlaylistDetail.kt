@@ -420,7 +420,6 @@ fun PlaylistDetailScaffold(
             sharedElementKey = sharedElementKey,
             coverUrl = coverUrl,
             cover = cover,
-            framedCover = framedCover,
             background = background,
             lazyListState = lazyListState,
             contentPadding = contentPadding,
@@ -990,10 +989,10 @@ fun PlaylistHeader(
 ) {
     val playlistStyle by rememberEnumPreference(PlaylistStyleKey, defaultValue = PlaylistStyle.FLOW)
     val framedCover = LocalPlaylistFramedCover.current
-    // on its side the block sits on the cover at the left, so it never draws a framed cover of its own
-    val side = LocalPlaylistSideHeader.current
-    val useMinimal = compact || (side == null && playlistStyle == PlaylistStyle.MINIMAL)
-    val useClassic = side == null && !compact && playlistStyle == PlaylistStyle.CLASSIC
+    // on its side the cover is already at the left, so the block heads the songs without a band or a framed cover of its own
+    val sideBySide = LocalPlaylistSideBySide.current
+    val useMinimal = compact || (!sideBySide && playlistStyle == PlaylistStyle.MINIMAL)
+    val useClassic = !sideBySide && !compact && playlistStyle == PlaylistStyle.CLASSIC
 
     val body: @Composable () -> Unit = {
         Column(
@@ -1089,8 +1088,9 @@ fun PlaylistHeader(
         }
     }
 
-    if (side != null) {
-        PublishSideHeader(side, body)
+    if (sideBySide) {
+        // the list already starts under the back button on its side, so the block needs no gap above it
+        Column(modifier = modifier.fillMaxWidth()) { body() }
     } else if (useMinimal || useClassic) {
         Column(
             modifier = modifier
@@ -1433,7 +1433,8 @@ fun PlaylistTrackRow(
     liked: Boolean? = null,
     onLikeClick: (() -> Unit)? = null,
 ) {
-    val band by animateFloatAsState(if (selected) 1f else 0f, tween(180), label = "selectedBand")
+    // starts only when picking begins, so the rows of a long playlist mount without a coroutine each
+    val band by dev.meowlabs.blossomtune.ui.utils.animateFloatOnChange(if (selected) 1f else 0f, tween(180))
     // Keep album rows as compact as the other tracks while giving the heart a 48dp tap target.
     val verticalPadding = if (trailing == null && liked != null && onLikeClick != null) 5.dp else 9.dp
     Row(
@@ -1453,14 +1454,14 @@ fun PlaylistTrackRow(
             modifier = Modifier
                 .size(39.dp)
                 .then(coverModifier)
-                .clip(coverShape)
-                .background(BoneColor)
+                .background(BoneColor, coverShape)
         ) {
             ItemThumbnail(
                 thumbnailUrl = thumbnailUrl,
                 isActive = isActive,
                 isPlaying = isPlaying,
                 shape = coverShape,
+                imageSizePx = 256,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -1469,8 +1470,9 @@ fun PlaylistTrackRow(
                 .weight(1f)
                 .padding(horizontal = 11.dp)
         ) {
-            Text(
+            dev.meowlabs.blossomtune.ui.component.TitleWithMarks(
                 text = title,
+                songId = songId,
                 style = TrackTitleStyle,
                 color = BlossomInk.Primary.copy(alpha = if (isActive) 1f else 0.94f),
                 maxLines = 1,

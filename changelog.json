@@ -1,5 +1,37 @@
 [
   {
+    "versionName": "0.6.3",
+    "publishedAt": "2026-11-24",
+    "summary": "Basis Mochy diperbarui dari 8.4.2 ke 8.4.6: cloud backup, Audio Lab 3D dan 8D, module store, preset AudioFX, serta perbaikan baterai dan memory leak. Tema Cherry Blossom dan perbaikan kontras tetap dipertahankan.",
+    "sections": [
+      {
+        "title": "Yang baru dari Mochy 8.4.3-8.4.6",
+        "items": [
+          "Cloud backup: cadangan dan pulihkan lewat Dropbox, OneDrive, atau WebDAV.",
+          "Audio Lab: audio 3D Sims dan 8D dengan stage engine native baru, plus preset AudioFX.",
+          "Import musik dari link, widget now playing, status Discord, dan lirik tinted.",
+          "Module store: telusuri dan pasang modul dari dalam aplikasi.",
+          "Sorting lirik, provider lirik Unison, dan video YouTube kembali di share card.",
+          "Optimasi baterai dan RAM, perbaikan battery drain dan memory leak, sync akun YouTube, dan perbaikan Chromecast Samsung."
+        ]
+      },
+      {
+        "title": "Yang berubah",
+        "items": [
+          "Gaya Classic player dihapus upstream di 8.4.5 (sementara); pilihan gaya player kini mengikuti gaya Mochy terbaru.",
+          "Sinkronisasi playlist kini dua arah: lagu yang ditambahkan di aplikasi ikut didorong ke YouTube.",
+          "Lirik kini punya gaya flow dan custom, dan pengaturan modul kini punya slider."
+        ]
+      },
+      {
+        "title": "Catatan",
+        "items": [
+          "Cek update tersedia lewat updater di dalam aplikasi; pemasangan manual tetap bisa lewat GitHub releases."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.6.2",
     "publishedAt": "2026-11-20",
     "summary": "Tema Cherry Blossom untuk mode terang dan gelap, perbaikan kontras supaya semua teks terbaca, dan updater di dalam aplikasi akhirnya bisa menemukan update.",

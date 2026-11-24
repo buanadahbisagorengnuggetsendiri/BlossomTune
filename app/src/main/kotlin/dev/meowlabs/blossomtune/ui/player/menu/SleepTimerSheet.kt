@@ -66,6 +66,7 @@ import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.component.SheetIcon
 import kotlinx.coroutines.delay
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 private val CardSurface: Color
     @Composable @ReadOnlyComposable get() = MenuRowSurface
@@ -86,6 +87,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
+                .padding(top = sheetHandleRoom())
                 .padding(horizontal = 24.dp)
                 .padding(top = 10.dp, bottom = 28.dp)
                 .animateContentSize(animationSpec = tween(420, easing = SheetEasing))

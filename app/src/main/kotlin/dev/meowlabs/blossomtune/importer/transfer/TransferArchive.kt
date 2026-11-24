@@ -36,6 +36,28 @@ import dev.meowlabs.blossomtune.constants.LibreFmUsernameKey
 import dev.meowlabs.blossomtune.constants.MonochromePlaybackApiTokenKey
 import dev.meowlabs.blossomtune.constants.TurnstileBypassTokenKey
 import dev.meowlabs.blossomtune.constants.VisitorDataKey
+import dev.meowlabs.blossomtune.constants.AccountChannelHandleKey
+import dev.meowlabs.blossomtune.constants.AccountEmailKey
+import dev.meowlabs.blossomtune.constants.AccountNameKey
+import dev.meowlabs.blossomtune.constants.DataSyncIdKey
+import dev.meowlabs.blossomtune.constants.DiscordAccessTokenKey
+import dev.meowlabs.blossomtune.constants.DiscordLoginStateKey
+import dev.meowlabs.blossomtune.constants.DiscordLoginVerifierKey
+import dev.meowlabs.blossomtune.constants.DiscordProfileKey
+import dev.meowlabs.blossomtune.constants.DiscordRefreshTokenKey
+import dev.meowlabs.blossomtune.constants.DiscordTokenExpiresAtKey
+import dev.meowlabs.blossomtune.constants.EnableDiscordRPCKey
+import dev.meowlabs.blossomtune.constants.EnableLastFMScrobblingKey
+import dev.meowlabs.blossomtune.constants.EnableLibreFmScrobblingKey
+import dev.meowlabs.blossomtune.constants.InnerTubeCookieKey
+import dev.meowlabs.blossomtune.constants.LastFMSessionKey
+import dev.meowlabs.blossomtune.constants.LastFMUsernameKey
+import dev.meowlabs.blossomtune.constants.LibreFmSessionKey
+import dev.meowlabs.blossomtune.constants.LibreFmUsernameKey
+import dev.meowlabs.blossomtune.constants.MonochromePlaybackApiTokenKey
+import dev.meowlabs.blossomtune.constants.TurnstileBypassTokenKey
+import dev.meowlabs.blossomtune.constants.VisitorDataKey
+import dev.meowlabs.blossomtune.playback.StoredKind
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -84,6 +106,9 @@ internal object TransferArchive {
         "exoplayer", "datastore", "cipher_cache", "local_music_folders.txt", "last_crash.txt",
         "persistent_queue.data", "persistent_automix.data", "persistent_player_state.data",
     )
+
+    // top-level folders in the files folder that hold songs: downloads and songs shared into blossomtune; a backup leaves them out to stay small
+    val SongFolders = setOf(StoredKind.Downloads.folder, "shared_audio")
 
     /** true for a top-level name in the files folder that goes into the zip */
     fun carriesFile(name: String): Boolean = name !in FilesLeftBehind &&

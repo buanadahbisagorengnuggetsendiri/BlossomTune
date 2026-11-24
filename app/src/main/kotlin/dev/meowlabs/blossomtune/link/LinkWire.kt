@@ -50,6 +50,8 @@ object LinkWire {
     // a lan is fast and a phone that's gone should be noticed quickly, so short waits
     val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .dispatcher(dev.meowlabs.blossomtune.utils.AppProxy.dispatcher)
+            .connectionPool(dev.meowlabs.blossomtune.utils.AppProxy.connectionPool)
             .connectTimeout(4, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)

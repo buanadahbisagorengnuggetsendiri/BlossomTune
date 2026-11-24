@@ -325,8 +325,18 @@ object LyricsUtils {
         "Ѓ", "ѓ", "Ѕ", "ѕ", "Ќ", "ќ"
     )
 
-    private val kuromojiTokenizer: Tokenizer by lazy {
-        Tokenizer()
+    // built on demand and dropped on memory trims so the japanese ipadic tables (~20 mb) don't stay pinned in ram
+    @Volatile
+    private var kuromojiInstance: Tokenizer? = null
+    private val kuromojiLock = Any()
+
+    private val kuromojiTokenizer: Tokenizer
+        get() = kuromojiInstance ?: synchronized(kuromojiLock) {
+            kuromojiInstance ?: Tokenizer().also { kuromojiInstance = it }
+        }
+
+    fun releaseKuromoji() {
+        synchronized(kuromojiLock) { kuromojiInstance = null }
     }
 
     private val HEX_ENTITY_REGEX = "&#x([0-9a-fA-F]+);".toRegex()
@@ -999,6 +1009,9 @@ object LyricsUtils {
 
     /** Whether a payload carries `{agent:…}` voice tags — i.e. can drive left/right duet layout. */
     fun hasVoiceTags(rawLyrics: String): Boolean = rawLyrics.contains("{agent:")
+
+    // lines tagged {bg} are the backing vocals the lyrics page draws small under the lead line
+    fun hasBackgroundVocals(rawLyrics: String): Boolean = rawLyrics.contains("{bg}")
 
     /**
      * Whether a payload would actually lay out on both sides: two or more voices among its lead

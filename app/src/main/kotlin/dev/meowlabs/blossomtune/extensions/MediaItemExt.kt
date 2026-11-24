@@ -3,11 +3,15 @@
 package dev.meowlabs.blossomtune.extensions
 
 import android.os.Bundle
-import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
 import com.music.innertube.models.SongItem
 import dev.meowlabs.blossomtune.db.entities.Song
+import dev.meowlabs.blossomtune.models.MediaMetadata
+import dev.meowlabs.blossomtune.models.toMediaMetadata
+import dev.meowlabs.blossomtune.songedit.SongEdits
+import dev.meowlabs.blossomtune.db.entities.Song
+import dev.meowlabs.blossomtune.importer.LocalArtwork
 import dev.meowlabs.blossomtune.models.MediaMetadata
 import dev.meowlabs.blossomtune.models.toMediaMetadata
 import dev.meowlabs.blossomtune.songedit.SongEdits
@@ -25,7 +29,8 @@ fun Song.toMediaItem() = MediaItem.Builder()
             .setTitle(song.title)
             .setSubtitle(artists.joinToString { it.name })
             .setArtist(artists.joinToString { it.name })
-            .setArtworkUri(song.thumbnailUrl?.toUri())
+            // a local cover goes out as a link android auto and widgets can open, not a file inside blossomtune's own folder
+            .setArtworkUri(LocalArtwork.shareableUri(song.thumbnailUrl))
             .setAlbumTitle(song.albumName)
             .setAlbumArtist(artists.firstOrNull()?.name)
             .setDisplayTitle(song.title)
@@ -55,7 +60,7 @@ private fun MediaMetadata.buildMediaItem() = MediaItem.Builder()
             .setTitle(title)
             .setSubtitle(artists.joinToString { it.name })
             .setArtist(artists.joinToString { it.name })
-            .setArtworkUri(thumbnailUrl?.toUri())
+            .setArtworkUri(LocalArtwork.shareableUri(thumbnailUrl))
             .setAlbumTitle(album?.title)
             .setAlbumArtist(artists.firstOrNull()?.name)
             .setDisplayTitle(title)

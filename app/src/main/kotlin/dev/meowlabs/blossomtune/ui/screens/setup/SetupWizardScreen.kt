@@ -18,10 +18,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,15 +30,51 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.meowlabs.blossomtune.constants.CrossmixMode
+import dev.meowlabs.blossomtune.constants.CrossmixModeKey
+import dev.meowlabs.blossomtune.constants.DisableAiFilterKey
+import dev.meowlabs.blossomtune.constants.DisableBlurKey
+import dev.meowlabs.blossomtune.constants.DefaultTransitionMode
+import dev.meowlabs.blossomtune.importer.account.AccountImportState
+import dev.meowlabs.blossomtune.importer.account.AccountService
+import dev.meowlabs.blossomtune.ui.screens.settings.importsync.onSignInTick
+import dev.meowlabs.blossomtune.ui.screens.settings.importsync.CaptureWebContent
+import dev.meowlabs.blossomtune.ui.screens.settings.importsync.YouTubeLoginWebContent
+import dev.meowlabs.blossomtune.ui.screens.settings.importsync.clearWebSession
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.BehindScale
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.BlurCapability
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.BlurWarningPage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.BrowserSpring
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.CardInfo
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.DoneStep
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.HelloCardStep
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ImportAskPage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ImportModePage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.LastOnePage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.Onb
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.OnboardingBrowserSheet
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProfilePage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProviderListPage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.ProviderSetupPage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.RestoringPage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.SyncOptionsPage
+import dev.meowlabs.blossomtune.ui.screens.setup.onboarding.WhatToSyncPage
+import dev.meowlabs.blossomtune.utils.rememberEnumPreference
+import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.viewmodels.OnboardingViewModel
+import dev.meowlabs.blossomtune.viewmodels.TransferStep
+import dev.meowlabs.blossomtune.viewmodels.TransferViewModel
+import dev.meowlabs.blossomtune.viewmodels.YouTubeSyncChoices
+import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.constants.CrossmixMode
 import dev.meowlabs.blossomtune.constants.CrossmixModeKey
 import dev.meowlabs.blossomtune.constants.DisableAiFilterKey
@@ -82,6 +115,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import dev.meowlabs.blossomtune.ui.component.backdropClick
+import dev.meowlabs.blossomtune.ui.component.backdropClick
+import dev.meowlabs.blossomtune.ui.component.SheetHandleRow
 
 private enum class Step {
     Welcome, ImportAsk, ImportMode, Restoring, Providers, ProviderSetup, WhatToSync, SyncOptions,
@@ -266,7 +301,7 @@ fun SetupWizardScreen(
     val (crossmixMode, onCrossmixModeChange) = rememberEnumPreference(CrossmixModeKey, defaultValue = DefaultTransitionMode)
     val (disableAiFilter, onDisableAiFilterChange) = rememberPreference(DisableAiFilterKey, defaultValue = false)
 
-    val card = CardInfo(username = username, photo = profilePicUri, cardNumber = vm.cardNumber, joinedText = vm.joinedText)
+    val card = CardInfo(username = username, photo = profilePicUri, cardNumber = vm.cardNumber, joinedText = stringResource(R.string.profile_joined_at, vm.joinedDateText))
 
     fun afterHello(): Step = if (vm.blur?.verdict == BlurCapability.Verdict.Laggy) Step.BlurWarning else Step.LastOne
 
@@ -419,7 +454,7 @@ fun SetupWizardScreen(
                                 if (existing != null) selectedUncroppedUri = existing else openPhotoPicker()
                             },
                             cardNumber = vm.cardNumber,
-                            joinedText = vm.joinedText,
+                            joinedText = stringResource(R.string.profile_joined_at, vm.joinedDateText),
                             onNext = { if (username.isNotBlank()) go(Step.Hello) },
                         )
 
@@ -499,10 +534,11 @@ fun SetupWizardScreen(
                 }
             }
 
-            // the onboarding sheet's own handle; dragging it rubber-bands the whole sheet
-            Box(
+            // the onboarding sheet's own handle; dragging it only rubber-bands the sheet, so its bar never turns into an arrow
+            SheetHandleRow(
+                bend = { 0f },
+                fade = { Onb.Page },
                 modifier = Modifier
-                    .fillMaxWidth()
                     .height(40.dp)
                     .pointerInput(Unit) {
                         detectVerticalDragGestures(
@@ -514,16 +550,7 @@ fun SetupWizardScreen(
                             onDragCancel = onDragRelease,
                         )
                     },
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(100.dp)
-                        .height(4.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.5f)),
-                )
-            }
+            )
         }
     }
 }

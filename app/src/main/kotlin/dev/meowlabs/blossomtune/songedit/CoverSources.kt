@@ -38,6 +38,8 @@ object CoverSources {
 
     private val client by lazy {
         OkHttpClient.Builder()
+            .dispatcher(dev.meowlabs.blossomtune.utils.AppProxy.dispatcher)
+            .connectionPool(dev.meowlabs.blossomtune.utils.AppProxy.connectionPool)
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)
             .build()

@@ -86,7 +86,7 @@ fun AlternatePlayerStyle(
         PlayerStyle.BEDSIDE -> dev.meowlabs.blossomtune.ui.player.bedside.BedsidePlayerStyle(actions, modifier, preview)
         PlayerStyle.BEDSIDE_TILES -> dev.meowlabs.blossomtune.ui.player.bedside.BedsideTilesStyle(actions, modifier, preview)
         PlayerStyle.MODULE -> ModulePlayerStyle(actions, modifier, preview)
-        PlayerStyle.FLAGSHIP, PlayerStyle.CLASSIC, PlayerStyle.TURNTABLE -> Unit
+        PlayerStyle.FLAGSHIP, PlayerStyle.TURNTABLE -> Unit
     }
 }
 

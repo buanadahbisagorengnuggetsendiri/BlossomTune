@@ -2,6 +2,10 @@
 
 package dev.meowlabs.blossomtune.ui.screens.artist
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -76,17 +80,57 @@ import dev.meowlabs.blossomtune.ui.utils.backToMain
 import dev.meowlabs.blossomtune.utils.ArtistVideos
 import dev.meowlabs.blossomtune.utils.makeTimeString
 import dev.meowlabs.blossomtune.viewmodels.ArtistItemsViewModel
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.LocalPlayerAwareWindowInsets
+import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.extensions.toMediaItem
+import dev.meowlabs.blossomtune.models.toMediaMetadata
+import dev.meowlabs.blossomtune.playback.queues.ListQueue
+import dev.meowlabs.blossomtune.playback.queues.YouTubeQueue
+import dev.meowlabs.blossomtune.ui.component.HomeCardHighlight
+import dev.meowlabs.blossomtune.ui.component.HomeVideoCard
+import dev.meowlabs.blossomtune.ui.component.LocalMenuState
+import dev.meowlabs.blossomtune.ui.component.SongSwipeBox
+import dev.meowlabs.blossomtune.ui.component.containerTransformSource
+import dev.meowlabs.blossomtune.ui.component.detail.CreatorUi
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistDetailScaffold
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistEndOfLine
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistHeader
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistInset
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistStatsStyle
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistTrackBones
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistTrackRow
+import dev.meowlabs.blossomtune.ui.component.detail.playlistCoverHeight
+import dev.meowlabs.blossomtune.ui.component.librarySwipeAction
+import dev.meowlabs.blossomtune.ui.component.queueSwipeAction
+import dev.meowlabs.blossomtune.ui.component.rememberRevealSeenState
+import dev.meowlabs.blossomtune.ui.component.revealOnAppear
+import dev.meowlabs.blossomtune.ui.menu.YouTubeAlbumMenu
+import dev.meowlabs.blossomtune.ui.menu.YouTubeArtistMenu
+import dev.meowlabs.blossomtune.ui.menu.YouTubePlaylistMenu
+import dev.meowlabs.blossomtune.ui.menu.YouTubeSongMenu
+import dev.meowlabs.blossomtune.ui.screens.library.LibraryIndexRail
+import dev.meowlabs.blossomtune.ui.screens.library.indexLandingUnderBar
+import dev.meowlabs.blossomtune.ui.screens.library.indexSections
+import dev.meowlabs.blossomtune.ui.screens.library.rememberIndexGlide
+import dev.meowlabs.blossomtune.ui.utils.backToMain
+import dev.meowlabs.blossomtune.utils.ArtistVideos
+import dev.meowlabs.blossomtune.utils.makeTimeString
+import dev.meowlabs.blossomtune.viewmodels.ArtistItemsViewModel
 import com.music.innertube.models.AlbumItem
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.WatchEndpoint
 import com.music.innertube.models.YTItem
-import kotlinx.coroutines.launch
 
 /** what a shelf's page holds, read off its items: YouTube's titles are in the account's language */
-private enum class ItemsKind(val word: String) {
-    Songs("songs"), Albums("albums"), Videos("videos"), Playlists("playlists"), Artists("artists")
+private enum class ItemsKind(val labelRes: Int, val countRes: Int) {
+    Songs(R.string.supplemental_kind_songs, R.string.supplemental_count_songs),
+    Albums(R.string.supplemental_kind_albums, R.string.supplemental_count_albums),
+    Videos(R.string.supplemental_kind_videos, R.string.supplemental_count_videos),
+    Playlists(R.string.supplemental_kind_playlists, R.string.supplemental_count_playlists),
+    Artists(R.string.supplemental_kind_artists, R.string.supplemental_count_artists),
 }
 
 private fun kindOf(items: List<YTItem>): ItemsKind? {
@@ -134,16 +178,17 @@ fun ArtistItemsScreen(
 
     // "Albums" -> "twenty one pilots albums"; a page titled with the artist's own name says what it holds
     val heading = when {
-        kind == ItemsKind.Songs -> if (artistName.isNotBlank()) "Top $artistName songs" else pageTitle
+        kind == ItemsKind.Songs -> if (artistName.isNotBlank()) stringResource(R.string.supplemental_artist_top_songs, artistName) else pageTitle
         artistName.isBlank() -> pageTitle
-        pageTitle.isBlank() || pageTitle.equals(artistName, ignoreCase = true) -> "$artistName ${kind?.word.orEmpty()}"
-        else -> "$artistName ${pageTitle.replaceFirstChar { it.lowercase() }}"
+        pageTitle.isBlank() || pageTitle.equals(artistName, ignoreCase = true) -> stringResource(R.string.supplemental_artist_category, artistName, kind?.let { stringResource(it.labelRes) }.orEmpty())
+        else -> stringResource(R.string.supplemental_artist_category, artistName, pageTitle.replaceFirstChar { it.lowercase() })
     }
 
     var isGrid by rememberSaveable { mutableStateOf<Boolean?>(null) }
     val gridMode = isGrid ?: (kind == ItemsKind.Albums || kind == ItemsKind.Playlists || kind == ItemsKind.Artists)
 
     val lazyListState = rememberLazyListState()
+    val glide = rememberIndexGlide(lazyListState, landing = indexLandingUnderBar())
     val revealSeen = rememberRevealSeenState()
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
 
@@ -227,7 +272,7 @@ fun ArtistItemsScreen(
                 LibraryIndexRail(
                     sections = indexed.map { it.first },
                     onSectionSelected = { key ->
-                        sectionStarts[key]?.let { index -> coroutineScope.launch { lazyListState.animateScrollToItem(index) } }
+                        sectionStarts[key]?.let(glide::glideTo)
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -253,7 +298,7 @@ fun ArtistItemsScreen(
                             CreatorUi(name = it, avatarUrl = viewModel.artistId?.let { id -> dev.meowlabs.blossomtune.utils.ArtistPageCache.header(id)?.avatarUrl }, artistId = viewModel.artistId)
                         }
                     ),
-                    stats = "${songs.size} ${if (songs.size == 1) "song" else "songs"}",
+                    stats = pluralStringResource(R.plurals.supplemental_song_count, songs.size, songs.size),
                     isPlaying = isThisQueue && isPlaying,
                     onPlayClick = { if (isThisQueue) playerConnection.togglePlayPause() else playSongs() },
                     onShuffleClick = { playSongs(shuffled = true) },
@@ -262,7 +307,7 @@ fun ArtistItemsScreen(
             } else {
                 ArtistSubpageHeader(
                     title = heading,
-                    subtitle = "${items.size}${if (itemsPage?.continuation != null) "+" else ""} ${kind?.word.orEmpty()}",
+                    subtitle = kind?.let { stringResource(it.countRes, "${items.size}${if (itemsPage?.continuation != null) "+" else ""}") } ?: items.size.toString(),
                     // the artists' page is a grid of faces only
                     isGrid = if (kind == ItemsKind.Artists) null else gridMode,
                     onGridChange = { isGrid = it },
@@ -423,7 +468,7 @@ private fun ItemsRetry(onRetry: () -> Unit) {
             .padding(top = 24.dp)
     ) {
         Text(
-            text = "Couldn't load this page. Tap to try again",
+            text = stringResource(R.string.supplemental_items_retry),
             style = PlaylistStatsStyle,
             color = Color.White.copy(alpha = 0.7f),
             modifier = Modifier

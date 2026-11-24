@@ -49,6 +49,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -142,6 +143,62 @@ import dev.meowlabs.blossomtune.utils.makeTimeString
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.viewmodels.LocalPlaylistViewModel
+import dev.meowlabs.blossomtune.LocalDatabase
+import dev.meowlabs.blossomtune.LocalPlayerAwareWindowInsets
+import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.constants.AccountNameKey
+import dev.meowlabs.blossomtune.constants.PlaylistEditLockKey
+import dev.meowlabs.blossomtune.constants.PlaylistSongSortDescendingKey
+import dev.meowlabs.blossomtune.constants.PlaylistSongSortType
+import dev.meowlabs.blossomtune.constants.PlaylistSongSortTypeKey
+import dev.meowlabs.blossomtune.constants.PlaylistSortType
+import dev.meowlabs.blossomtune.constants.ProfilePicUriKey
+import dev.meowlabs.blossomtune.db.entities.PlaylistEvent
+import dev.meowlabs.blossomtune.db.entities.PlaylistSongMap
+import dev.meowlabs.blossomtune.extensions.move
+import dev.meowlabs.blossomtune.extensions.toMediaItem
+import dev.meowlabs.blossomtune.models.toMediaMetadata
+import dev.meowlabs.blossomtune.playback.ExoDownloadService
+import dev.meowlabs.blossomtune.playback.queues.ListQueue
+import dev.meowlabs.blossomtune.ui.component.HomeCardHighlight
+import dev.meowlabs.blossomtune.ui.component.BoneColor
+import dev.meowlabs.blossomtune.ui.component.DefaultDialog
+import dev.meowlabs.blossomtune.ui.component.DraggableScrollbar
+import dev.meowlabs.blossomtune.ui.component.EmptyPlaceholder
+import dev.meowlabs.blossomtune.playlistcover.PlaylistCoverStore
+import dev.meowlabs.blossomtune.ui.component.LocalMenuState
+import dev.meowlabs.blossomtune.ui.component.showEditPlaylistSheet
+import dev.meowlabs.blossomtune.ui.component.SongSwipeBox
+import dev.meowlabs.blossomtune.ui.component.TextFieldDialog
+import dev.meowlabs.blossomtune.ui.component.librarySwipeAction
+import dev.meowlabs.blossomtune.ui.component.queueSwipeAction
+import dev.meowlabs.blossomtune.ui.utils.resize
+import dev.meowlabs.blossomtune.ui.component.removeFromPlaylistSwipeAction
+import dev.meowlabs.blossomtune.ui.component.detail.CreatorUi
+import dev.meowlabs.blossomtune.ui.component.detail.rememberFeaturedArtists
+import dev.meowlabs.blossomtune.ui.component.detail.FeaturedArtistsRow
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistDetailScaffold
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistEndOfLine
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistHeader
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistSearchBar
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistModeBar
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistSectionTitle
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistSelectTick
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistSortControl
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistTrackBones
+import dev.meowlabs.blossomtune.ui.component.detail.PlaylistTrackRow
+import dev.meowlabs.blossomtune.ui.component.detail.playlistCoverHeight
+import dev.meowlabs.blossomtune.ui.component.rememberRevealSeenState
+import dev.meowlabs.blossomtune.ui.component.revealOnAppear
+import dev.meowlabs.blossomtune.ui.menu.LocalPlaylistMenu
+import dev.meowlabs.blossomtune.ui.menu.SelectionSongMenu
+import dev.meowlabs.blossomtune.ui.menu.SongMenu
+import dev.meowlabs.blossomtune.ui.utils.backToMain
+import dev.meowlabs.blossomtune.utils.makeTimeString
+import dev.meowlabs.blossomtune.utils.rememberEnumPreference
+import dev.meowlabs.blossomtune.utils.rememberPreference
+import dev.meowlabs.blossomtune.viewmodels.LocalPlaylistViewModel
 import com.music.innertube.YouTube
 import com.music.innertube.models.SongItem
 import com.music.innertube.utils.completed
@@ -151,6 +208,8 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.LocalDateTime
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+
+private val YouTubeChannelRegex = Regex("music\\.youtube\\.com/channel/([A-Za-z0-9_-]+)")
 
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -170,6 +229,7 @@ fun LocalPlaylistScreen(
     val queueTitle by playerConnection.queueTitle.collectAsState()
 
     val playlist by viewModel.playlist.collectAsState()
+    val imported by viewModel.imported.collectAsState()
     val songs by viewModel.playlistSongs.collectAsState()
     val mutableSongs = remember { mutableStateListOf<dev.meowlabs.blossomtune.db.entities.PlaylistSong>() }
     val playlistLength = remember(songs) { songs.fastSumBy { it.song.song.duration } }
@@ -373,6 +433,23 @@ fun LocalPlaylistScreen(
     }
     val featuredArtists = rememberFeaturedArtists(songs, { songs.flatMap { it.song.artists } }, id = { it.id }, name = { it.name })
     val creatorAvatar = profilePicUri.takeIf { it.isNotBlank() }?.let { if (it.contains("://")) it else "file://$it" }
+    val uriHandler = LocalUriHandler.current
+    // a playlist imported from a service credits whoever made it there, the rest are the user's own
+    val creators = remember(imported, accountName, creatorAvatar) {
+        val author = imported?.authorName
+        when {
+            author != null -> listOf(CreatorUi(name = author, avatarUrl = imported?.authorAvatarUrl))
+            accountName.isNotBlank() -> listOf(CreatorUi(name = accountName, avatarUrl = creatorAvatar))
+            else -> emptyList()
+        }
+    }
+    val onCreatorClick: ((CreatorUi) -> Unit)? = imported?.authorUrl?.let { url ->
+        { _: CreatorUi ->
+            // a youtube channel opens in the app, anything else on its own site
+            val channel = YouTubeChannelRegex.find(url)?.groupValues?.get(1)
+            if (channel != null) navController.navigate("artist/$channel") else runCatching { uriHandler.openUri(url) }
+        }
+    }
 
     fun play(items: List<dev.meowlabs.blossomtune.db.entities.PlaylistSong>, startIndex: Int = 0) {
         val current = playlist ?: return
@@ -440,7 +517,8 @@ fun LocalPlaylistScreen(
                                 }
                             }
                             else -> {
-                                songs.forEach { song ->
+                                // imported files are already on the phone, with nothing online to download
+                                songs.filterNot { it.song.song.isLocal }.forEach { song ->
                                     val downloadRequest = DownloadRequest
                                         .Builder(song.song.id, song.song.id.toUri())
                                         .setCustomCacheKey(song.song.id)
@@ -564,7 +642,8 @@ fun LocalPlaylistScreen(
                 PlaylistHeader(
                     onSearchClick = { isSearching = true },
                     title = currentPlaylist.playlist.name,
-                    creators = if (accountName.isNotBlank()) listOf(CreatorUi(name = accountName, avatarUrl = creatorAvatar)) else emptyList(),
+                    creators = creators,
+                    onCreatorClick = onCreatorClick,
                     stats = playlistStats(
                         context.resources.getQuantityString(R.plurals.n_song, songs.size, songs.size),
                         playlistLength,
@@ -830,7 +909,7 @@ fun LocalPlaylistScreen(
                                         val thumbUrl = related.playlist.thumbnailUrl ?: related.thumbnails.firstOrNull()
                                         if (thumbUrl != null) {
                                             AsyncImage(
-                                                model = thumbUrl,
+                                                model = thumbUrl.resize(320, 320),
                                                 contentDescription = null,
                                                 modifier = Modifier.fillMaxSize(),
                                                 contentScale = ContentScale.Crop

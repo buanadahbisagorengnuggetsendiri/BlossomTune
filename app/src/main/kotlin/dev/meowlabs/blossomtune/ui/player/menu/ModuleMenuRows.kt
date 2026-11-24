@@ -46,12 +46,12 @@ import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 internal fun ModuleMenuRows(song: MediaMetadata?, onDismiss: () -> Unit, onOpenRoute: ((String) -> Unit)?, onCustomise: (() -> Unit)? = null) {
     val actions = ModuleMenu.actions
     // the look's player offers its customise sheet here too, next to the module's own rows
-    val customise = ActiveSkin.current?.takeIf { it.player?.customise != null && onCustomise != null }
+    val customise = ActiveSkin.style?.takeIf { it.player.customise != null && onCustomise != null }
     if (actions.isEmpty() && customise == null) return
     val context = LocalContext.current
     Spacer(Modifier.height(16.dp))
     if (customise != null && onCustomise != null) {
-        val name = customise.player?.name ?: customise.moduleName
+        val name = customise.title
         ModuleMenuRow(stringResource(R.string.skin_customise_row, name), picture = null, enabled = true, onClick = onCustomise)
     }
     actions.forEachIndexed { index, item ->

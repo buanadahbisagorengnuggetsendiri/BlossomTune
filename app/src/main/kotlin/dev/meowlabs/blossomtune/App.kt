@@ -48,9 +48,6 @@ import timber.log.Timber
 import javax.inject.Inject
 import dev.meowlabs.blossomtune.link.isTelevision
 
-// how long after the launch intro the PoToken WebView may boot (Home's reveal runs ~1s)
-private const val PoTokenAfterIntroMillis = 2_500L
-
 // one character from each system fallback font titles commonly reach for: japanese, chinese, korean, emoji
 private const val FallbackFontWarmup = "あ漢한😀"
 
@@ -78,6 +75,8 @@ class App : Application(), SingletonImageLoader.Factory {
         AppLanguage.initialize(this)
         CrashHandler.install(this)
 
+        // share one okhttp connection pool and dispatcher between innertube, coil, and the rest of the app
+        YouTube.configureSharedPool(AppProxy.connectionPool, AppProxy.dispatcher)
         CipherDeobfuscator.initialize(this)
 
         if (BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "fast") {
@@ -135,26 +134,7 @@ class App : Application(), SingletonImageLoader.Factory {
             observeSettingsChanges()
         }
 
-        applicationScope.launch(Dispatchers.IO) {
-            // Boot BotGuard once a session id exists. Without a PoToken YouTube serves only a
-            // ~32 second preview window, and paying the engine's cold start inside the playback
-            // resolver stalls the first track instead.
-            val ready = kotlinx.coroutines.withTimeoutOrNull(60_000) {
-                while (YouTube.visitorData == null && YouTube.dataSyncId == null) {
-                    kotlinx.coroutines.delay(500)
-                }
-                true
-            }
-            if (ready == true) {
-                // its WebView boots on the main thread; let the launch intro and Home's reveal
-                // play out first. VISIONOS streams need no token, so nothing waits on this
-                dev.meowlabs.blossomtune.ui.launch.LaunchGate.awaitIntro()
-                kotlinx.coroutines.delay(PoTokenAfterIntroMillis)
-                dev.meowlabs.blossomtune.utils.YTPlayerUtils.preWarmPoToken()
-                // the player script compiles now, so the first song doesn't wait for it
-                dev.meowlabs.blossomtune.utils.YTPlayerUtils.preWarmInnerTubeX()
-            }
-        }
+        // potoken webview and innertubex both boot on demand when a song actually needs them, keeping ~80 mb of chromium and quackjs out of startup and background ram
 
         applicationScope.launch(Dispatchers.IO) {
             // a paired device can reach this phone again as soon as blossomtune is up, after the intro has had the main thread
@@ -170,6 +150,9 @@ class App : Application(), SingletonImageLoader.Factory {
             dev.meowlabs.blossomtune.ui.launch.LaunchGate.awaitIntro()
             runCatching { dev.meowlabs.blossomtune.importer.LocalArtwork.repair(this@App, musicDatabase) }
                 .onFailure { Timber.w(it, "Repairing local covers failed") }
+            // once: the cover every song of an album saved for itself becomes one shared file, and huge ones shrink
+            runCatching { dev.meowlabs.blossomtune.importer.LocalArtwork.compact(this@App) }
+                .onFailure { Timber.w(it, "Sharing out local covers failed") }
         }
 
         applicationScope.launch(Dispatchers.Default) {
@@ -212,6 +195,12 @@ class App : Application(), SingletonImageLoader.Factory {
         YouTube.ipVersion = settings[IpVersionKey]?.toEnum(defaultValue = IpVersion.AUTO) ?: IpVersion.AUTO
         dev.meowlabs.blossomtune.utils.YTPlayerUtils.backend =
             settings[StreamBackendKey]?.toEnum(defaultValue = StreamBackend.INNERTUBEX) ?: StreamBackend.INNERTUBEX
+        dev.meowlabs.blossomtune.utils.YTPlayerUtils.accountIsPremium = settings[YtAccountIsPremiumKey]
+        dev.meowlabs.blossomtune.utils.YTPlayerUtils.onPremiumDetected = { isPremium ->
+            applicationScope.launch(Dispatchers.IO) {
+                runCatching { dataStore.edit { it[YtAccountIsPremiumKey] = isPremium } }
+            }
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -267,11 +256,20 @@ class App : Application(), SingletonImageLoader.Factory {
                 .distinctUntilChanged()
                 .collect { cookie ->
                     try {
-                        YouTube.cookie = cookie
+                        YouTube.cookie = cookie?.takeIf { it.isNotBlank() }
                     } catch (e: Exception) {
                         Timber.e(e, "Could not parse cookie. Clearing existing cookie.")
                         forgetAccount(this@App)
                     }
+                }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            dataStore.data
+                .map { it[YtAccountIsPremiumKey] }
+                .distinctUntilChanged()
+                .collect { isPremium ->
+                    dev.meowlabs.blossomtune.utils.YTPlayerUtils.accountIsPremium = isPremium
                 }
         }
 
@@ -317,32 +315,25 @@ class App : Application(), SingletonImageLoader.Factory {
             dataStore.data
                 .map { it[StreamBackendKey]?.toEnum(defaultValue = StreamBackend.INNERTUBEX) ?: StreamBackend.INNERTUBEX }
                 .distinctUntilChanged()
-                .collectIndexed { index, backend ->
+                .collectIndexed { _, backend ->
                     dev.meowlabs.blossomtune.utils.YTPlayerUtils.backend = backend
-                    // a switch mid-session warms it straight away; at launch that waits for the intro, further up
-                    if (index > 0) dev.meowlabs.blossomtune.utils.YTPlayerUtils.preWarmInnerTubeX()
                 }
         }
     }
 
-    // covers are the most the app holds: half go when the phone runs short, most when the screen goes to the background, all once the system starts reclaiming background apps
+    // frees ui-only caches, webviews, kuromoji and sqlite pages when hidden or short on ram while leaving playback and dac untouched
     @Suppress("DEPRECATION")
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        val cache = SingletonImageLoader.get(this).memoryCache ?: return
-        when {
-            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> cache.clear()
-            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> cache.trimToSize(cache.size / 4)
-            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> cache.trimToSize(cache.size / 2)
-        }
+        dev.meowlabs.blossomtune.utils.AppMemory.onTrimMemory(this, level, applicationScope)
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
-        val cacheSize = runBlocking {
-            dataStore.data.map { it[MaxImageCacheSizeKey] ?: 512 }.first()
-        }
+        // read from the already-warmed preferences cache so the first image never blocks the main thread
+        val cacheSize = dev.meowlabs.blossomtune.utils.PreferencesCache.current(dataStore)[MaxImageCacheSizeKey] ?: 512
         return ImageLoader.Builder(this).apply {
             components {
+                add(coil3.network.okhttp.OkHttpNetworkFetcherFactory(callFactory = { AppProxy.sharedClient }))
                 add(SvgDecoder.Factory())
                 add(dev.meowlabs.blossomtune.utils.ImageRetry)
             }
@@ -352,7 +343,7 @@ class App : Application(), SingletonImageLoader.Factory {
 
             memoryCache {
                 MemoryCache.Builder()
-                    .maxSizePercent(context, 0.30)
+                    .maxSizePercent(context, 0.15)
                     .build()
             }
             if (cacheSize == 0) {
@@ -380,6 +371,11 @@ class App : Application(), SingletonImageLoader.Factory {
                 settings.remove(AccountNameKey)
                 settings.remove(AccountEmailKey)
                 settings.remove(AccountChannelHandleKey)
+                settings.remove(YtAccountIsPremiumKey)
+                settings.remove(LastFullSyncKey)
+                settings.remove(YtSyncHoldKey)
+                settings.remove(SelectedYtmPlaylistsKey)
+                settings.remove(YtSyncSourcesTaggedKey)
             }
             Timber.d("forgetAccount: DataStore preferences cleared")
 
@@ -388,6 +384,10 @@ class App : Application(), SingletonImageLoader.Factory {
             YouTube.cookie = null
             YouTube.visitorData = null
             YouTube.dataSyncId = null
+            dev.meowlabs.blossomtune.utils.YTPlayerUtils.accountIsPremium = null
+            dev.meowlabs.blossomtune.importer.YouTubeLikesMemory.clear(context)
+            dev.meowlabs.blossomtune.importer.PendingYouTubeLikes.clear(context)
+            dev.meowlabs.blossomtune.importer.PlaylistAddedHere.clearAll(context)
             Timber.d("forgetAccount: After - cookie=${YouTube.cookie}, visitorData=${YouTube.visitorData}, dataSyncId=${YouTube.dataSyncId}")
 
             Timber.d("forgetAccount: Clearing WebView CookieManager")

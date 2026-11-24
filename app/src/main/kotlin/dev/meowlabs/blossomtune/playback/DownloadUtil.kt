@@ -125,7 +125,7 @@ constructor(
     private val dataSourceFactory =
         ResolvingDataSource.Factory(
             OkHttpDataSource.Factory(
-                OkHttpClient.Builder()
+                dev.meowlabs.blossomtune.utils.AppProxy.sharedClient.newBuilder()
                     .dns(object : Dns {
                         override fun lookup(hostname: String): List<InetAddress> {
                             val addresses = Dns.SYSTEM.lookup(hostname)
@@ -136,11 +136,13 @@ constructor(
                             }
                         }
                     })
-                    .followAppProxy()
                     .build(),
             ),
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
+
+            // an imported file has no online copy: looking it up by name downloaded some other recording under its id
+            if (mediaId.startsWith("LOCAL_")) throw java.io.IOException("$mediaId is a file on this phone, there's nothing to download")
 
             // a tv copying a song its linked phone already has takes the phone's file, the very same song and much quicker
             dev.meowlabs.blossomtune.link.PhoneFiles.streamUrl(mediaId)?.let { return@Factory dataSpec.withUri(it.toUri()) }
@@ -295,11 +297,25 @@ constructor(
 
     init {
         val result = mutableMapOf<String, Download>()
-        val cursor = downloadManager.downloadIndex.getDownloads()
-        while (cursor.moveToNext()) {
-            result[cursor.download.request.id] = cursor.download
+        // close the sqlite cursor once the initial download map is loaded
+        downloadManager.downloadIndex.getDownloads().use { cursor ->
+            while (cursor.moveToNext()) {
+                result[cursor.download.request.id] = cursor.download
+            }
         }
         downloads.value = result
+
+        // drop expired stream urls and stale retry state when the ui hides and nothing is downloading
+        dev.meowlabs.blossomtune.utils.AppMemory.register { level ->
+            if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN && downloads.value.values.none { it.isUnderWay }) {
+                val now = System.currentTimeMillis()
+                songUrlCache.entries.removeIf { it.value.second <= now }
+                songStreamHeaders.keys.retainAll(songUrlCache.keys)
+                failedProviders.clear()
+                moduleDownloads.clear()
+                downloadItags.clear()
+            }
+        }
 
         scope.launch { followBatches() }
         scope.launch { followAutoDownloads(context) }

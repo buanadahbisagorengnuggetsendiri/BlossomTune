@@ -76,5 +76,6 @@ class MusicWidgetReceiver : AppWidgetProvider() {
         const val ACTION_NEXT = "dev.meowlabs.blossomtune.widget.NEXT"
         const val ACTION_PREVIOUS = "dev.meowlabs.blossomtune.widget.PREVIOUS"
         const val ACTION_UPDATE_WIDGET = "dev.meowlabs.blossomtune.widget.UPDATE_WIDGET"
+        const val ACTION_REPEAT = "dev.meowlabs.blossomtune.widget.REPEAT"
     }
 }

@@ -59,6 +59,7 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import kotlinx.coroutines.delay
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 // settings, the import page and the link's notification all open this; it isn't a page of its own any more
 const val DeviceIntegrationRoute = "device_integration"
@@ -105,7 +106,7 @@ private fun ColumnScope.DeviceIntegrationContent(link: DevicesLink) {
     }
     val around = remember(live, now) { link.host.liveDevices(now).associateBy { it.id } }
 
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = sheetHandleRoom())) {
         SheetTitle(stringResource(R.string.devices_title))
         Spacer(Modifier.height(14.dp))
         HeroCard()

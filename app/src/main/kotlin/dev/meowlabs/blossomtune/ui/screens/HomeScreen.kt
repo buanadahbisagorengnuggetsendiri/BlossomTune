@@ -156,6 +156,51 @@ import dev.meowlabs.blossomtune.utils.FeedVideoKind
 import dev.meowlabs.blossomtune.utils.HomeVideo
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.viewmodels.HomeCategory
+import dev.meowlabs.blossomtune.constants.HomeStyle
+import dev.meowlabs.blossomtune.constants.HomeStyleKey
+import dev.meowlabs.blossomtune.constants.ProfilePicUriKey
+import dev.meowlabs.blossomtune.constants.ThumbnailCornerRadius
+import dev.meowlabs.blossomtune.db.entities.Album
+import dev.meowlabs.blossomtune.db.entities.Artist
+import dev.meowlabs.blossomtune.db.entities.LocalItem
+import dev.meowlabs.blossomtune.db.entities.Playlist
+import dev.meowlabs.blossomtune.db.entities.Song
+import dev.meowlabs.blossomtune.extensions.toMediaItem
+import dev.meowlabs.blossomtune.LocalPlayerAwareWindowInsets
+import dev.meowlabs.blossomtune.LocalPlayerConnection
+import dev.meowlabs.blossomtune.models.ArtistGroup
+import dev.meowlabs.blossomtune.models.toMediaMetadata
+import dev.meowlabs.blossomtune.playback.queues.ListQueue
+import dev.meowlabs.blossomtune.playback.queues.YouTubeQueue
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.ui.component.ArtistListCard
+import dev.meowlabs.blossomtune.ui.component.BonesHost
+import dev.meowlabs.blossomtune.ui.component.coverTintBackground
+import dev.meowlabs.blossomtune.ui.component.HeroCarousel
+import dev.meowlabs.blossomtune.ui.component.SpeedDialSheet
+import dev.meowlabs.blossomtune.ui.screens.library.openLibraryItem
+import dev.meowlabs.blossomtune.ui.component.HomeCardCornerRadius
+import dev.meowlabs.blossomtune.ui.component.HomeCardSpacing
+import dev.meowlabs.blossomtune.ui.component.HomeContentInset
+import dev.meowlabs.blossomtune.ui.component.HomeCardHighlight
+import dev.meowlabs.blossomtune.ui.component.HomeCompactTopBones
+import dev.meowlabs.blossomtune.ui.component.HomeCoverCard
+import dev.meowlabs.blossomtune.ui.component.HomeHopInCard
+import dev.meowlabs.blossomtune.ui.component.HomeTopGlow
+import dev.meowlabs.blossomtune.ui.component.homeRowHeight
+import dev.meowlabs.blossomtune.ui.component.HomeSectionBones
+import dev.meowlabs.blossomtune.ui.component.HeroCarouselBones
+import dev.meowlabs.blossomtune.ui.launch.launchMarkTarget
+import dev.meowlabs.blossomtune.ui.launch.launchRise
+import dev.meowlabs.blossomtune.ui.launch.rememberLaunchHold
+import dev.meowlabs.blossomtune.ui.launch.ReportLaunchHomeComposed
+import dev.meowlabs.blossomtune.ui.component.HomeSectionTitle
+import dev.meowlabs.blossomtune.ui.component.HomeTrackRow
+import dev.meowlabs.blossomtune.ui.component.HomeVideoCard
+import dev.meowlabs.blossomtune.utils.FeedVideoKind
+import dev.meowlabs.blossomtune.utils.HomeVideo
+import dev.meowlabs.blossomtune.utils.rememberEnumPreference
+import dev.meowlabs.blossomtune.viewmodels.HomeCategory
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import kotlinx.coroutines.flow.drop
@@ -196,7 +241,7 @@ sealed class HomeSection(val id: String) {
     data object History : HomeSection("history")
     data object DontForgetTheseSongs : HomeSection("dont_forget_these_songs")
     data object AccountPlaylists : HomeSection("account_playlists")
-    data object SpeedDial : HomeSection("speed_dial")
+    data object Pinned : HomeSection("pinned")
     data object FromTheCommunity : HomeSection("from_the_community")
     data object ArtistList : HomeSection("artist_list")
     data object AllTimeHits : HomeSection("all_time_hits")
@@ -247,7 +292,11 @@ private fun <T> HomeCardRow(
         contentPadding = PaddingValues(horizontal = HomeContentInset),
         horizontalArrangement = Arrangement.spacedBy(HomeCardSpacing),
     ) {
-        itemsIndexed(items = items, key = { _, item -> key(item) }) { index, item ->
+        itemsIndexed(
+            items = items,
+            key = { _, item -> key(item) },
+            contentType = { _, _ -> rowKey },
+        ) { index, item ->
             Box(
                 modifier = Modifier.revealOnAppear(
                     key = "$rowKey/${key(item)}",
@@ -287,7 +336,11 @@ private fun <T> HomeTrackGrid(
             .fillMaxWidth()
             .height(homeRowHeight() * rows + rowSpacing * (rows - 1)),
     ) {
-        itemsIndexed(items = items, key = key) { index, item ->
+        itemsIndexed(
+            items = items,
+            key = key,
+            contentType = { _, _ -> "home_track_grid" },
+        ) { index, item ->
             Box(modifier = Modifier.width(columnWidth)) {
                 content(index, item)
             }
@@ -319,6 +372,17 @@ private fun HomeCompactTop(
     }
 }
 
+private val HomeCardShape = RoundedCornerShape(HomeCardCornerRadius)
+private val CommunityThumbShape = RoundedCornerShape(12.dp)
+private val CommunityCardScrim = Brush.verticalGradient(
+    colors = listOf(
+        Color.Transparent,
+        Color.Transparent,
+        Color.Black.copy(alpha = 0.7f),
+        Color.Black.copy(alpha = 0.9f),
+    )
+)
+
 @Composable
 fun CommunityPlaylistCard(
     item: CommunityPlaylistItem,
@@ -332,8 +396,8 @@ fun CommunityPlaylistCard(
             .width(276.dp)
             .height(344.dp)
             .containerTransformSource("playlist-${item.playlist.id}", coverUrl = item.playlist.thumbnail)
-            .clip(RoundedCornerShape(HomeCardCornerRadius)),
-        shape = RoundedCornerShape(HomeCardCornerRadius),
+            .clip(HomeCardShape),
+        shape = HomeCardShape,
         onClick = onClick
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -374,7 +438,7 @@ fun CommunityPlaylistCard(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .size(84.dp)
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .clip(CommunityThumbShape)
                                 )
                             }
                         }
@@ -386,7 +450,7 @@ fun CommunityPlaylistCard(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .size(84.dp)
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .clip(CommunityThumbShape)
                                 )
                             }
                         }
@@ -397,16 +461,7 @@ fun CommunityPlaylistCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.7f),
-                                Color.Black.copy(alpha = 0.9f)
-                            )
-                        )
-                    )
+                    .background(brush = CommunityCardScrim)
             )
 
             Column(
@@ -681,6 +736,7 @@ fun HomeScreen(
     val homeCategories by viewModel.homeCategories.collectAsState()
 
     val speedDialItems by viewModel.speedDialItems.collectAsState()
+    val pinnedItems by viewModel.pinnedItems.collectAsState()
     val lastPlayedSong by viewModel.lastPlayedSong.collectAsState()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
@@ -930,6 +986,59 @@ fun HomeScreen(
     }
 
     // the same card for anything that came from YouTube
+    // shown over whatever sheet is up, so a speed dial tile's menu goes back to the speed dial
+    val showYtItemMenu: (YTItem) -> Unit = { item ->
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        menuState.show {
+            when (item) {
+                is SongItem -> YouTubeSongMenu(
+                    song = item,
+                    navController = navController,
+                    onDismiss = menuState::dismiss
+                )
+                is AlbumItem -> YouTubeAlbumMenu(
+                    albumItem = item,
+                    navController = navController,
+                    onDismiss = menuState::dismiss
+                )
+                is ArtistItem -> YouTubeArtistMenu(
+                    artist = item,
+                    onDismiss = menuState::dismiss
+                )
+                is PlaylistItem -> YouTubePlaylistMenu(
+                    playlist = item,
+                    coroutineScope = scope,
+                    onDismiss = menuState::dismiss,
+                    onImportedPlaylist = { playlistId ->
+                        navController.navigate("local_playlist/$playlistId")
+                    }
+                )
+            }
+        }
+    }
+
+    // the speed dial's covers for the hero card, and the sheet it summons
+    val speedDialCovers = remember(speedDialItems) {
+        speedDialItems.mapNotNull { it.thumbnail?.takeIf(String::isNotEmpty) }.distinct().take(16)
+    }
+    val speedDialOwner = accountName.takeUnless { it.isBlank() || it == "Guest" }
+    val openSpeedDial: () -> Unit = {
+        menuState.show(fullBleed = true) {
+            SpeedDialSheet(
+                items = viewModel.speedDialItems,
+                pinnedItems = viewModel.pinnedItems,
+                ownerName = speedDialOwner,
+                avatarUrl = profileImageUrl,
+                onOpen = { item ->
+                    menuState.dismissAll()
+                    openLibraryItem(item, navController, playerConnection)
+                },
+                onMenu = showYtItemMenu,
+                onDismiss = menuState::dismissAll,
+            )
+        }
+    }
+
     val ytItemCard: @Composable (YTItem) -> Unit = { item ->
         HomeCoverCard(
             title = item.title,
@@ -960,40 +1069,13 @@ fun HomeScreen(
                         is ArtistItem -> navController.navigate("artist/${item.id}")
                         is PlaylistItem -> when {
                             item.id == "liked" -> navController.navigate("auto_playlist/liked")
-                            item.author?.name == "Local Playlist" -> navController.navigate("local_playlist/${item.id}")
+                            // a pinned library playlist keeps its local id but has no author
+                            item.author?.name == "Local Playlist" || item.id.startsWith("LP") -> navController.navigate("local_playlist/${item.id}")
                             else -> navController.navigate("online_playlist/${item.id}")
                         }
                     }
                 },
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    menuState.show {
-                        when (item) {
-                            is SongItem -> YouTubeSongMenu(
-                                song = item,
-                                navController = navController,
-                                onDismiss = menuState::dismiss
-                            )
-                            is AlbumItem -> YouTubeAlbumMenu(
-                                albumItem = item,
-                                navController = navController,
-                                onDismiss = menuState::dismiss
-                            )
-                            is ArtistItem -> YouTubeArtistMenu(
-                                artist = item,
-                                onDismiss = menuState::dismiss
-                            )
-                            is PlaylistItem -> YouTubePlaylistMenu(
-                                playlist = item,
-                                coroutineScope = scope,
-                                onDismiss = menuState::dismiss,
-                                onImportedPlaylist = { playlistId ->
-                                    navController.navigate("local_playlist/$playlistId")
-                                }
-                            )
-                        }
-                    }
-                }
+                onLongClick = { showYtItemMenu(item) }
             ),
         )
     }
@@ -1144,10 +1226,10 @@ fun HomeScreen(
             }
 
             if (recentlyPlayed?.isNotEmpty() == true) list.add(HomeSection.RecentlyPlayed)
+            if (pinnedItems.isNotEmpty()) list.add(HomeSection.Pinned)
             if (mostPlayedSongsForHome?.isNotEmpty() == true) list.add(HomeSection.MostPlayed)
             addCategories()
             if (communityPlaylists?.isNotEmpty() == true) list.add(HomeSection.FromTheCommunity)
-            if (speedDialItems.isNotEmpty()) list.add(HomeSection.SpeedDial)
             if (recentHistorySongs?.isNotEmpty() == true) list.add(HomeSection.History)
             addCategories()
             // the two video banners sit apart, so the big frames break the feed up instead of piling up
@@ -1162,11 +1244,12 @@ fun HomeScreen(
             if (musicVideoRow?.isNotEmpty() == true) list.add(HomeSection.MusicVideos)
             addCategories(categories.size)
 
-            // YouTube's live and music video shelves already sit inside the rows above
+            // youtube's live and video shelves sit in the rows above, and its speed dial behind the hero when there is one
             val homePageSections = homePage?.sections.orEmpty()
                 .mapIndexed { index, section -> index to section }
-                .filter { (index, _) ->
-                    feedVideoKinds[index] != FeedVideoKind.Live && feedVideoKinds[index] != FeedVideoKind.MusicVideos
+                .filter { (index, section) ->
+                    feedVideoKinds[index] != FeedVideoKind.Live && feedVideoKinds[index] != FeedVideoKind.MusicVideos &&
+                        !(section.isSpeedDial && homeStyle == HomeStyle.MOCHYY)
                 }
             homePageSections.firstOrNull()?.let { (index, section) -> list.add(HomeSection.HomePageSection(index, section.title)) }
             if (allTimeHits?.isNotEmpty() == true) list.add(HomeSection.AllTimeHits)
@@ -1333,6 +1416,8 @@ fun HomeScreen(
                                 similarRecommendations = similarRecommendations,
                                 onRepeat = mostPlayedSongsForHome,
                                 forgottenFavorites = forgottenFavorites,
+                                speedDialCovers = speedDialCovers,
+                                onSummonSpeedDial = openSpeedDial,
                                 modifier = Modifier.launchRise(order = 1),
                             )
                         }
@@ -1407,16 +1492,13 @@ fun HomeScreen(
                 // nothing but bones while the launch intro plays; the rows reveal once it lands
                 if (!launchHold) homeSections.forEach { section ->
                     when (section) {
-                        HomeSection.SpeedDial -> {
-                            speedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
-                                homeItem("speed_dial_title", revealSeen, "title") {
-                                    HomeSectionTitle(
-                                        title = stringResource(R.string.speed_dial),
-                                        onClick = { navController.navigate("section_detail/speed_dial") }
-                                    )
+                        HomeSection.Pinned -> {
+                            pinnedItems.takeIf { it.isNotEmpty() }?.let { items ->
+                                homeItem("pinned_title", revealSeen, "title") {
+                                    HomeSectionTitle(title = stringResource(R.string.library_pinned))
                                 }
-                                homeItem("speed_dial_list", revealSeen, "cardRow") {
-                                    HomeCardRow("speed_dial", items, revealSeen, key = { it.id }, content = ytItemCard)
+                                homeItem("pinned_list", revealSeen, "cardRow") {
+                                    HomeCardRow("pinned", items, revealSeen, key = { it.id }, content = ytItemCard)
                                 }
                             }
                         }

@@ -43,6 +43,15 @@ import dev.meowlabs.blossomtune.eq.SpatialSettings
 import dev.meowlabs.blossomtune.eq.VolumeSettings
 import dev.meowlabs.blossomtune.eq.stage.StageSettings
 import dev.meowlabs.blossomtune.ui.component.damageBoundary
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.eq.LoudnessSettings
+import dev.meowlabs.blossomtune.eq.EightDSettings
+import dev.meowlabs.blossomtune.eq.PlaybackSettings
+import dev.meowlabs.blossomtune.eq.ReverbSettings
+import dev.meowlabs.blossomtune.eq.SpatialSettings
+import dev.meowlabs.blossomtune.eq.VolumeSettings
+import dev.meowlabs.blossomtune.eq.stage.StageSettings
+import dev.meowlabs.blossomtune.ui.component.damageBoundary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
@@ -54,6 +63,7 @@ internal fun activeEffects(
     reverb: ReverbSettings,
     loudness: LoudnessSettings,
     spatial: SpatialSettings,
+    eightD: EightDSettings,
     playback: PlaybackSettings,
     volume: VolumeSettings,
     stage: StageSettings,
@@ -62,6 +72,7 @@ internal fun activeEffects(
     if (reverb.enabled) add(ActiveEffect("reverb", "Reverb"))
     if (loudness.enabled) add(ActiveEffect("loudness", "Loudness"))
     if (spatial.enabled) add(ActiveEffect("spatial", "Spatial"))
+    if (eightD.enabled) add(ActiveEffect("eight_d", "8D Audio"))
     if (spatial.surround) add(ActiveEffect("surround", "Surround"))
     if (spatial.mono) add(ActiveEffect("mono", "Mono"))
     if (!playback.isNormal) add(ActiveEffect("playback", "Playback"))

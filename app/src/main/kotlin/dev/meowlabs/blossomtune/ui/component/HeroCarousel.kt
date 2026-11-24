@@ -382,11 +382,12 @@ internal fun heroCarouselItems(
     keepListening: List<dev.meowlabs.blossomtune.db.entities.LocalItem>?,
     starterItems: List<HeroCarouselItem>,
     showGacha: Boolean,
+    speedDial: SpeedDialHeroItem? = null,
 ): List<HeroCarouselItem> = buildList {
     lastPlayedSong?.let { add(KeepListeningItem(it, isLastPlayed = true)) }
 
-    // the gacha comes straight after the first card, so the first auto-advance shows it;
-    // buried behind the recommendations, most people never got that far
+    // speed dial and the gacha follow the first card; buried behind the picks, most people never got that far
+    speedDial?.let(::add)
     if (showGacha) add(GachaItem)
 
     val discover = dailyDiscover?.take(4).orEmpty()
@@ -403,7 +404,7 @@ internal fun heroCarouselItems(
     // the user's own playlists between the recommendations, a couple at a time
     addAll(playlistPicks.take(2))
 
-    val regular = count { it !is GachaItem }
+    val regular = count { !it.isSpecialCard }
     if (regular < 5) {
         keepListening?.filterIsInstance<dev.meowlabs.blossomtune.db.entities.Song>()
             ?.filter { song -> none { it.mediaId == song.id } }
@@ -414,8 +415,11 @@ internal fun heroCarouselItems(
     }
 
     // nothing played yet: start from the imported playlists or the picked artists' songs
-    if (none { it !is GachaItem }) addAll(starterItems.take(5))
+    if (none { !it.isSpecialCard }) addAll(starterItems.take(5))
 }
+
+// the gacha and speed dial cards aren't picks, so they don't count toward the hero's five
+private val HeroCarouselItem.isSpecialCard: Boolean get() = this is GachaItem || this is SpeedDialHeroItem
 
 /**
  * the extra cards, one per related row (its first song, else its first anything) plus a song on
@@ -599,8 +603,11 @@ fun HeroCarousel(
     similarRecommendations: List<SimilarRecommendation>? = null,
     onRepeat: List<dev.meowlabs.blossomtune.db.entities.Song>? = null,
     forgottenFavorites: List<dev.meowlabs.blossomtune.db.entities.Song>? = null,
+    speedDialCovers: List<String> = emptyList(),
+    onSummonSpeedDial: () -> Unit = {},
 ) {
     val showGacha = gachaPool.size >= GachaMinPool
+    val speedDial = remember(speedDialCovers) { speedDialCovers.takeIf { it.isNotEmpty() }?.let(::SpeedDialHeroItem) }
     // only the first song of each list is used, so a reload that reshuffles the tails doesn't
     // rebuild the pager
     val extras = remember(
@@ -608,8 +615,8 @@ fun HeroCarousel(
         onRepeat?.firstOrNull()?.id,
         forgottenFavorites?.firstOrNull()?.id,
     ) { extraHeroPicks(similarRecommendations, onRepeat, forgottenFavorites) }
-    val carouselItems = remember(keepListening, lastPlayedSong, dailyDiscover, showGacha, starterItems, playlistPicks, extras) {
-        heroCarouselItems(lastPlayedSong, dailyDiscover, extras, playlistPicks, keepListening, starterItems, showGacha)
+    val carouselItems = remember(keepListening, lastPlayedSong, dailyDiscover, showGacha, starterItems, playlistPicks, extras, speedDial) {
+        heroCarouselItems(lastPlayedSong, dailyDiscover, extras, playlistPicks, keepListening, starterItems, showGacha, speedDial)
     }
 
     val heroHeight = heroHeight()
@@ -641,6 +648,7 @@ fun HeroCarousel(
                     navController = navController,
                     heroScrollProgressProvider = heroScrollProgressProvider,
                     gachaPool = gachaPool,
+                    onSummonSpeedDial = onSummonSpeedDial,
                 )
             }
         }
@@ -673,6 +681,7 @@ private fun HeroPager(
     navController: NavController,
     heroScrollProgressProvider: () -> Float,
     gachaPool: List<MediaMetadata>,
+    onSummonSpeedDial: () -> Unit,
 ) {
     WhiteStatusIcons()
     val context = LocalContext.current
@@ -858,7 +867,15 @@ private fun HeroPager(
             modifier = Modifier.fillMaxSize()
         ) { page ->
             val item = items[page.mod(items.size)]
-            if (item is GachaItem) {
+            if (item is SpeedDialHeroItem) {
+                SpeedDialHeroPage(
+                    item = item,
+                    pageOffset = { pagerState.offsetOf(page) },
+                    wipeCurve = { wipeCurve },
+                    transitionBlur = edgeBlur,
+                    onSummon = onSummonSpeedDial,
+                )
+            } else if (item is GachaItem) {
                 GachaPage(
                     state = gacha,
                     pageOffset = { pagerState.offsetOf(page) },
@@ -1136,7 +1153,7 @@ private fun BoxScope.HeroBlurBand(
  * (it's under every frame of the hero's video, the scroll-away and the switch)
  */
 @Composable
-private fun BoxScope.HeroScrims() {
+internal fun BoxScope.HeroScrims() {
     Box(
         modifier = Modifier
             .matchParentSize()
@@ -1193,19 +1210,20 @@ private fun heroScrimBlack(gradient: Float): Color = Color.Black.copy(alpha = 1f
 
 /** label, title and pill, sitting on the hero's bottom left like the Figma */
 @Composable
-private fun HeroText(
-    label: HeroLabel,
+internal fun HeroText(
+    label: HeroLabel?,
     title: String,
     pill: HeroPillKind,
     onPillClick: () -> Unit,
     modifier: Modifier = Modifier,
     pillEnabled: Boolean = true,
+    titleStyle: androidx.compose.ui.text.TextStyle = HomeTitleStyle,
 ) {
     val bottom = if (isWideLayout() && isLandscapeWindow() && !isTvLayout()) LandscapeHeroTextBottom else 64.dp
     Column(
         modifier = modifier.padding(start = HomeContentInset, end = HomeContentInset, bottom = bottom)
     ) {
-        HeroLabelLine(label)
+        label?.let { HeroLabelLine(it) }
         AnimatedContent(
             targetState = title,
             transitionSpec = { heroLabelSwap() },
@@ -1213,7 +1231,7 @@ private fun HeroText(
         ) { text ->
             Text(
                 text = text,
-                style = HomeTitleStyle,
+                style = titleStyle,
                 color = Color.White,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -1261,7 +1279,7 @@ private fun HeroLabelLine(label: HeroLabel) {
     }
 }
 
-private enum class HeroPillKind { Play, Pause, View, Roll, Rolling }
+internal enum class HeroPillKind { Play, Pause, View, Roll, Rolling, Summon, Random, Picking }
 
 /**
  * the 33dp light pill from the Figma: dark glyph and label on white at 64%. it squishes under the
@@ -1269,7 +1287,7 @@ private enum class HeroPillKind { Play, Pause, View, Roll, Rolling }
  * pill eases to its new width.
  */
 @Composable
-private fun HeroPill(
+internal fun HeroPill(
     kind: HeroPillKind,
     onClick: () -> Unit,
     enabled: Boolean = true,
@@ -1295,10 +1313,10 @@ private fun HeroPill(
                     .padding(
                         start = when (current) {
                             HeroPillKind.Play, HeroPillKind.Pause -> 21.dp
-                            HeroPillKind.View -> 17.dp
-                            HeroPillKind.Roll, HeroPillKind.Rolling -> 11.dp
+                            HeroPillKind.View, HeroPillKind.Summon -> 17.dp
+                            HeroPillKind.Roll, HeroPillKind.Rolling, HeroPillKind.Random, HeroPillKind.Picking -> 11.dp
                         },
-                        end = if (current == HeroPillKind.Roll || current == HeroPillKind.Rolling) 13.dp else 17.dp,
+                        end = if (current.hasDie) 13.dp else 17.dp,
                     )
             ) {
                 when (current) {
@@ -1313,11 +1331,11 @@ private fun HeroPill(
                         )
                         Spacer(Modifier.width(9.dp))
                     }
-                    HeroPillKind.Roll, HeroPillKind.Rolling -> {
-                        GachaDie(spinning = current == HeroPillKind.Rolling)
+                    HeroPillKind.Roll, HeroPillKind.Rolling, HeroPillKind.Random, HeroPillKind.Picking -> {
+                        GachaDie(spinning = current == HeroPillKind.Rolling || current == HeroPillKind.Picking)
                         Spacer(Modifier.width(8.dp))
                     }
-                    HeroPillKind.View -> Unit
+                    HeroPillKind.View, HeroPillKind.Summon -> Unit
                 }
                 Text(
                     text = when (current) {
@@ -1326,11 +1344,14 @@ private fun HeroPill(
                         HeroPillKind.View -> stringResource(R.string.pc_hero_view)
                         HeroPillKind.Roll -> stringResource(R.string.pc_hero_roll)
                         HeroPillKind.Rolling -> stringResource(R.string.pc_hero_rolling)
+                        HeroPillKind.Summon -> stringResource(R.string.speed_dial_summon)
+                        HeroPillKind.Random -> stringResource(R.string.speed_dial_random)
+                        HeroPillKind.Picking -> stringResource(R.string.speed_dial_picking)
                     },
                     style = HomeLabelStyle,
                     color = HeroPillContent,
                 )
-                if (current == HeroPillKind.View) {
+                if (current == HeroPillKind.View || current == HeroPillKind.Summon) {
                     Spacer(Modifier.width(5.dp))
                     Icon(
                         painter = painterResource(R.drawable.arrow_forward),
@@ -1343,6 +1364,9 @@ private fun HeroPill(
         }
     }
 }
+
+private val HeroPillKind.hasDie: Boolean
+    get() = this == HeroPillKind.Roll || this == HeroPillKind.Rolling || this == HeroPillKind.Random || this == HeroPillKind.Picking
 
 private fun <S> AnimatedContentTransitionScope<S>.heroGlyphSwap(): ContentTransform =
     (scaleIn(initialScale = 0.6f, animationSpec = spring(dampingRatio = 0.55f, stiffness = 650f)) + fadeIn(tween(130)))
@@ -1518,6 +1542,7 @@ private suspend fun gachaTint(context: Context, url: String): GachaTint? = withC
         .data(url)
         .size(64)
         .allowHardware(false)
+        .memoryCachePolicy(coil3.request.CachePolicy.DISABLED)
         .build()
     val bitmap = context.imageLoader.execute(request).image?.toBitmap() ?: return@withContext null
     val palette = Palette.from(bitmap).maximumColorCount(12).generate()

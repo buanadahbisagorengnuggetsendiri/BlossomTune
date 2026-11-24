@@ -47,6 +47,14 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
 import dev.meowlabs.blossomtune.ui.screens.update.VersionRing
 import dev.meowlabs.blossomtune.ui.screens.update.openUrl
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.R
+import dev.meowlabs.blossomtune.ui.component.PopupSheetState
+import dev.meowlabs.blossomtune.ui.component.RemoteFocus
+import dev.meowlabs.blossomtune.ui.component.pressBounce
+import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
+import dev.meowlabs.blossomtune.ui.screens.update.VersionRing
+import dev.meowlabs.blossomtune.ui.screens.update.openUrl
+import dev.meowlabs.blossomtune.ui.component.sheetHandleRoom
 
 
 // the title tucks up over her faded bottom by this much, like the mock
@@ -69,6 +77,8 @@ private fun DonateSheetContent() {
     val scroll = rememberScrollState()
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val characterWidth = characterWidth(maxWidth, maxHeight)
+        // the page starts under the sheet's handle now, so the ring and the first row sit that much lower
+        val room = sheetHandleRoom()
 
         VersionRing(
             text = "BLOSSOMTUNE MUSIC",
@@ -85,7 +95,7 @@ private fun DonateSheetContent() {
                                 maxHeight = Constraints.Infinity,
                             )
                         val placeable = measurable.measure(loose)
-                        layout(0, 0) { placeable.place(x = (-198).dp.roundToPx(), y = (-109).dp.roundToPx()) }
+                        layout(0, 0) { placeable.place(x = (-198).dp.roundToPx(), y = (room - 109.dp).roundToPx()) }
                     }.graphicsLayer { translationY = -scroll.value.toFloat() },
         )
 
@@ -94,6 +104,7 @@ private fun DonateSheetContent() {
                 Modifier
                     .fillMaxWidth()
                     .verticalScroll(scroll)
+                    .padding(top = room)
                     .padding(horizontal = 26.dp),
         ) {
             Spacer(Modifier.height(CharacterTop))

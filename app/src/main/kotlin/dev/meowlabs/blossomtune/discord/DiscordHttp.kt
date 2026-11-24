@@ -2,19 +2,13 @@
 
 package dev.meowlabs.blossomtune.discord
 
-import kotlinx.coroutines.suspendCancellableCoroutine
-import okhttp3.Call
-import okhttp3.Callback
+import dev.meowlabs.blossomtune.utils.await
 import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
-import java.io.IOException
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 /** BlossomTune's calls to Discord's web API and gateway, sharing one connection pool. */
 internal object DiscordHttp {
@@ -22,6 +16,8 @@ internal object DiscordHttp {
 
     val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .dispatcher(dev.meowlabs.blossomtune.utils.AppProxy.dispatcher)
+            .connectionPool(dev.meowlabs.blossomtune.utils.AppProxy.connectionPool)
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
@@ -56,14 +52,5 @@ internal object DiscordHttp {
             body = response.body?.string().orEmpty(),
             retryAfterSeconds = response.header("Retry-After")?.toDoubleOrNull(),
         )
-    }
-
-    private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
-        continuation.invokeOnCancellation { cancel() }
-        enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) = continuation.resumeWithException(e)
-            override fun onResponse(call: Call, response: Response) =
-                continuation.resume(response) { _, unused, _ -> unused.close() }
-        })
     }
 }

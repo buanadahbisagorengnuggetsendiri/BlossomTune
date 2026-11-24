@@ -18,9 +18,27 @@ import dev.meowlabs.blossomtune.modules.skin.appliedLook
 import dev.meowlabs.blossomtune.modules.web.ManifestSettings
 import dev.meowlabs.blossomtune.modules.web.WebModuleManifest
 import dev.meowlabs.blossomtune.modules.web.resolveModuleArt
+import dev.meowlabs.blossomtune.module.AccountState
+import dev.meowlabs.blossomtune.module.LookModule
+import dev.meowlabs.blossomtune.module.ModuleArt
+import dev.meowlabs.blossomtune.module.ModuleField
+import dev.meowlabs.blossomtune.module.ModuleFields
+import dev.meowlabs.blossomtune.module.ModuleHost
+import dev.meowlabs.blossomtune.module.ModuleInfo
+import dev.meowlabs.blossomtune.module.NO_ACCOUNT_LABEL
+import dev.meowlabs.blossomtune.modules.skin.ModuleSkin
+import dev.meowlabs.blossomtune.modules.skin.SkinGlass
+import dev.meowlabs.blossomtune.modules.skin.SkinParser
+import dev.meowlabs.blossomtune.modules.skin.SkinSource
+import dev.meowlabs.blossomtune.modules.skin.appliedLook
+import dev.meowlabs.blossomtune.modules.web.FieldRange
+import dev.meowlabs.blossomtune.modules.web.FieldRanges
+import dev.meowlabs.blossomtune.modules.web.ManifestSettings
+import dev.meowlabs.blossomtune.modules.web.WebModuleManifest
+import dev.meowlabs.blossomtune.modules.web.resolveModuleArt
 import java.io.File
 
-internal class LocalModule(private val manifest: WebModuleManifest, files: File?) : LookModule, ModuleArt, ModuleFields, SkinSource {
+internal class LocalModule(private val manifest: WebModuleManifest, files: File?) : LookModule, ModuleArt, ModuleFields, SkinSource, FieldRanges {
 
     override val info = ModuleInfo(
         id = idFor(manifest),
@@ -30,7 +48,7 @@ internal class LocalModule(private val manifest: WebModuleManifest, files: File?
         author = manifest.author,
     )
 
-    override val skin: ModuleSkin? = SkinParser.parse(info.id, info.name, manifest.player, manifest.font, manifest.pages, files, base = null, manifest.actions, manifest.glass)
+    override val skin: ModuleSkin? = SkinParser.parse(info.id, info.name, manifest.player, manifest.font, manifest.pages, files, base = null, manifest.actions, manifest.glass, manifest.players, manifest.bar, manifest.mini)
 
     override val icon: String? = resolveModuleArt(manifest.icon, files, base = null)
 
@@ -39,6 +57,8 @@ internal class LocalModule(private val manifest: WebModuleManifest, files: File?
     private val settings = ManifestSettings(manifest)
 
     override val fields: List<ModuleField> get() = settings.fields
+
+    override val ranges: Map<String, FieldRange> get() = settings.ranges
 
     override fun onFields(values: Map<String, String>) {
         settings.values = values

@@ -4,7 +4,6 @@ package dev.meowlabs.blossomtune.ui.screens.audiolab
 
 import android.content.Context
 import android.media.AudioManager
-import android.media.MediaCodecList
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
@@ -68,19 +67,24 @@ fun AudioFxScreen(
     val reverb by viewModel.reverb.collectAsState()
     val loudness by viewModel.loudness.collectAsState()
     val spatial by viewModel.spatial.collectAsState()
+    val eightD by viewModel.eightD.collectAsState()
     val playback by viewModel.playback.collectAsState()
     val volume by viewModel.volume.collectAsState()
     val stage by viewModel.stage.collectAsState()
-    val effects = activeEffects(reverb, loudness, spatial, playback, volume, stage)
+    val effects = activeEffects(reverb, loudness, spatial, eightD, playback, volume, stage)
 
     AudioLabPage(
         title = LabTitle(stringResource(R.string.fx_title_audio), "FX", firstSize = 40.sp, secondSize = 84.sp, firstDim = true),
         onBack = { navController.navigateUp() },
         art = { hidden -> FxCardStack(effects, hidden) },
     ) {
+        FxPresetsSection(viewModel)
+        Spacer(Modifier.height(24.dp))
         dev.meowlabs.blossomtune.ui.screens.audiolab.stage.StageCard(viewModel) { navController.navigate("audio_stage") }
         Spacer(Modifier.height(14.dp))
         ReverbCard(viewModel)
+        Spacer(Modifier.height(14.dp))
+        EightDAudioCard(viewModel)
         Spacer(Modifier.height(14.dp))
         LoudnessCard(viewModel)
         Spacer(Modifier.height(14.dp))
@@ -334,13 +338,9 @@ private fun AtmosCard(viewModel: AudioLabViewModel) {
 
 private class AtmosSupport(@StringRes val decoder: Int, @StringRes val spatializer: Int)
 
-/** what this phone can do with an atmos stream: decode it, and spatialise it itself */
+/** what this phone can do with an atmos stream: decode it (system codec or bundled ffmpeg), and spatialise it itself */
 private fun atmosSupport(context: Context): AtmosSupport {
-    val decoder = runCatching {
-        MediaCodecList(MediaCodecList.ALL_CODECS).codecInfos.any { info ->
-            !info.isEncoder && info.supportedTypes.any { it.equals("audio/eac3-joc", ignoreCase = true) }
-        }
-    }.getOrDefault(false)
+    val decoder = dev.meowlabs.blossomtune.modules.DeviceDecoders.canPlay("DOLBY ATMOS")
     val spatializer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S_V2) spatializerState(context) else R.string.fx_atmos_needs_android
     return AtmosSupport(if (decoder) R.string.fx_atmos_yes else R.string.fx_atmos_not_on_phone, spatializer)
 }

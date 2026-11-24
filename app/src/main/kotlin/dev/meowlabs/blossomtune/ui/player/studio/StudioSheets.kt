@@ -64,6 +64,28 @@ import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.constants.DiscLabelContent
+import dev.meowlabs.blossomtune.constants.DiscLabelContentKey
+import dev.meowlabs.blossomtune.constants.DiscNameKey
+import dev.meowlabs.blossomtune.constants.PlayerCoverStyle
+import dev.meowlabs.blossomtune.constants.PlayerEndTimestamp
+import dev.meowlabs.blossomtune.constants.PlayerEndTimestampKey
+import dev.meowlabs.blossomtune.ui.component.AppSwitch
+import dev.meowlabs.blossomtune.ui.component.ButtonStyle
+import dev.meowlabs.blossomtune.constants.FlagshipTransportLayout
+import dev.meowlabs.blossomtune.ui.player.flagship.TransportLayoutPreview
+import dev.meowlabs.blossomtune.ui.component.PlayerTransportButtons
+import dev.meowlabs.blossomtune.ui.component.SeekBarStyle
+import dev.meowlabs.blossomtune.ui.component.SeekBarTrack
+import dev.meowlabs.blossomtune.ui.component.TransportColors
+import dev.meowlabs.blossomtune.ui.player.customize.CoverOption
+import dev.meowlabs.blossomtune.ui.player.customize.options
+import dev.meowlabs.blossomtune.ui.player.menu.LineSlider
+import dev.meowlabs.blossomtune.ui.player.menu.LocalMenuSheetClose
+import dev.meowlabs.blossomtune.ui.player.menu.MenuRowSurface
+import dev.meowlabs.blossomtune.ui.player.menu.MenuSheetSurface
+import dev.meowlabs.blossomtune.utils.rememberEnumPreference
+import dev.meowlabs.blossomtune.utils.rememberPreference
 
 /** the sheet the editor has open, if any */
 @Composable
@@ -200,6 +222,7 @@ fun StudioSheets(
                     when (option) {
                         is CoverOption.Switch -> SwitchRow(option)
                         is CoverOption.Text -> TextRow(option.title, option.description, option.key, option.placeholder)
+                        is CoverOption.Slider -> SliderRow(option)
                     }
                 }
             }
@@ -379,6 +402,27 @@ internal fun SwitchRow(option: CoverOption.Switch) {
         Spacer(Modifier.width(16.dp))
         Box(Modifier.weight(1f)) { TwoLines(option.title, option.description) }
         AppSwitch(checked = checked, onCheckedChange = { stored = if (option.inverted) !it else it }, enabled = parentOn)
+    }
+}
+
+@Composable
+private fun SliderRow(option: CoverOption.Slider) {
+    var stored by rememberPreference(option.key, defaultValue = option.default)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp))
+            .background(MenuRowSurface)
+            .padding(horizontal = 22.dp, vertical = 14.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(painterResource(option.icon), null, tint = Color.White, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(16.dp))
+            Box(Modifier.weight(1f)) { TwoLines(option.title, option.description) }
+            Text("${(stored * 100).toInt()}%", color = Color.White.copy(alpha = 0.55f), style = studioText(StudioType.Caption, FontWeight.Medium))
+        }
+        Spacer(Modifier.height(6.dp))
+        LineSlider(value = stored, onValueChange = { stored = it })
     }
 }
 
