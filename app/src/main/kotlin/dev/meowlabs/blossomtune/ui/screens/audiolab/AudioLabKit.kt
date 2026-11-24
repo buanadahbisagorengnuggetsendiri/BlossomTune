@@ -126,6 +126,10 @@ object LabColors {
         @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) BlossomColors.Petal else BlossomColors.Ink
     val Secondary: Color
         @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFFD3A9B6) else BlossomColors.DeepRose
+    /** teks redup di atas pill/baris yang gelap di kedua mode (quality pills, provider order):
+     *  pill-nya tidak ikut mode, jadi warnanya dipaku terang di kedua mode. Nilainya sama
+     *  dengan Secondary di mode gelap, jadi render gelap tidak berubah. */
+    val OnDark: Color = Color(0xFFD3A9B6)
     val Faint: Color
         @Composable @ReadOnlyComposable get() = if (LocalBlossomDark.current) Color(0xFFA98A96) else BlossomColors.InkMuted
     val Ink: Color

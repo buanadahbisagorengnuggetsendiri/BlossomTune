@@ -142,7 +142,7 @@ fun ProviderOrder(
                         Column(Modifier.weight(1f).graphicsLayer { alpha = if (on) 1f else 0.5f }) {
                             Text(name(id), fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White, maxLines = 1)
                             status(id)?.let {
-                                Text(it, fontFamily = InterFontFamily, fontSize = 11.sp, color = LabColors.Secondary, maxLines = 1)
+                                Text(it, fontFamily = InterFontFamily, fontSize = 11.sp, color = LabColors.OnDark, maxLines = 1)
                             }
                         }
                         // the handle: dragging it moves the row, a tap on it does nothing rather than reaching the row and switching the provider

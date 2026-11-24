@@ -2,6 +2,7 @@ package dev.meowlabs.blossomtune.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -168,4 +169,18 @@ class PaletteContrastTest {
         assertReadable(BlossomColors.White, DarkPalette.background, "tinta pemutar gelap di latar malam")
     }
 
+
+    /**
+     * Pill/baris kualitas di layar Audio Quality gelap di kedua mode, jadi deskripsinya
+     * tidak boleh pakai Secondary yang ikut mode (Deep Rose di terang = 2.62 di atas
+     * #111113). [LabColors.OnDark] dipaku terang dan harus lolos AA di semua latar
+     * pill yang dipakai: #111113, #2A2A2E (terpilih), #242428 (baris terangkat).
+     */
+    @Test
+    fun darkQualityPills_keepDescriptionReadableInBothModes() {
+        assertReadable(LabColors.OnDark, Color(0xFF111113), "deskripsi quality di pill gelap")
+        assertReadable(LabColors.OnDark, Color(0xFF2A2A2E), "deskripsi quality di pill terpilih")
+        assertReadable(LabColors.OnDark, Color(0xFF242428), "status provider di baris terangkat")
+    }
 }
+

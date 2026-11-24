@@ -327,7 +327,7 @@ internal fun QualityRow(title: String, description: String, selected: Boolean, e
     ) {
         Column(Modifier.weight(1f)) {
             Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
-            Text(description, fontFamily = InterFontFamily, fontSize = 11.sp, lineHeight = 14.sp, color = LabColors.Secondary)
+            Text(description, fontFamily = InterFontFamily, fontSize = 11.sp, lineHeight = 14.sp, color = LabColors.OnDark)
         }
         Spacer(Modifier.width(10.dp))
         Box(

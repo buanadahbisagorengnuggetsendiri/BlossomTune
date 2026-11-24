@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
@@ -473,7 +474,7 @@ fun HomeTrackRow(
                 text = title,
                 songId = songId,
                 style = HomeCardTitleStyle.copy(fontSize = 15.sp),
-                color = if (isActive) Color.White else Color.White.copy(alpha = 0.92f),
+                color = if (isActive) MaterialTheme.colorScheme.primary else BlossomInk.Primary,
             )
             if (!subtitle.isNullOrEmpty()) {
                 Text(
