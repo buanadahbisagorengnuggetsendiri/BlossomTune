@@ -33,6 +33,12 @@ class PaletteContrastTest {
         assertTrue("$where: kontras %.2f < 4.5".format(r), r >= 4.5)
     }
 
+    /** Teks besar (lirik): ambang WCAG AA untuk teks besar adalah 3:1, bukan 4.5. */
+    private fun assertLargeTextReadable(fg: Color, bg: Color, where: String) {
+        val r = contrast(fg, bg)
+        assertTrue("$where: kontras %.2f < 3.0".format(r), r >= 3.0)
+    }
+
     @Test
     fun darkPalette_isReadableOnEverySurface() {
         assertReadable(DarkPalette.onBackground, DarkPalette.background, "teks di latar")
@@ -198,6 +204,89 @@ class PaletteContrastTest {
         assertReadable(LabColors.OnDark, Color(0xFF363636), "detail Top Result di artwork putih")
         assertReadable(BlossomColors.Petal, Color(0xFF612134), "judul Top Result di artwork Dancin'")
         assertReadable(LabColors.OnDark, Color(0xFF612134), "detail Top Result di artwork Dancin'")
+    }
+
+    /**
+     * 0.6.5: baris judul player memakai scrim Night + font Petal di KEDUA mode,
+     * jadi judul, artis, dan hati harus lolos AA di atas Night, bukan cuma di mode gelap.
+     */
+    @Test
+    fun playerTitleRow_isReadableOnDarkScrimInBothModes() {
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "judul player di scrim malam")
+        assertReadable(
+            BlossomColors.Petal.copy(alpha = 0.7f).compositeOver(BlossomColors.Night),
+            BlossomColors.Night,
+            "artis player di scrim malam",
+        )
+        assertReadable(BlossomColors.Blossom, BlossomColors.Night, "hati liked di scrim malam")
+        assertReadable(
+            BlossomColors.Petal.copy(alpha = 0.85f).compositeOver(BlossomColors.Night),
+            BlossomColors.Night,
+            "hati belum-like di scrim malam",
+        )
+    }
+
+    /**
+     * 0.6.5: lirik duduk di atas halaman Petal (terang) / Night (gelap). Baris aktif
+     * tinta primer penuh; baris berikut primer 0.65 (segera) dan 0.55 (nanti),
+     * teks besar jadi ambangnya 3:1.
+     */
+    @Test
+    fun lyricsLines_areReadableInBothModes() {
+        assertReadable(BlossomColors.Ink, BlossomColors.Petal, "lirik aktif di halaman terang")
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "lirik aktif di halaman gelap")
+        assertLargeTextReadable(
+            BlossomColors.Ink.copy(alpha = 0.65f).compositeOver(BlossomColors.Petal),
+            BlossomColors.Petal,
+            "lirik berikut di halaman terang",
+        )
+        assertLargeTextReadable(
+            BlossomColors.Ink.copy(alpha = 0.55f).compositeOver(BlossomColors.Petal),
+            BlossomColors.Petal,
+            "lirik nanti di halaman terang",
+        )
+        assertLargeTextReadable(
+            BlossomColors.Petal.copy(alpha = 0.65f).compositeOver(BlossomColors.Night),
+            BlossomColors.Night,
+            "lirik berikut di halaman gelap",
+        )
+        assertLargeTextReadable(
+            BlossomColors.Petal.copy(alpha = 0.55f).compositeOver(BlossomColors.Night),
+            BlossomColors.Night,
+            "lirik nanti di halaman gelap",
+        )
+    }
+
+    /**
+     * 0.6.5: menu player, tombol transport, baris Next Song, dan kartu Turntable
+     * semuanya duduk di atas latar gelap (foto blur / kartu hitam), jadi tintanya
+     * Petal di kedua mode.
+     */
+    @Test
+    fun playerControlsOnDarkArtwork_areReadable() {
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "label menu di atas foto gelap")
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "judul Turntable di atas kartu gelap")
+        assertReadable(
+            BlossomColors.Petal.copy(alpha = 0.65f).compositeOver(BlossomColors.Night),
+            BlossomColors.Night,
+            "artis Turntable di atas kartu gelap",
+        )
+        assertReadable(
+            BlossomColors.Petal.copy(alpha = 0.7f).compositeOver(BlossomColors.Night),
+            BlossomColors.Night,
+            "label Next Song di atas foto gelap",
+        )
+        assertReadable(
+            BlossomColors.Petal.copy(alpha = 0.55f).compositeOver(BlossomColors.Night),
+            BlossomColors.Night,
+            "judul Next Song di atas foto gelap",
+        )
+        assertReadable(
+            BlossomColors.Ink,
+            BlossomColors.Petal.copy(alpha = 0.92f).compositeOver(BlossomColors.Night),
+            "teks hold badge di atas pill Petal",
+        )
+        assertReadable(BlossomColors.Petal, Color(0xFF262626), "tombol Edit/Set di pemilih gaya")
     }
 }
 

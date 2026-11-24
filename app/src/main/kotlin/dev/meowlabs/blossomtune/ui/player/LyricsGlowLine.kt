@@ -132,9 +132,9 @@ internal fun blurEffectForRadius(radius: Float): androidx.compose.ui.graphics.Re
         .also { BlurEffectCache[step] = it }
 }
 
-private const val UpcomingAlpha = 0.5f
+private const val UpcomingAlpha = 0.65f
 private const val PastAlpha = 0.24f
-private const val DefaultAlpha = 0.38f
+private const val DefaultAlpha = 0.55f
 
 /** How bright a line rests in [state]. The lyrics share starts its flying copy from here too. */
 internal fun restingAlphaOf(state: LyricsLineState): Float = when (state) {
@@ -287,10 +287,18 @@ fun LyricsGlowLine(
         spec = tween(durationMillis = 350),
     )
 
-    val baseColor = LocalContentColor.current
+    // on the page the lines sit on the Petal/Night sheet, so they take the theme ink
+    // (dark by day, Petal by night) instead of the white the old glow assumed; over
+    // cover art (blend != null) they stay white, soft-lit on the photo, as before.
+    val pageInk = dev.meowlabs.blossomtune.ui.theme.BlossomInk.Primary
+    val baseColor = if (blend != null) LocalContentColor.current else pageInk
     // eased with the alpha and scale, and read only while drawing so the fade doesn't recompose the line every frame
     val lineColor = dev.meowlabs.blossomtune.ui.utils.animateColorOnChange(
-        target = if (state == LyricsLineState.ACTIVE) Color.White else baseColor,
+        target = if (state == LyricsLineState.ACTIVE) {
+            if (blend != null) Color.White else pageInk
+        } else {
+            baseColor
+        },
         spec = tween(durationMillis = 600),
     )
     val textColor = remember(lineColor) { ColorProducer { lineColor.value } }

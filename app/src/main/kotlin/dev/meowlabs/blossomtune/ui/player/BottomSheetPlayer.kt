@@ -130,6 +130,7 @@ import kotlin.math.abs
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
@@ -2274,13 +2275,13 @@ private fun ExpandMenuOverlay(
                             val label: @Composable () -> Unit = {
                             androidx.compose.material3.Text(
                                 text = labelText,
-                                style = chevronMenuLabelStyle(PlayerInk, 14.sp),
+                                style = chevronMenuLabelStyle(BlossomColors.Petal, 14.sp),
                                 modifier = Modifier.padding(start = if (fromLeft) 4.dp else 0.dp, end = if (fromLeft) 0.dp else 4.dp)
                             )
                             }
 
-                            val iconTint = if (isToggled) PlayerInk else PlayerInk.copy(alpha = 0.85f)
-                            val containerColor = if (isToggled) PlayerInk.copy(alpha = 0.32f) else PlayerInk.copy(alpha = 0.16f)
+                            val iconTint = if (isToggled) BlossomColors.Petal else BlossomColors.Petal.copy(alpha = 0.85f)
+                            val containerColor = if (isToggled) BlossomColors.Petal.copy(alpha = 0.32f) else BlossomColors.Petal.copy(alpha = 0.16f)
 
                             if (!fromLeft) label()
                             PressScaleActionButton(

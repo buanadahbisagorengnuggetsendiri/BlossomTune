@@ -68,10 +68,8 @@ import androidx.compose.foundation.layout.width
 import dev.meowlabs.blossomtune.constants.ShowFormatBadgeKey
 import dev.meowlabs.blossomtune.constants.ShowFormatSampleRateKey
 import dev.meowlabs.blossomtune.ui.theme.BlossomColors
-import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
-import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 
 @Composable
 fun SongInfoRow(
@@ -120,10 +118,11 @@ fun SongInfoRow(
     val (showSampleRate) = rememberPreference(ShowFormatSampleRateKey, defaultValue = false)
 
     // The title and artist sit straight on the cover photo, so they need their
-    // own backing: a soft band of the mode's surface (Petal by day, Night by
-    // night) that fades out above and below the row instead of a hard card.
-    // It fades with the title itself when a page takes over (infoAlpha).
-    val scrimColor = if (LocalBlossomDark.current) BlossomColors.Night else BlossomColors.Petal
+    // own backing: a soft band of Night in both modes, with Petal words on it,
+    // because a light band stays unsafe over bright or busy artwork. It fades
+    // out above and below the row instead of a hard card, and with the title
+    // itself when a page takes over (infoAlpha).
+    val scrimColor = BlossomColors.Night
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -231,7 +230,7 @@ fun SongInfoRow(
             }
         }
 
-        val likeAccent = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
+        val likeAccent = BlossomColors.Blossom
         Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             val sidePlaced = (onSidePlaced?.let { Modifier.onGloballyPositioned(it) } ?: Modifier)
                 .onGloballyPositioned { onSidePositioned(it.boundsInRoot()) }
@@ -240,8 +239,8 @@ fun SongInfoRow(
             if (sideAction == dev.meowlabs.blossomtune.ui.player.studio.PlayerMenuAction.LIKE) {
                 PressScaleActionButton(
                     icon = if (trackInfo.liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-                    tint = if (trackInfo.liked) likeAccent else PlayerInk.copy(alpha = 0.85f),
-                    containerColor = if (trackInfo.liked) likeAccent.copy(alpha = 0.30f) else PlayerInk.copy(alpha = 0.15f),
+                    tint = if (trackInfo.liked) likeAccent else BlossomColors.Petal.copy(alpha = 0.85f),
+                    containerColor = if (trackInfo.liked) likeAccent.copy(alpha = 0.30f) else BlossomColors.Petal.copy(alpha = 0.15f),
                     onClick = {
                         if (likeBurst != null) {
                             likeBurst.likeFromButton(LikeSlot.PLAYER, trackInfo.liked, playerConnection::toggleLike)
@@ -255,8 +254,8 @@ fun SongInfoRow(
             } else {
                 PressScaleActionButton(
                     icon = sideAction.icon,
-                    tint = if (sideActive) PlayerInk else PlayerInk.copy(alpha = 0.85f),
-                    containerColor = if (sideActive) PlayerInk.copy(alpha = 0.30f) else PlayerInk.copy(alpha = 0.15f),
+                    tint = if (sideActive) BlossomColors.Petal else BlossomColors.Petal.copy(alpha = 0.85f),
+                    containerColor = if (sideActive) BlossomColors.Petal.copy(alpha = 0.30f) else BlossomColors.Petal.copy(alpha = 0.15f),
                     onClick = { onSideAction(sideAction) },
                     hasShadow = false,
                     modifier = sidePlaced,
@@ -292,12 +291,12 @@ private fun RowChevron(open: () -> Boolean, hidden: () -> Boolean, onClick: () -
         animationSpec = spring(dampingRatio = 0.55f, stiffness = 380f)
     )
     val chevronBgColor by animateColorAsState(
-        targetValue = if (isOpen) PlayerInk.copy(alpha = 0.32f) else PlayerInk.copy(alpha = 0.15f),
+        targetValue = if (isOpen) BlossomColors.Petal.copy(alpha = 0.32f) else BlossomColors.Petal.copy(alpha = 0.15f),
         label = "chevronBgColor",
         animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
     )
     val chevronTint by animateColorAsState(
-        targetValue = if (isOpen) PlayerInk else PlayerInk.copy(alpha = 0.90f),
+        targetValue = if (isOpen) BlossomColors.Petal else BlossomColors.Petal.copy(alpha = 0.90f),
         label = "chevronTint",
         animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
     )
@@ -354,7 +353,7 @@ private fun SongLines(
             FadingOverflowText(
                 text = title,
                 style = androidx.compose.material3.MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = PlayerInk,
+                color = BlossomColors.Petal,
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .graphicsLayer { alpha = infoAlpha() },
@@ -380,6 +379,7 @@ private fun SongLines(
                     Spacer(Modifier.width(8.dp))
                     StreamFormatBadge(
                         text = badge ?: lastBadge[0].orEmpty(),
+                        color = BlossomColors.Petal.copy(alpha = 0.55f),
                         modifier = if (onBadgeClick != null) {
                             Modifier.clickable(interactionSource = null, indication = RemoteFocus, onClick = onBadgeClick)
                         } else Modifier,
@@ -395,7 +395,7 @@ private fun SongLines(
                 style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = PlayerInk.copy(alpha = 0.7f),
+                color = BlossomColors.Petal.copy(alpha = 0.7f),
                 modifier = Modifier
                     .fillMaxWidth()
                     .graphicsLayer { alpha = infoAlpha() }

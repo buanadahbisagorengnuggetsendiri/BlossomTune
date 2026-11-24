@@ -71,7 +71,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
-import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 
 // a card a row above the one in view is gone: it fades as it slides up out of the way
 private fun rowLeaving(row: Int, rowPosition: Float): Float = (1f - (rowPosition - row)).coerceIn(0f, 1f)
@@ -450,7 +450,7 @@ fun PlayerSelectorOverlay(
                     Icon(
                         painter = painterResource(R.drawable.arrow_back_ios),
                         contentDescription = stringResource(R.string.back_button_desc),
-                        tint = BlossomInk.Primary,
+                        tint = BlossomColors.Petal,
                         modifier = Modifier.size(15.dp).offset(x = 2.dp),
                     )
                 }
@@ -458,7 +458,7 @@ fun PlayerSelectorOverlay(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(stringResource(R.string.ps_studio_styles), color = BlossomInk.Primary, style = studioText(StudioType.Title, FontWeight.Bold))
+                    Text(stringResource(R.string.ps_studio_styles), color = BlossomColors.Petal, style = studioText(StudioType.Title, FontWeight.Bold))
                     AnimatedContent(
                         // a module style goes by the name its look gives it, and its sub-style's
                         targetState = styles.getOrNull(focused)?.let { style ->
@@ -471,7 +471,7 @@ fun PlayerSelectorOverlay(
                         },
                         label = "selectorStyleName",
                     ) { name ->
-                        Text(name, color = BlossomInk.Primary.copy(alpha = 0.6f), style = studioText(StudioType.Subtitle, FontWeight.Medium))
+                        Text(name, color = BlossomColors.Petal.copy(alpha = 0.6f), style = studioText(StudioType.Subtitle, FontWeight.Medium))
                     }
                 }
             }
@@ -544,7 +544,7 @@ private fun CardButton(
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = label, color = BlossomInk.Primary.copy(alpha = if (dimmed) 0.35f else 1f), style = studioText(StudioType.Button))
+        Text(text = label, color = BlossomColors.Petal.copy(alpha = if (dimmed) 0.35f else 1f), style = studioText(StudioType.Button))
     }
 }
 

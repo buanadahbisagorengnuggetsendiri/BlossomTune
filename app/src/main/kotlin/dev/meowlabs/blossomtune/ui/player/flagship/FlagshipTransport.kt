@@ -270,8 +270,8 @@ private fun PlayButton(
     val press = pressScale(source)
     val glyph = rememberPlayGlyph(playing)
     val description = stringResource(if (playing) R.string.flagship_pause else R.string.flagship_play)
-    // cakram play biru: glifnya putih di kedua tema
-    val glyphColor = if (circle) BlossomColors.White else PlayerInk
+    // cakram play: glifnya terang di kedua tema
+    val glyphColor = if (circle) BlossomColors.White else BlossomColors.Petal
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -340,7 +340,7 @@ private fun SkipButton(
 ) {
     val scope = rememberCoroutineScope()
     val cycle = remember { SkipCycleState() }
-    val ink = PlayerInk
+    val ink = BlossomColors.Petal
     val source = remember { MutableInteractionSource() }
     val press = pressScale(source)
     var holding by remember { mutableStateOf(false) }
@@ -395,7 +395,7 @@ private fun SkipButton(
         if (badge > 0.01f) {
             Text(
                 text = holdLabel,
-                color = Color.Black,
+                color = BlossomColors.Ink,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -408,7 +408,7 @@ private fun SkipButton(
                         translationY = -(4.dp.toPx() + 12.dp.toPx() * badge)
                     }
                     .clip(RoundedCornerShape(50))
-                    .background(PlayerInk.copy(alpha = 0.92f))
+                    .background(BlossomColors.Petal.copy(alpha = 0.92f))
                     .padding(horizontal = 9.dp, vertical = 2.dp),
             )
         }
@@ -545,7 +545,7 @@ private fun RepeatButton(
             },
     ) {
         Box(contentAlignment = Alignment.Center) {
-            RepeatIcon(iconSize, spin = { spin.value * 28f })
+            RepeatIcon(iconSize, spin = { spin.value * 28f }, tint = BlossomColors.Petal)
             if (one > 0.01f) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -589,7 +589,7 @@ private fun ActiveDot(lit: () -> Float, offsetY: Dp) {
                 scaleX = a
                 scaleY = a
             }
-            .background(PlayerInk, CircleShape),
+            .background(BlossomColors.Petal, CircleShape),
     )
 }
 
@@ -603,11 +603,11 @@ private fun QueueIcon(size: DpSize) {
 }
 
 @Composable
-private fun RepeatIcon(size: DpSize, spin: () -> Float = { 0f }) {
+private fun RepeatIcon(size: DpSize, spin: () -> Float = { 0f }, tint: Color = PlayerInk) {
     Image(
         painter = painterResource(R.drawable.repeat),
         contentDescription = null,
-        colorFilter = ColorFilter.tint(PlayerInk),
+        colorFilter = ColorFilter.tint(tint),
         modifier = Modifier
             .size(size)
             .graphicsLayer { rotationZ = spin() },

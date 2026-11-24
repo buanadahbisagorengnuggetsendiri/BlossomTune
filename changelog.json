@@ -1,5 +1,22 @@
 [
   {
+    "versionName": "0.6.5",
+    "publishedAt": "2026-11-24",
+    "summary": "Baris judul player kini selalu gelap dengan font putih di kedua mode, lirik dan kontrol player lebih terbaca di atas artwork gelap, dan kartu Turntable di pemilih gaya kini kontras.",
+    "sections": [
+      {
+        "title": "Player",
+        "items": [
+          "Baris judul player penuh kini memakai scrim Night dan font Petal di mode terang maupun gelap, jadi tetap terbaca di atas artwork apa pun.",
+          "Hati lagu yang disukai di player kini Cherry Blossom di kedua mode.",
+          "Lirik: baris aktif kini tinta gelap di mode terang dan putih di mode gelap, baris berikutnya lebih tegas di kedua mode.",
+          "Menu player, tombol prev/play/next, dan baris Next Song kini memakai tinta terang di atas latar gelap.",
+          "Kartu Turntable di pemilih gaya: judul, artis, dan tombol kini terang di atas kartu gelap, tombol Edit dan Set juga diperbaiki."
+        ]
+      }
+    ]
+  },
+ {
     "versionName": "0.6.4",
     "publishedAt": "2026-11-24",
     "summary": "Tema Cherry Blossom kini menyeluruh di mode terang dan gelap, logo baru bunga sakura, profil Buana, dan semua tautan diarahkan ke repo BlossomTune.",

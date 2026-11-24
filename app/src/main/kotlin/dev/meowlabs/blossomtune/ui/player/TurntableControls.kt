@@ -51,8 +51,6 @@ import dev.meowlabs.blossomtune.constants.ShowFormatSampleRateKey
 import dev.meowlabs.blossomtune.extensions.togglePlayPause
 import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
-import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
-import dev.meowlabs.blossomtune.ui.theme.PlayerInk
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 
@@ -66,9 +64,9 @@ private val PillHeight = 42.dp
 private val PillGap = 11.dp
 private val ChevronSize = 43.dp
 private val SideMargin = 30.dp
-// a pill's fill follows the player ink: white glass over the dark player, ink glass over the ice page
+// a pill's fill follows the turntable ink: pale glass over the dark record and cover gradient
 private val PillFill: Color
-    @Composable get() = PlayerInk.copy(alpha = 0.10f)
+    @Composable get() = BlossomColors.Petal.copy(alpha = 0.10f)
 /** between the stack and the title row, on top of the stack's own gap */
 private val TitleGap = 4.dp
 
@@ -167,17 +165,17 @@ fun TurntableControls(
  */
 @Composable
 fun TurntablePills(modifier: Modifier = Modifier, likeBurst: LikeBurstState? = null, horizontal: Boolean = false,
-    /** the Turntable wears these on its rose page; the Poster wears them over its cover photo, so it passes white */
-    ink: Color = PlayerInk,
+    /** the Turntable wears these over its dark record and cover gradient, so its own ink is Petal; the Poster wears them over its cover photo, so it passes white */
+    ink: Color = BlossomColors.Petal,
 ) {
     val pillFill = ink.copy(alpha = 0.10f)
     val connection = LocalPlayerConnection.current ?: return
     val track by connection.uiState.trackInfo.collectAsState()
     val transport by connection.uiState.transportState.collectAsState()
     val liked = track.liked
-    val likeAccent = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
-    // the Poster passes white for its cover photo; only the Turntable's own ink turns rose when liked
-    val likeTint = if (ink == PlayerInk) likeAccent else ink
+    val likeAccent = BlossomColors.Blossom
+    // the Poster passes white for its cover photo; only the Turntable's own ink turns blossom when liked
+    val likeTint = if (ink == BlossomColors.Petal) likeAccent else ink
     val likeFill = if (liked) likeTint.copy(alpha = 0.15f) else pillFill
 
     val holdSpeed = remember(connection) { HoldSpeed(connection.player) }
@@ -314,7 +312,7 @@ private fun ChevronButton(open: () -> Boolean, hidden: () -> Boolean, onClick: (
             androidx.compose.foundation.Image(
                 painter = painterResource(R.drawable.expand_less),
                 contentDescription = null,
-                colorFilter = ColorFilter.tint(PlayerInk.copy(alpha = 0.9f)),
+                colorFilter = ColorFilter.tint(BlossomColors.Petal.copy(alpha = 0.9f)),
                 modifier = Modifier
                     .size(20.dp)
                     .graphicsLayer { rotationZ = rotation },
@@ -369,7 +367,7 @@ private fun TitleLines(mediaId: String, title: String, artist: String, modifier:
                     lineHeight = 31.sp,
                     letterSpacing = (-0.035).em,
                 ),
-                color = PlayerInk,
+                color = BlossomColors.Petal,
                 modifier = Modifier.weight(1f, fill = false),
             )
             if (badge != null) {
@@ -394,7 +392,7 @@ private fun TitleLines(mediaId: String, title: String, artist: String, modifier:
                     fontSize = 17.sp,
                     lineHeight = 20.sp,
                     letterSpacing = (-0.02).em,
-                    color = PlayerInk.copy(alpha = 0.65f),
+                    color = BlossomColors.Petal.copy(alpha = 0.65f),
                 ),
             )
         }
