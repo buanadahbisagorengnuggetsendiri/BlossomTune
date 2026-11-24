@@ -168,6 +168,7 @@ private fun ColumnScope.AddDeviceContent(link: DevicesLink, sheets: PopupSheetSt
 // this phone's code in big type, with a barcode strip made from it and a line saying which device it is
 @Composable
 private fun PairingCodeBlock(code: PairingCode?) {
+    val barColor = BlossomInk.Primary.copy(alpha = 0.85f)
     val digits = code?.code ?: "––––––"
     Text(
         digits.take(3) + "  " + digits.drop(3),
@@ -183,7 +184,7 @@ private fun PairingCodeBlock(code: PairingCode?) {
         val unit = size.width / bars.sum()
         var x = 0f
         bars.forEachIndexed { index, width ->
-            if (index % 2 == 0) drawRect(Color.White.copy(alpha = 0.85f), Offset(x, 0f), Size(width * unit, size.height))
+            if (index % 2 == 0) drawRect(barColor, Offset(x, 0f), Size(width * unit, size.height))
             x += width * unit
         }
     }
@@ -237,7 +238,7 @@ private fun LookingRow() {
                         .size(6.dp)
                         .graphicsLayer { alpha = if (phase.toInt() == index) 0.9f else 0.25f }
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(BlossomInk.Primary),
                 )
             }
         }
@@ -279,7 +280,7 @@ private fun EnterCodeField(enabled: Boolean, onCode: (String) -> Unit) {
         enabled = enabled,
         singleLine = true,
         textStyle = TextStyle(fontFamily = InterFontFamily, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = BlossomInk.Primary, letterSpacing = 4.sp),
-        cursorBrush = SolidColor(Color.White),
+        cursorBrush = SolidColor(BlossomInk.Primary),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
         modifier = Modifier
             .fillMaxWidth()

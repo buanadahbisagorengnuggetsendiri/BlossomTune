@@ -81,10 +81,14 @@ import dev.meowlabs.blossomtune.ui.component.bleedHorizontally
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabBackButton
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabCard
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.BlossomSurface
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import dev.meowlabs.blossomtune.constants.PlayerSwipeDownAnywhereKey
 import dev.meowlabs.blossomtune.constants.PlayerSwipeUpFollowsKey
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabToggleRow
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.utils.rememberEnumPreference
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.utils.stableStatusBars
@@ -175,7 +179,7 @@ fun CustomisationScreen(navController: NavController) {
             contentAlignment = Alignment.TopCenter,
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(BlossomSurface.page)
                 .verticalScroll(scroll),
         ) {
             val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
@@ -201,7 +205,7 @@ fun CustomisationScreen(navController: NavController) {
                         Text(
                             text = stringResource(R.string.customise_title),
                             style = PageTitleStyle.copy(fontSize = 26.sp, lineHeight = 30.sp),
-                            color = Color.White,
+                            color = BlossomInk.Primary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -214,7 +218,7 @@ fun CustomisationScreen(navController: NavController) {
                 } else {
                     LabBackButton(onBack = { navController.navigateUp() })
                     Spacer(Modifier.height(14.dp))
-                    Text(text = stringResource(R.string.customise_title), style = PageTitleStyle, color = Color.White)
+                    Text(text = stringResource(R.string.customise_title), style = PageTitleStyle, color = BlossomInk.Primary)
                     Spacer(Modifier.height(16.dp))
                     SubSettingsSearchBar(query = query, onQueryChange = { query = it })
                     Spacer(Modifier.height(18.dp))
@@ -225,7 +229,7 @@ fun CustomisationScreen(navController: NavController) {
                         text = stringResource(R.string.customise_nothing_matches, query),
                         fontFamily = InterFontFamily,
                         fontSize = 15.sp,
-                        color = Color.White.copy(alpha = 0.6f),
+                        color = BlossomInk.Muted,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp),
                     )
                 } else if (landscape && shown.size > 1) {
@@ -353,7 +357,7 @@ private fun GestureSection() {
                 fontSize = 24.sp,
                 letterSpacing = (-0.05).em,
             ),
-            color = Color.White,
+            color = BlossomInk.Primary,
         )
         Spacer(Modifier.height(14.dp))
         SwipeCard(
@@ -384,6 +388,7 @@ private fun Modifier.highlightTarget(keys: List<String>): Modifier {
     val settingsScroll = LocalSettingsScroll.current
     val density = LocalDensity.current
     val placement = remember { SettingsPlacement() }
+    val flashColor = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
     LaunchedEffect(keys) {
         // watched, not keyed on: clearing the request restarted the effect and cut it off before it scrolled
         snapshotFlow { SettingsHighlight.pending }.filter { it in keys }.collect {
@@ -404,7 +409,7 @@ private fun Modifier.highlightTarget(keys: List<String>): Modifier {
             val a = flash.value
             if (a > 0f) {
                 drawRoundRect(
-                    color = Color.White.copy(alpha = 0.9f * a),
+                    color = flashColor.copy(alpha = 0.9f * a),
                     cornerRadius = CornerRadius(22.dp.toPx()),
                     style = Stroke(width = 2.dp.toPx()),
                 )
@@ -416,7 +421,7 @@ private fun Modifier.highlightTarget(keys: List<String>): Modifier {
 private fun SectionRule() {
     HorizontalDivider(
         thickness = 1.dp,
-        color = Color.White.copy(alpha = 0.1f),
+        color = BlossomInk.Divider,
         modifier = Modifier.padding(top = 18.dp, bottom = 20.dp),
     )
 }

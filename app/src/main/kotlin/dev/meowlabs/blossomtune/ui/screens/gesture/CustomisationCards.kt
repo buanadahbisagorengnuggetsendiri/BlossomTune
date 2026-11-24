@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -67,7 +68,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
@@ -97,7 +101,8 @@ private val ArcGap = 19.dp
 private val ArcTail = 12.dp
 
 // the outline round the style that's in use
-private val HighlightColor = Color.White.copy(alpha = 0.9f)
+private val HighlightColor: Color
+    @Composable @ReadOnlyComposable get() = (if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose).copy(alpha = 0.9f)
 
 internal val CardLabelStyle = TextStyle(
     fontFamily = InterFontFamily,
@@ -107,14 +112,15 @@ internal val CardLabelStyle = TextStyle(
     letterSpacing = (-0.03).em,
 )
 
-internal val CardValueStyle = TextStyle(
-    fontFamily = InterFontFamily,
-    fontWeight = FontWeight.Bold,
-    fontSize = 32.sp,
-    lineHeight = 34.sp,
-    letterSpacing = (-0.045).em,
-    color = Color.White,
-)
+internal val CardValueStyle: TextStyle
+    @Composable @ReadOnlyComposable get() = TextStyle(
+        fontFamily = InterFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        lineHeight = 34.sp,
+        letterSpacing = (-0.045).em,
+        color = BlossomInk.Primary,
+    )
 
 internal val SmallLabelStyle = TextStyle(
     fontFamily = InterFontFamily,
@@ -189,12 +195,12 @@ fun CoverRoundingSection(
 internal fun CardTitle(title: String, canReset: Boolean, onReset: (() -> Unit)?) {
     val haptic = LocalHapticFeedback.current
     Row(modifier = Modifier.padding(start = CardTextInset, top = CardTextInset)) {
-        Text(text = title, style = CardLabelStyle, color = Color.White.copy(alpha = 0.9f))
+        Text(text = title, style = CardLabelStyle, color = BlossomInk.Primary.copy(alpha = 0.9f))
         if (onReset != null) {
             Icon(
                 painter = painterResource(R.drawable.refresh),
                 contentDescription = stringResource(R.string.customise_reset),
-                tint = Color.White.copy(alpha = if (canReset) 0.8f else 0.25f),
+                tint = BlossomInk.Primary.copy(alpha = if (canReset) 0.8f else 0.25f),
                 modifier = Modifier
                     // lifted so the icon sits on the title's first line, not below it
                     .offset(x = 2.dp, y = (-9).dp)
@@ -231,8 +237,8 @@ internal fun CustomiseSliderCard(
             .padding(start = CardTextInset, end = CardTextInset, top = 16.dp, bottom = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(text = title, style = SliderTitleStyle, color = Color.White, modifier = Modifier.weight(1f))
-            if (valueText != null) Text(text = valueText, style = SliderTitleStyle, color = Color.White.copy(alpha = 0.7f))
+            Text(text = title, style = SliderTitleStyle, color = BlossomInk.Primary, modifier = Modifier.weight(1f))
+            if (valueText != null) Text(text = valueText, style = SliderTitleStyle, color = BlossomInk.Muted)
         }
         Spacer(Modifier.height(4.dp))
         BareSlider(fraction = fraction, onFractionChange = onFractionChange, enabled = enabled)
@@ -240,8 +246,8 @@ internal fun CustomiseSliderCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(startLabel, style = SmallLabelStyle, color = Color.White.copy(alpha = 0.5f))
-            Text(endLabel, style = SmallLabelStyle, color = Color.White.copy(alpha = 0.5f))
+            Text(startLabel, style = SmallLabelStyle, color = BlossomInk.Muted)
+            Text(endLabel, style = SmallLabelStyle, color = BlossomInk.Muted)
         }
     }
 }
@@ -293,6 +299,8 @@ private fun RoundingSwatch(radiusPx: Float, modifier: Modifier) {
 private fun BareSlider(fraction: Float, onFractionChange: (Float) -> Unit, enabled: Boolean) {
     var widthPx by remember { mutableFloatStateOf(1f) }
     val shown = fraction.coerceIn(0f, 1f)
+    val trackColor = BlossomInk.Divider
+    val fillColor = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
     val currentShown by androidx.compose.runtime.rememberUpdatedState(shown)
     val currentOnChange by androidx.compose.runtime.rememberUpdatedState(onFractionChange)
 
@@ -324,8 +332,8 @@ private fun BareSlider(fraction: Float, onFractionChange: (Float) -> Unit, enabl
         val stroke = 3.dp.toPx()
         val start = stroke / 2f
         val end = size.width - stroke / 2f
-        drawLine(Color.White.copy(alpha = 0.2f), Offset(start, y), Offset(end, y), stroke, StrokeCap.Round)
-        drawLine(Color.White, Offset(start, y), Offset(start + (end - start) * shown, y), stroke, StrokeCap.Round)
+        drawLine(trackColor, Offset(start, y), Offset(end, y), stroke, StrokeCap.Round)
+        drawLine(fillColor, Offset(start, y), Offset(start + (end - start) * shown, y), stroke, StrokeCap.Round)
     }
 }
 
@@ -393,7 +401,7 @@ private fun StyleCaption(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = CaptionStyle,
-        color = Color.White.copy(alpha = 0.45f),
+        color = BlossomInk.Muted,
         modifier = modifier.padding(top = 10.dp),
     )
 }
@@ -425,7 +433,7 @@ private fun StyleCard(
         Text(
             text = category,
             style = CardLabelStyle,
-            color = Color.White.copy(alpha = 0.9f),
+            color = BlossomInk.Primary.copy(alpha = 0.9f),
             modifier = Modifier.padding(start = CardTextInset, top = CardTextInset),
         )
         // a long name shrinks to fit beside the preview instead of breaking mid-word

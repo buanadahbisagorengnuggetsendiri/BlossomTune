@@ -21,6 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 
 private val TrackWidth = 52.dp
 private val TrackHeight = 32.dp
@@ -37,10 +39,11 @@ fun AppSwitch(
     thumbContent: (@Composable () -> Unit)? = null,
 ) {
     val alpha = if (enabled) 1f else 0.38f
+    val accent = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
     val animSpec = tween<Color>(150)
 
     val trackColor by animateColorAsState(
-        targetValue = if (checked) Grey.copy(alpha = alpha) else Color.Transparent,
+        targetValue = if (checked) accent.copy(alpha = alpha) else Color.Transparent,
         animationSpec = animSpec,
         label = "trackColor"
     )

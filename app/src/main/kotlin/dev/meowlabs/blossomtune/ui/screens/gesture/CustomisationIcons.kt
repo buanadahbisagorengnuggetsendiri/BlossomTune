@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +66,9 @@ import dev.meowlabs.blossomtune.ui.component.pressBounce
 import dev.meowlabs.blossomtune.ui.component.rememberResourcePainter
 import dev.meowlabs.blossomtune.ui.player.findActivity
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.utils.AppIcon
 import dev.meowlabs.blossomtune.utils.AppIconColor
 import dev.meowlabs.blossomtune.utils.AppIconFamily
@@ -76,8 +80,10 @@ import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 private val TileSize = 66.dp
 // close to a launcher's squircle, so the tile reads as the icon it will be
 private val TileShape = RoundedCornerShape(TileSize * 0.27f)
-private val TileRing = Color.White.copy(alpha = 0.12f)
-private val TileRingPicked = Color.White.copy(alpha = 0.9f)
+private val TileRing: Color
+    @Composable @ReadOnlyComposable get() = BlossomInk.Divider
+private val TileRingPicked: Color
+    @Composable @ReadOnlyComposable get() = (if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose).copy(alpha = 0.9f)
 
 // the custom colours sit in two rows of six, which fit across any phone
 private val SwatchSize = 30.dp
@@ -135,7 +141,7 @@ internal fun IconsSection() {
                 Text(
                     text = stringResource(R.string.customise_icons_caption),
                     style = CaptionStyle,
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = BlossomInk.Muted,
                     modifier = Modifier.padding(start = CardTextInset, end = CardTextInset, top = 16.dp),
                 )
             }
@@ -164,7 +170,7 @@ private fun PickedIcon(icon: AppIcon, art: Map<Int, Painter>, expanded: Boolean,
         Text(
             text = stringResource(R.string.customise_icons),
             style = CardLabelStyle,
-            color = Color.White.copy(alpha = 0.9f),
+            color = BlossomInk.Primary.copy(alpha = 0.9f),
         )
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -174,7 +180,7 @@ private fun PickedIcon(icon: AppIcon, art: Map<Int, Painter>, expanded: Boolean,
                 Text(
                     text = stringResource(icon.label),
                     style = CardLabelStyle,
-                    color = Color.White,
+                    color = BlossomInk.Primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -182,7 +188,7 @@ private fun PickedIcon(icon: AppIcon, art: Map<Int, Painter>, expanded: Boolean,
                 Text(
                     text = stringResource(icon.family.title),
                     style = CaptionStyle,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = BlossomInk.Muted,
                 )
             }
             Box(
@@ -191,12 +197,12 @@ private fun PickedIcon(icon: AppIcon, art: Map<Int, Painter>, expanded: Boolean,
                     .size(34.dp)
                     .pressBounce(interaction, pressedScale = 0.9f)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.08f)),
+                    .background(BlossomInk.Divider),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.expand_more),
                     contentDescription = stringResource(if (expanded) R.string.customise_icons_show_less else R.string.customise_icons_show_all),
-                    tint = Color.White.copy(alpha = 0.8f),
+                    tint = BlossomInk.Primary.copy(alpha = 0.8f),
                     modifier = Modifier
                         .size(22.dp)
                         .graphicsLayer { rotationZ = turn },
@@ -221,7 +227,7 @@ private fun FamilyIcons(
     Text(
         text = stringResource(family.title),
         style = CaptionStyle,
-        color = Color.White.copy(alpha = 0.5f),
+        color = BlossomInk.Muted,
         modifier = Modifier.padding(horizontal = CardTextInset),
     )
     Spacer(Modifier.height(10.dp))
@@ -301,7 +307,7 @@ private fun TileLabel(text: String, picked: Boolean) {
     Text(
         text = text,
         style = CaptionStyle,
-        color = Color.White.copy(alpha = if (picked) 0.95f else 0.6f),
+        color = BlossomInk.Primary.copy(alpha = if (picked) 0.95f else 0.6f),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
@@ -310,12 +316,14 @@ private fun TileLabel(text: String, picked: Boolean) {
 // the pill under a custom tile that opens and closes its family's colours, filled while they're open
 @Composable
 private fun CustomizeButton(open: Boolean, onClick: () -> Unit) {
-    val fill by animateColorAsState(if (open) Color.White.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.1f), tween(220), label = "customizeFill")
+    val accent = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
+    val openText = if (LocalBlossomDark.current) BlossomColors.Ink else Color.White
+    val fill by animateColorAsState(if (open) accent.copy(alpha = 0.9f) else BlossomInk.Primary.copy(alpha = 0.10f), tween(220), label = "customizeFill")
     val interaction = remember { MutableInteractionSource() }
     Text(
         text = stringResource(R.string.app_icon_customize),
         style = CaptionStyle,
-        color = if (open) Color.Black else Color.White.copy(alpha = 0.85f),
+        color = if (open) openText else BlossomInk.Primary.copy(alpha = 0.85f),
         maxLines = 1,
         modifier = Modifier
             .pressBounce(interaction, pressedScale = 0.92f)

@@ -35,7 +35,9 @@ import dev.meowlabs.blossomtune.R
 import dev.meowlabs.blossomtune.link.remote.RemoteSetting
 import dev.meowlabs.blossomtune.link.remote.RemoteTarget
 import dev.meowlabs.blossomtune.ui.component.TopToaster
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import dev.meowlabs.blossomtune.ui.theme.BlossomInk
@@ -140,6 +142,7 @@ private fun ChoiceRow(setting: RemoteSetting, onPick: (String) -> Unit) {
 // a length in seconds, sent once the finger lets go so the device isn't asked on every step
 @Composable
 private fun SecondsRow(setting: RemoteSetting, onPick: (Float) -> Unit) {
+    val accent = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
     val stored = (setting.value as? Number)?.toFloat() ?: setting.min
     var dragged by remember(setting.key, stored) { mutableFloatStateOf(stored) }
     val steps = ((setting.max - setting.min) / setting.step).roundToInt() - 1
@@ -155,9 +158,9 @@ private fun SecondsRow(setting: RemoteSetting, onPick: (Float) -> Unit) {
             valueRange = setting.min..setting.max,
             steps = steps.coerceAtLeast(0),
             colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = Color.White,
-                inactiveTrackColor = Color.White.copy(alpha = 0.18f),
+                thumbColor = accent,
+                activeTrackColor = accent,
+                inactiveTrackColor = BlossomInk.Primary.copy(alpha = 0.18f),
                 activeTickColor = Color.Transparent,
                 inactiveTickColor = Color.Transparent,
             ),

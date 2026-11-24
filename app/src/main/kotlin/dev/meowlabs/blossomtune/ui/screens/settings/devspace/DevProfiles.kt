@@ -71,7 +71,7 @@ internal data class DevPerson(
 internal val DevPeople = listOf(
     DevPerson(
         name = "buana",
-        bio = "BlossomTune by Meow Labs",
+        bio = "Dibuat oleh Buana",
         avatar = R.drawable.ic_blossomtune_mark,
         socials = listOf(
             DevSocial("Instagram", InstagramUrl),

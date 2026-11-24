@@ -64,6 +64,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import dev.meowlabs.blossomtune.constants.ShowFormatBadgeKey
 import dev.meowlabs.blossomtune.constants.ShowFormatSampleRateKey
+import dev.meowlabs.blossomtune.ui.theme.BlossomColors
+import dev.meowlabs.blossomtune.ui.theme.LocalBlossomDark
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.ui.component.RemoteFocus
 import dev.meowlabs.blossomtune.ui.theme.PlayerInk
@@ -207,6 +209,7 @@ fun SongInfoRow(
             }
         }
 
+        val likeAccent = if (LocalBlossomDark.current) BlossomColors.Blossom else BlossomColors.DeepRose
         Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             val sidePlaced = (onSidePlaced?.let { Modifier.onGloballyPositioned(it) } ?: Modifier)
                 .onGloballyPositioned { onSidePositioned(it.boundsInRoot()) }
@@ -215,8 +218,8 @@ fun SongInfoRow(
             if (sideAction == dev.meowlabs.blossomtune.ui.player.studio.PlayerMenuAction.LIKE) {
                 PressScaleActionButton(
                     icon = if (trackInfo.liked) R.drawable.ic_untitled_heart else R.drawable.ic_untitled_heart_unfill,
-                    tint = if (trackInfo.liked) PlayerInk else PlayerInk.copy(alpha = 0.85f),
-                    containerColor = if (trackInfo.liked) PlayerInk.copy(alpha = 0.30f) else PlayerInk.copy(alpha = 0.15f),
+                    tint = if (trackInfo.liked) likeAccent else PlayerInk.copy(alpha = 0.85f),
+                    containerColor = if (trackInfo.liked) likeAccent.copy(alpha = 0.30f) else PlayerInk.copy(alpha = 0.15f),
                     onClick = {
                         if (likeBurst != null) {
                             likeBurst.likeFromButton(LikeSlot.PLAYER, trackInfo.liked, playerConnection::toggleLike)

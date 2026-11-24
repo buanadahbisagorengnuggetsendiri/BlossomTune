@@ -460,39 +460,27 @@ private fun Density.placementAt(state: LaunchIntroState, size: IntSize): MarkPla
     return MarkPlacement(origin = pivot - Pivot * unit, unit = unit)
 }
 
-/** the two marks, in the splash drawable's units, ready to draw at any scale */
+/** the flower mark, in the splash drawable's units, ready to draw at any scale */
 private class LaunchMarkArt {
-    private val triangle = path(
-        "M163.5 96.3493C180.167 105.972 180.167 130.028 163.5 139.651L108 171.694C91.3333 181.316 " +
-            "70.5 169.288 70.5 150.043V85.9569C70.5 66.7119 91.3333 54.6838 108 64.3063L163.5 96.3493Z"
+    // the flower: five petals and the centre, scaled into the old mark's box
+    private val petals = listOf(
+        path("M123.25 67.62 C137.47 78.29 139.85 102 123.25 116.22 C106.65 102 109.03 78.29 123.25 67.62 Z"),
+        path("M176 106.15 C170.67 122.74 148.74 132.82 129.77 120.96 C138.66 100.81 161.78 96.07 176 106.15 Z"),
+        path("M155.85 168.38 C138.07 168.38 122.66 150.6 127.4 129.26 C149.33 131.04 161.18 151.19 155.85 168.38 Z"),
+        path("M90.65 168.38 C85.32 151.19 97.17 131.04 119.1 129.26 C124.44 150.6 108.43 168.38 90.65 168.38 Z"),
+        path("M70.5 106.15 C84.72 96.07 107.84 100.81 116.73 120.96 C97.76 132.82 75.83 122.74 70.5 106.15 Z"),
     )
-    // the face: the little chevron and the smile under it
-    private val face = path("M97 112L108.5 98L120 112M110.325 125C111.871 133.439 121.868 148.704 142.944 149.92")
+    private val centre = path("M113.77 123.33 A9.48 9.48 0 1 1 132.73 123.33 A9.48 9.48 0 1 1 113.77 123.33 Z")
     private val mask = Path().apply { addCircle(Pivot.x, Pivot.y, SplashMaskRadius, Path.Direction.CW) }
 
-    // ic_splash_mark: a white shape with a dark outline and a dark face
-    private val fill = paint(android.graphics.Color.WHITE) { style = Paint.Style.FILL }
-    private val darkOutline = paint(0xFF212121.toInt()) {
-        style = Paint.Style.STROKE
-        strokeWidth = 19f
-        strokeJoin = Paint.Join.ROUND
-    }
-    private val darkFace = paint(0xFF212121.toInt()) {
-        style = Paint.Style.STROKE
-        strokeWidth = 11f
-        strokeCap = Paint.Cap.ROUND
-        strokeJoin = Paint.Join.ROUND
-    }
+    // ic_splash_mark: pale petals with a cherry centre, no outline
+    private val petalFill = paint(0xFFFAEAEE.toInt()) { style = Paint.Style.FILL }
+    private val centreFill = paint(0xFFE890A8.toInt()) { style = Paint.Style.FILL }
 
-    // ic_blossomtune_mark: the same outline and face, white, nothing filled
-    private val lightOutline = paint(android.graphics.Color.WHITE) {
+    // ic_blossomtune_mark: the same petals and centre, white strokes, nothing filled
+    private val lightStroke = paint(android.graphics.Color.WHITE) {
         style = Paint.Style.STROKE
-        strokeWidth = 19f
-        strokeJoin = Paint.Join.ROUND
-    }
-    private val lightFace = paint(android.graphics.Color.WHITE) {
-        style = Paint.Style.STROKE
-        strokeWidth = 11f
+        strokeWidth = 12f
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
     }
@@ -503,15 +491,14 @@ private class LaunchMarkArt {
             canvas.saveLayerAlpha(LayerBounds, (filledAlpha * 255f).toInt())
             canvas.scale(filledScale, filledScale, Pivot.x, Pivot.y)
             canvas.clipPath(mask)
-            canvas.drawPath(triangle, fill)
-            canvas.drawPath(triangle, darkOutline)
-            canvas.drawPath(face, darkFace)
+            petals.forEach { canvas.drawPath(it, petalFill) }
+            canvas.drawPath(centre, centreFill)
             canvas.restore()
         }
         if (outlineAlpha > 0.002f) {
             canvas.saveLayerAlpha(ArtBounds, (outlineAlpha * 255f).toInt())
-            canvas.drawPath(triangle, lightOutline)
-            canvas.drawPath(face, lightFace)
+            petals.forEach { canvas.drawPath(it, lightStroke) }
+            canvas.drawPath(centre, lightStroke)
             canvas.restore()
         }
     }
