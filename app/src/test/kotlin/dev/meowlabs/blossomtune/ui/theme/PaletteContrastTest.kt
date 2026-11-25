@@ -227,22 +227,30 @@ class PaletteContrastTest {
     }
 
     /**
-     * 0.6.5: baris judul player memakai scrim Night + font Petal di KEDUA mode,
-     * jadi judul, artis, dan hati harus lolos AA di atas Night, bukan cuma di mode gelap.
+     * 0.6.6: baris judul player TRANSPARAN (scrim Night dihapus atas permintaan
+     * Arya, artwork kelihatan utuh di belakang judul). Tidak ada latar yang
+     * dijamin lagi, jadi tes ini tidak mengklaim kontras di atas Night seperti
+     * 0.6.5; yang dikunci adalah paletnya tetap terang di kedua mode (judul
+     * Petal, artis Petal 0.7, hati liked Blossom, hati belum-like Petal 0.85),
+     * dan pasangan itu tetap lolos AA di atas artwork gelap sebagai wakil
+     * latar gelap. Di atas artwork sangat terang teks putih memang lebih
+     * susah dibaca, itu konsekuensi yang diminta, bukan bug.
      */
     @Test
-    fun playerTitleRow_isReadableOnDarkScrimInBothModes() {
-        assertReadable(BlossomColors.Petal, BlossomColors.Night, "judul player di scrim malam")
+    fun playerTitleRow_staysLightOnTransparentRowInBothModes() {
+        // Artwork gelap sebagai wakil latar gelap; bukan Night, itu sudah tidak ada.
+        val darkArtwork = Color(0xFF241A16)
+        assertReadable(BlossomColors.Petal, darkArtwork, "judul player di artwork gelap")
         assertReadable(
-            blendOver(BlossomColors.Petal.copy(alpha = 0.7f), BlossomColors.Night),
-            BlossomColors.Night,
-            "artis player di scrim malam",
+            blendOver(BlossomColors.Petal.copy(alpha = 0.7f), darkArtwork),
+            darkArtwork,
+            "artis player di artwork gelap",
         )
-        assertReadable(BlossomColors.Blossom, BlossomColors.Night, "hati liked di scrim malam")
+        assertReadable(BlossomColors.Blossom, darkArtwork, "hati liked di artwork gelap")
         assertReadable(
-            blendOver(BlossomColors.Petal.copy(alpha = 0.85f), BlossomColors.Night),
-            BlossomColors.Night,
-            "hati belum-like di scrim malam",
+            blendOver(BlossomColors.Petal.copy(alpha = 0.85f), darkArtwork),
+            darkArtwork,
+            "hati belum-like di artwork gelap",
         )
     }
 

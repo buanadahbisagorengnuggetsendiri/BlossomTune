@@ -1,5 +1,19 @@
 [
   {
+    "versionName": "0.6.6",
+    "publishedAt": "2026-11-26",
+    "summary": "Baris judul player kini transparan, artwork kelihatan utuh di belakang judul, dan teks tetap putih di kedua mode.",
+    "sections": [
+      {
+        "title": "Player",
+        "items": [
+          "Baris judul player penuh kini tanpa scrim, artwork kelihatan utuh di belakang judul, artis, dan tombol hati.",
+          "Teks judul, artis, dan tombol di baris judul tetap putih Petal di kedua mode."
+        ]
+      }
+    ]
+  },
+ {
     "versionName": "0.6.5",
     "publishedAt": "2026-11-24",
     "summary": "Baris judul player kini selalu gelap dengan font putih di kedua mode, lirik dan kontrol player lebih terbaca di atas artwork gelap, dan kartu Turntable di pemilih gaya kini kontras.",

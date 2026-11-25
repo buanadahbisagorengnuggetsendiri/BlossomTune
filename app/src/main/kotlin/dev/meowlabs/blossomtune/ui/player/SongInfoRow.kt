@@ -37,11 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -117,31 +114,17 @@ fun SongInfoRow(
     val (showFormatBadge) = rememberPreference(ShowFormatBadgeKey, defaultValue = true)
     val (showSampleRate) = rememberPreference(ShowFormatSampleRateKey, defaultValue = false)
 
-    // The title and artist sit straight on the cover photo, so they need their
-    // own backing: a soft band of Night in both modes, with Petal words on it,
-    // because a light band stays unsafe over bright or busy artwork. It fades
-    // out above and below the row instead of a hard card, and with the title
-    // itself when a page takes over (infoAlpha).
-    val scrimColor = BlossomColors.Night
+    // The title and artist sit straight on the cover photo with no backing:
+    // transparent by request, so the artwork shows through whole behind the
+    // row. The words stay Petal white in both modes; on very bright artwork
+    // they are harder to read than with the old Night band, that is the
+    // trade-off Arya asked for. The row still fades with the title itself
+    // when a page takes over (infoAlpha).
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = PlayerHorizontalPadding)
-            .drawBehind {
-                val bleed = 12.dp.toPx()
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        0f to scrimColor.copy(alpha = 0f),
-                        0.25f to scrimColor.copy(alpha = 0.78f),
-                        0.75f to scrimColor.copy(alpha = 0.78f),
-                        1f to scrimColor.copy(alpha = 0f),
-                    ),
-                    topLeft = Offset(0f, -bleed),
-                    size = Size(size.width, size.height + 2 * bleed),
-                    alpha = infoAlpha(),
-                )
-            }
     ) {
         Column(
             modifier = Modifier
