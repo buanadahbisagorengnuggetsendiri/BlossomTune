@@ -31,8 +31,8 @@ extensions.configure<ApplicationExtension> {
         applicationId = "dev.meowlabs.blossomtune"
         minSdk = 24
         targetSdk = 37
-        versionCode = 105
-        versionName = "0.6.5"
+        versionCode = 106
+        versionName = "0.6.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
