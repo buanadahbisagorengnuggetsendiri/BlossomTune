@@ -353,5 +353,132 @@ class PaletteContrastTest {
         )
         assertReadable(BlossomColors.Petal, Color(0xFF262626), "tombol Edit/Set di pemilih gaya")
     }
+
+    /**
+     * 0.6.7: ikon kartu aksi sheet lagu dan ikon perangkat duduk di atas baris
+     * pink muda terang / gelap, jadi tintanya tinta primer yang ikut mode,
+     * bukan putih (putih di atas #F7E6EA hanya 1.20:1).
+     */
+    @Test
+    fun sheetActionCardIcons_areReadableInBothModes() {
+        val rowLight = Color(0xFFF7E6EA)
+        val rowDark = Color(0xFF221017)
+        assertReadable(BlossomColors.Ink, rowLight, "ikon kartu aksi di baris terang")
+        assertReadable(BlossomColors.Petal, rowDark, "ikon kartu aksi di baris gelap")
+        assertReadable(BlossomColors.Ink, rowLight, "ikon perangkat di baris terang")
+        assertReadable(BlossomColors.Petal, rowDark, "ikon perangkat di baris gelap")
+    }
+
+    /**
+     * 0.6.7 follow-up: the song sheet's full-width rows go through MenuItemRow,
+     * not SheetActionCard, and its icon slot forced LocalContentColor white
+     * (white on #F7E6EA was 1.20:1). The icons are now the mode-following ink,
+     * same as the grid cards.
+     */
+    @Test
+    fun menuItemRowIcons_areReadableInBothModes() {
+        assertReadable(BlossomColors.Ink, LightSurfaces.row, "ikon baris menu lagu di baris terang")
+        assertReadable(BlossomColors.Petal, DarkSurfaces.row, "ikon baris menu lagu di baris gelap")
+    }
+
+    /**
+     * 0.6.7 follow-up ke-2: the other menus (album, artist, playlist, selection,
+     * and their YouTube variants) go through NewActionGrid, whose WhiteIcon forced
+     * every icon white with a SrcIn filter (white on #F7E6EA was 1.20:1 in light
+     * mode, the same bug as the song sheet's rows). The icons are now the
+     * mode-following ink, in both the two big cards and the rows below them.
+     */
+    @Test
+    fun newActionGridIcons_areReadableInBothModes() {
+        assertReadable(BlossomColors.Ink, LightSurfaces.row, "ikon kartu aksi menu album/artis di baris terang")
+        assertReadable(BlossomColors.Petal, DarkSurfaces.row, "ikon kartu aksi menu album/artis di baris gelap")
+        assertReadable(BlossomColors.Ink, LightSurfaces.row, "ikon baris menu album/artis di baris terang")
+        assertReadable(BlossomColors.Petal, DarkSurfaces.row, "ikon baris menu album/artis di baris gelap")
+    }
+
+    /**
+     * 0.6.7: teks penjelasan layar Penyimpanan duduk di atas halaman, bukan di
+     * atas kartu gelap, jadi warnanya tinta primer (putih di atas Petal hanya
+     * 1.16:1). Judul scaffold ikut, tapi gradien scrim yang tembus pandang
+     * ternyata tidak cukup: di pita judul yang collapsed hanya tersisa alpha
+     * 0.10-0.33, jadi kartu gelap yang lewat di belakang judul membuat judul
+     * 2.18-3.20:1 di mode terang. Karena itu scrim kini opak penuh sampai
+     * 0.62 tinggi header (jalur flat: sheet 0.90), dan tes di bawah mengunci
+     * posisi terburuk, kartu tergelap tepat di belakang judul.
+     */
+    @Test
+    fun storageSectionText_isReadableOnPageInBothModes() {
+        assertReadable(BlossomColors.Ink, BlossomColors.Petal, "teks penjelasan Penyimpanan di halaman terang")
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "teks penjelasan Penyimpanan di halaman gelap")
+        // Scrim header collapsed, posisi terburuk: kartu gelap tepat di belakang judul.
+        val worstCardBehindHeader = Color(0xFF131314)
+        assertReadable(
+            BlossomColors.Ink,
+            LightSurfaces.sheet,
+            "judul collapsed di atas scrim progresif terang",
+        )
+        assertReadable(
+            BlossomColors.Ink,
+            blendOver(LightSurfaces.sheet.copy(alpha = 0.90f), worstCardBehindHeader),
+            "judul collapsed di atas scrim flat terang",
+        )
+        assertReadable(
+            BlossomColors.Petal,
+            DarkSurfaces.sheet,
+            "judul collapsed di atas scrim progresif gelap",
+        )
+        assertReadable(
+            BlossomColors.Petal,
+            blendOver(DarkSurfaces.sheet.copy(alpha = 0.90f), worstCardBehindHeader),
+            "judul collapsed di atas scrim flat gelap",
+        )
+    }
+
+    /**
+     * 0.6.7 follow-up: subtitle halaman detail Integrasi (Discord, Last.fm /
+     * Libre.fm, Backup, Spotify) memakai komponen bersama yang sama, dan
+     * warnanya putih setengah alpha di atas halaman: 1.07:1 di mode terang.
+     * Kini tinta primer yang ikut mode, sama seperti judul halamannya.
+     */
+    @Test
+    fun integrationPageSubtitles_areReadableInBothModes() {
+        assertReadable(BlossomColors.Ink, BlossomColors.Petal, "subtitle detail Integrasi di halaman terang")
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "subtitle detail Integrasi di halaman gelap")
+    }
+
+    /**
+     * 0.6.7: judul seksi Modul sempat abu-abu hardcoded 0xFFB4B4B8 (1.78:1 di
+     * atas Petal), kini tinta primer. Status modul tidak diubah: teksnya
+     * putih 0.85 di atas kartu gelap dan sudah lolos.
+     */
+    @Test
+    fun moduleSectionTitles_areReadableInBothModes() {
+        assertReadable(BlossomColors.Ink, BlossomColors.Petal, "judul seksi Modul di halaman terang")
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "judul seksi Modul di halaman gelap")
+        val moduleRow = Color(0xFF131314)
+        assertReadable(
+            blendOver(Color.White.copy(alpha = 0.85f), moduleRow),
+            moduleRow,
+            "status modul di atas kartu gelap",
+        )
+    }
+
+    /**
+     * 0.6.7: tombol play dan next mini player sempat memakai onSurface, yang
+     * di mode terang adalah tinta gelap (1.03:1 di atas bar #171717). Barnya
+     * gelap di kedua mode, jadi glyphnya putih, sama seperti previous.
+     * Judul dan artisnya sudah putih / putih 0.72 dan tidak diubah.
+     */
+    @Test
+    fun miniPlayerTransport_isReadableOnDarkBar() {
+        val miniBar = Color(0xFF171717)
+        assertReadable(Color.White, miniBar, "tombol play/next mini player di atas bar gelap")
+        assertReadable(Color.White, miniBar, "judul mini player di atas bar gelap")
+        assertReadable(
+            blendOver(Color.White.copy(alpha = 0.72f), miniBar),
+            miniBar,
+            "artis mini player di atas bar gelap",
+        )
+    }
 }
 

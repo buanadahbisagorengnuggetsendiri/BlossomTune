@@ -519,7 +519,7 @@ internal fun SheetActionCard(
     enabled: Boolean = true,
 ) {
     SheetActionCard(
-        icon = { SheetIcon(icon, size = 24.dp) },
+        icon = { SheetIcon(icon, size = 24.dp, tint = BlossomInk.Primary) },
         title = title,
         onClick = onClick,
         modifier = modifier,

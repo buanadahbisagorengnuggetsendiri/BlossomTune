@@ -1,5 +1,36 @@
 [
   {
+    "versionName": "0.6.7",
+    "publishedAt": "2026-11-26",
+    "summary": "Ikon kartu menu lagu, teks layar Penyimpanan, judul seksi Modul, dan tombol mini player kini terbaca di kedua mode.",
+    "sections": [
+      {
+        "title": "Menu lagu",
+        "items": [
+          "Ikon kartu aksi (Mulai radio, Tambahkan ke daftar putar, Unduh, Bagikan) kini tinta gelap di atas kartu pink muda, begitu juga ikon speaker di baris perangkat."
+        ]
+      },
+      {
+        "title": "Penyimpanan",
+        "items": [
+          "Teks penjelasan dan judul halaman kini tinta gelap yang terbaca di kedua mode; scrim header saat halaman digulir kini mengikuti mode."
+        ]
+      },
+      {
+        "title": "Modul",
+        "items": [
+          "Judul seksi Look modules dan JS & source modules kini tinta gelap."
+        ]
+      },
+      {
+        "title": "Mini player",
+        "items": [
+          "Tombol play dan next kini putih di atas bar gelap di kedua mode, sama seperti tombol previous."
+        ]
+      }
+    ]
+  },
+  {
     "versionName": "0.6.6",
     "publishedAt": "2026-11-26",
     "summary": "Baris judul player kini transparan, artwork kelihatan utuh di belakang judul, dan teks tetap putih di kedua mode.",

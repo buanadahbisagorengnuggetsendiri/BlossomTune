@@ -1210,7 +1210,9 @@ fun MorphingCover(
                     }
             ) {
                 MiniPlayerButton(onClick = { playerConnection?.togglePlayPause() }) {
-                    val tint = MaterialTheme.colorScheme.onSurface
+                    // The bar is dark in both modes, so the glyphs stay white;
+                    // onSurface is dark ink in light mode (1.03:1 on the bar).
+                    val tint = Color.White
                     // replay pops in for a finished song; play and pause swap with the flagship's squash
                     AnimatedContent(
                         targetState = playbackState == Player.STATE_ENDED,
@@ -1261,7 +1263,7 @@ fun MorphingCover(
                         }
                     },
                 ) {
-                    AnimatedSkipGlyph(cycle = skipCycle, backwards = false, color = MaterialTheme.colorScheme.onSurface, width = MiniSkipWidth)
+                    AnimatedSkipGlyph(cycle = skipCycle, backwards = false, color = Color.White, width = MiniSkipWidth)
                 }
             }
         }

@@ -5,7 +5,7 @@
 //
 // Despite the `Material3` names (kept so the ~10 menus that call this don't all need editing),
 // nothing here is Material 3 any more: these rows now render in the same language as the player's
-// own action sheet — flat dark pills, a plain white icon, one line of text. The player sheet
+// own action sheet — flat pills, an icon in the mode-following ink, one line of text. The player sheet
 // and the item menus used to be two visibly different designs reachable from the same screen, and
 // the fastest way to make every menu match is to change the one component they all go through
 // rather than to restyle each menu by hand.
@@ -44,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -101,15 +100,16 @@ internal fun MenuItemRow(
             .padding(horizontal = 14.dp, vertical = 14.dp),
     ) {
         if (icon != null) {
-            // Menus pass a bare Icon with no tint, which picks up LocalContentColor, so white here
-            // makes every menu's icons white without each one asking. A menu that sets its own tint
+            // Menus pass a bare Icon with no tint, which picks up LocalContentColor, so the ink
+            // here makes every menu's icons readable on the pale row in light mode and on the
+            // dark row in dark mode, without each one asking. A menu that sets its own tint
             // (the red heart) still wins, which is intended.
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(SheetIconSize),
             ) {
                 CompositionLocalProvider(
-                    LocalContentColor provides Color.White.copy(alpha = contentAlpha),
+                    LocalContentColor provides BlossomInk.Primary.copy(alpha = contentAlpha),
                 ) {
                     icon()
                 }

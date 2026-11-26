@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 /**
  * The actions at the top of a menu. The first two are the ones people use every time they open
@@ -45,7 +46,7 @@ fun NewActionGrid(
             SheetActionCardRow {
                 cards.forEach { action ->
                     SheetActionCard(
-                        icon = { WhiteIcon(24.dp, action.icon) },
+                        icon = { GridIcon(24.dp, action.icon) },
                         title = action.text,
                         onClick = rememberTapTrigger(action),
                         enabled = action.enabled,
@@ -56,7 +57,7 @@ fun NewActionGrid(
         }
         actions.drop(2).forEach { action ->
             MenuItemRow(
-                icon = { WhiteIcon(SheetIconSize, action.icon) },
+                icon = { GridIcon(SheetIconSize, action.icon) },
                 enabled = action.enabled,
                 onClick = rememberTapTrigger(action),
             ) {
@@ -80,14 +81,15 @@ private fun rememberTapTrigger(action: NewAction): () -> Unit {
     return { tapped = true }
 }
 
-/** The actions bring icons tinted for the old grey buttons; this draws them white whatever they ask for. */
+/** The actions bring icons tinted for the old grey buttons; this draws them in the mode-following ink instead. White, what this used to force, is 1.20:1 on the pale row in light mode, the same bug the song sheet's grid cards had. */
 @Composable
-private fun WhiteIcon(size: Dp, icon: @Composable () -> Unit) {
+private fun GridIcon(size: Dp, icon: @Composable () -> Unit) {
+    val tint = BlossomInk.Primary
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(size)
-            .graphicsLayer { colorFilter = ColorFilter.tint(Color.White, BlendMode.SrcIn) },
+            .graphicsLayer { colorFilter = ColorFilter.tint(tint, BlendMode.SrcIn) },
     ) {
         icon()
     }
