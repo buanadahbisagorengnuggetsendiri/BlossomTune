@@ -109,7 +109,10 @@ fun SubSettingsScaffold(
     val scrollState = rememberScrollState()
     val glassState = remember { GlassState() }
 
-    val headerFoundationColor = Color.Black
+    // The header's frost follows the mode (sheet: white light, #160A0F dark).
+    // Hardcoded black left the dark title unreadable once the header had
+    // collapsed over it in light mode (about 2.1:1 in the Storage screenshot).
+    val headerFoundationColor = BlossomSurface.sheet
 
     // Latch-and-settle collapse, same as Library/Search: once the threshold is crossed the morph
     // always finishes smoothly, even after the user's finger lifts mid-scroll.
@@ -189,13 +192,13 @@ fun SubSettingsScaffold(
                     .drawWithCache {
                         val gradient = if (progressive) {
                             Brush.verticalGradient(
-                                0f to Color.Black.copy(alpha = 0.90f),
-                                0.20f to Color.Black.copy(alpha = 0.50f),
-                                0.45f to Color.Black.copy(alpha = 0.18f),
+                                0f to headerFoundationColor.copy(alpha = 0.90f),
+                                0.20f to headerFoundationColor.copy(alpha = 0.50f),
+                                0.45f to headerFoundationColor.copy(alpha = 0.18f),
                                 0.75f to Color.Transparent,
                             )
                         } else {
-                            SolidColor(Color.Black.copy(alpha = FlatBarScrimAlpha))
+                            SolidColor(headerFoundationColor.copy(alpha = FlatBarScrimAlpha))
                         }
                         onDrawBehind { drawRect(brush = gradient) }
                     }

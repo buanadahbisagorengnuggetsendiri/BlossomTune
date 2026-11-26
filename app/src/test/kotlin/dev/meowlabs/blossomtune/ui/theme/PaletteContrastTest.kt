@@ -353,5 +353,79 @@ class PaletteContrastTest {
         )
         assertReadable(BlossomColors.Petal, Color(0xFF262626), "tombol Edit/Set di pemilih gaya")
     }
+
+    /**
+     * 0.6.7: ikon kartu aksi sheet lagu dan ikon perangkat duduk di atas baris
+     * pink muda terang / gelap, jadi tintanya tinta primer yang ikut mode,
+     * bukan putih (putih di atas #F7E6EA hanya 1.20:1).
+     */
+    @Test
+    fun sheetActionCardIcons_areReadableInBothModes() {
+        val rowLight = Color(0xFFF7E6EA)
+        val rowDark = Color(0xFF221017)
+        assertReadable(BlossomColors.Ink, rowLight, "ikon kartu aksi di baris terang")
+        assertReadable(BlossomColors.Petal, rowDark, "ikon kartu aksi di baris gelap")
+        assertReadable(BlossomColors.Ink, rowLight, "ikon perangkat di baris terang")
+        assertReadable(BlossomColors.Petal, rowDark, "ikon perangkat di baris gelap")
+    }
+
+    /**
+     * 0.6.7: teks penjelasan layar Penyimpanan duduk di atas halaman, bukan di
+     * atas kartu gelap, jadi warnanya tinta primer (putih di atas Petal hanya
+     * 1.16:1). Judul scaffold ikut: scrim header saat halaman digulir kini
+     * putih di mode terang, jadi judul gelap tetap terbaca di atasnya
+     * (sebelumnya scrim hitam membuat judul 2.13:1 saat collapsed).
+     */
+    @Test
+    fun storageSectionText_isReadableOnPageInBothModes() {
+        assertReadable(BlossomColors.Ink, BlossomColors.Petal, "teks penjelasan Penyimpanan di halaman terang")
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "teks penjelasan Penyimpanan di halaman gelap")
+        // Scrim header collapsed: putih 0.90 di atas Petal (terang), hitam di atas Night (gelap).
+        assertReadable(
+            BlossomColors.Ink,
+            blendOver(Color.White.copy(alpha = 0.90f), BlossomColors.Petal),
+            "judul Penyimpanan di atas scrim header terang",
+        )
+        assertReadable(
+            BlossomColors.Petal,
+            blendOver(Color.Black.copy(alpha = 0.90f), BlossomColors.Night),
+            "judul Penyimpanan di atas scrim header gelap",
+        )
+    }
+
+    /**
+     * 0.6.7: judul seksi Modul sempat abu-abu hardcoded 0xFFB4B4B8 (1.78:1 di
+     * atas Petal), kini tinta primer. Status modul tidak diubah: teksnya
+     * putih 0.85 di atas kartu gelap dan sudah lolos.
+     */
+    @Test
+    fun moduleSectionTitles_areReadableInBothModes() {
+        assertReadable(BlossomColors.Ink, BlossomColors.Petal, "judul seksi Modul di halaman terang")
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "judul seksi Modul di halaman gelap")
+        val moduleRow = Color(0xFF131314)
+        assertReadable(
+            blendOver(Color.White.copy(alpha = 0.85f), moduleRow),
+            moduleRow,
+            "status modul di atas kartu gelap",
+        )
+    }
+
+    /**
+     * 0.6.7: tombol play dan next mini player sempat memakai onSurface, yang
+     * di mode terang adalah tinta gelap (1.03:1 di atas bar #171717). Barnya
+     * gelap di kedua mode, jadi glyphnya putih, sama seperti previous.
+     * Judul dan artisnya sudah putih / putih 0.72 dan tidak diubah.
+     */
+    @Test
+    fun miniPlayerTransport_isReadableOnDarkBar() {
+        val miniBar = Color(0xFF171717)
+        assertReadable(Color.White, miniBar, "tombol play/next mini player di atas bar gelap")
+        assertReadable(Color.White, miniBar, "judul mini player di atas bar gelap")
+        assertReadable(
+            blendOver(Color.White.copy(alpha = 0.72f), miniBar),
+            miniBar,
+            "artis mini player di atas bar gelap",
+        )
+    }
 }
 

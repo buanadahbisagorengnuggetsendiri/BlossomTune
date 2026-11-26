@@ -49,6 +49,7 @@ import dev.meowlabs.blossomtune.module.monochrome.MonochromeModule
 import dev.meowlabs.blossomtune.modules.ModuleEntry
 import dev.meowlabs.blossomtune.modules.ModuleOrigin
 import dev.meowlabs.blossomtune.ui.screens.audiolab.LabColors
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.ui.theme.InterFontFamily
 import java.io.File
 
@@ -188,14 +189,14 @@ internal fun StatusDot(color: Color, size: Dp = 10.dp, modifier: Modifier = Modi
     Box(modifier.size(size).clip(CircleShape).background(color))
 }
 
-/** a section's big grey title, the mock's "Looks Module", with an optional small line under it and a done pill on the right while its list is being sorted */
+/** a section's big title in the page ink, the mock's "Looks Module", with an optional small line under it and a done pill on the right while its list is being sorted */
 @Composable
 internal fun ModuleSectionTitle(title: String, subtitle: String? = null, showDone: Boolean = false, onDone: () -> Unit = {}) {
     Column(Modifier.padding(start = 2.dp, bottom = 14.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 title, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 24.sp,
-                letterSpacing = (-0.6).sp, color = Color(0xFFB4B4B8), modifier = Modifier.weight(1f),
+                letterSpacing = (-0.6).sp, color = BlossomInk.Primary, modifier = Modifier.weight(1f),
             )
             AnimatedVisibility(
                 showDone,

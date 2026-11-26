@@ -46,6 +46,7 @@ import dev.meowlabs.blossomtune.playback.StoredKind
 import dev.meowlabs.blossomtune.ui.component.LocalMenuState
 import dev.meowlabs.blossomtune.ui.component.SubSettingsScaffold
 import dev.meowlabs.blossomtune.ui.screens.library.showConfirm
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 import dev.meowlabs.blossomtune.utils.rememberPreference
 import dev.meowlabs.blossomtune.viewmodels.DriveUsage
 import dev.meowlabs.blossomtune.viewmodels.StorageUsage
@@ -105,7 +106,7 @@ fun StorageScreen(navController: NavController, viewModel: StorageViewModel = hi
 
 @Composable
 private fun SectionText(text: String) {
-    Text(text, style = storageText(17f, FontWeight.SemiBold), modifier = Modifier.padding(horizontal = 2.dp))
+    Text(text, style = storageText(17f, FontWeight.SemiBold, BlossomInk.Primary), modifier = Modifier.padding(horizontal = 2.dp))
 }
 
 @Composable

@@ -673,7 +673,7 @@ private fun DeviceVolumeRow() {
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SheetIcon(R.drawable.volume_up)
+            SheetIcon(R.drawable.volume_up, tint = BlossomInk.Primary)
             Spacer(modifier = Modifier.width(14.dp))
             Text(
                 text = android.os.Build.MODEL ?: stringResource(R.string.ps_device_this_device),
