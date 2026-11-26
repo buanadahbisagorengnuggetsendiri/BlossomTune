@@ -382,6 +382,21 @@ class PaletteContrastTest {
     }
 
     /**
+     * 0.6.7 follow-up ke-2: the other menus (album, artist, playlist, selection,
+     * and their YouTube variants) go through NewActionGrid, whose WhiteIcon forced
+     * every icon white with a SrcIn filter (white on #F7E6EA was 1.20:1 in light
+     * mode, the same bug as the song sheet's rows). The icons are now the
+     * mode-following ink, in both the two big cards and the rows below them.
+     */
+    @Test
+    fun newActionGridIcons_areReadableInBothModes() {
+        assertReadable(BlossomColors.Ink, LightSurfaces.row, "ikon kartu aksi menu album/artis di baris terang")
+        assertReadable(BlossomColors.Petal, DarkSurfaces.row, "ikon kartu aksi menu album/artis di baris gelap")
+        assertReadable(BlossomColors.Ink, LightSurfaces.row, "ikon baris menu album/artis di baris terang")
+        assertReadable(BlossomColors.Petal, DarkSurfaces.row, "ikon baris menu album/artis di baris gelap")
+    }
+
+    /**
      * 0.6.7: teks penjelasan layar Penyimpanan duduk di atas halaman, bukan di
      * atas kartu gelap, jadi warnanya tinta primer (putih di atas Petal hanya
      * 1.16:1). Judul scaffold ikut, tapi gradien scrim yang tembus pandang
