@@ -112,6 +112,9 @@ fun SubSettingsScaffold(
     // The header's frost follows the mode (sheet: white light, #160A0F dark).
     // Hardcoded black left the dark title unreadable once the header had
     // collapsed over it in light mode (about 2.1:1 in the Storage screenshot).
+    // The gradient below stays opaque through the collapsed title's band for the
+    // same reason: a translucent scrim over scrolling content can never promise
+    // a contrast, only the solid sheet colour can.
     val headerFoundationColor = BlossomSurface.sheet
 
     // Latch-and-settle collapse, same as Library/Search: once the threshold is crossed the morph
@@ -191,14 +194,23 @@ fun SubSettingsScaffold(
                     .matchParentSize()
                     .drawWithCache {
                         val gradient = if (progressive) {
+                            // Opaque through the collapsed title's band (about 0.33-0.59 of the
+                            // header, depending on the status-bar height): the old fade left only
+                            // 0.10-0.33 alpha behind the title, so a dark card scrolling under it
+                            // left the dark title at 2.18-3.20:1 in light mode. The header becomes
+                            // a solid sheet-coloured bar with a frosted lower edge instead of a
+                            // see-through frost; that is the price of a readable title.
                             Brush.verticalGradient(
-                                0f to headerFoundationColor.copy(alpha = 0.90f),
-                                0.20f to headerFoundationColor.copy(alpha = 0.50f),
-                                0.45f to headerFoundationColor.copy(alpha = 0.18f),
-                                0.75f to Color.Transparent,
+                                0f to headerFoundationColor.copy(alpha = 1.00f),
+                                0.62f to headerFoundationColor.copy(alpha = 1.00f),
+                                0.85f to headerFoundationColor.copy(alpha = 0.25f),
+                                1.0f to Color.Transparent,
                             )
                         } else {
-                            SolidColor(headerFoundationColor.copy(alpha = FlatBarScrimAlpha))
+                            // Flat bars have no fade to hide behind: 0.45 left the title at about
+                            // 4.0:1 over the darkest card, so this one opaque-enough tint is used
+                            // instead of the shared FlatBarScrimAlpha.
+                            SolidColor(headerFoundationColor.copy(alpha = 0.90f))
                         }
                         onDrawBehind { drawRect(brush = gradient) }
                     }

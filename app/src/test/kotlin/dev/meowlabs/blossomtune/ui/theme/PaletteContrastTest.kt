@@ -370,27 +370,65 @@ class PaletteContrastTest {
     }
 
     /**
+     * 0.6.7 follow-up: the song sheet's full-width rows go through MenuItemRow,
+     * not SheetActionCard, and its icon slot forced LocalContentColor white
+     * (white on #F7E6EA was 1.20:1). The icons are now the mode-following ink,
+     * same as the grid cards.
+     */
+    @Test
+    fun menuItemRowIcons_areReadableInBothModes() {
+        assertReadable(BlossomColors.Ink, LightSurfaces.row, "ikon baris menu lagu di baris terang")
+        assertReadable(BlossomColors.Petal, DarkSurfaces.row, "ikon baris menu lagu di baris gelap")
+    }
+
+    /**
      * 0.6.7: teks penjelasan layar Penyimpanan duduk di atas halaman, bukan di
      * atas kartu gelap, jadi warnanya tinta primer (putih di atas Petal hanya
-     * 1.16:1). Judul scaffold ikut: scrim header saat halaman digulir kini
-     * putih di mode terang, jadi judul gelap tetap terbaca di atasnya
-     * (sebelumnya scrim hitam membuat judul 2.13:1 saat collapsed).
+     * 1.16:1). Judul scaffold ikut, tapi gradien scrim yang tembus pandang
+     * ternyata tidak cukup: di pita judul yang collapsed hanya tersisa alpha
+     * 0.10-0.33, jadi kartu gelap yang lewat di belakang judul membuat judul
+     * 2.18-3.20:1 di mode terang. Karena itu scrim kini opak penuh sampai
+     * 0.62 tinggi header (jalur flat: sheet 0.90), dan tes di bawah mengunci
+     * posisi terburuk, kartu tergelap tepat di belakang judul.
      */
     @Test
     fun storageSectionText_isReadableOnPageInBothModes() {
         assertReadable(BlossomColors.Ink, BlossomColors.Petal, "teks penjelasan Penyimpanan di halaman terang")
         assertReadable(BlossomColors.Petal, BlossomColors.Night, "teks penjelasan Penyimpanan di halaman gelap")
-        // Scrim header collapsed: putih 0.90 di atas Petal (terang), hitam di atas Night (gelap).
+        // Scrim header collapsed, posisi terburuk: kartu gelap tepat di belakang judul.
+        val worstCardBehindHeader = Color(0xFF131314)
         assertReadable(
             BlossomColors.Ink,
-            blendOver(Color.White.copy(alpha = 0.90f), BlossomColors.Petal),
-            "judul Penyimpanan di atas scrim header terang",
+            LightSurfaces.sheet,
+            "judul collapsed di atas scrim progresif terang",
+        )
+        assertReadable(
+            BlossomColors.Ink,
+            blendOver(LightSurfaces.sheet.copy(alpha = 0.90f), worstCardBehindHeader),
+            "judul collapsed di atas scrim flat terang",
         )
         assertReadable(
             BlossomColors.Petal,
-            blendOver(Color.Black.copy(alpha = 0.90f), BlossomColors.Night),
-            "judul Penyimpanan di atas scrim header gelap",
+            DarkSurfaces.sheet,
+            "judul collapsed di atas scrim progresif gelap",
         )
+        assertReadable(
+            BlossomColors.Petal,
+            blendOver(DarkSurfaces.sheet.copy(alpha = 0.90f), worstCardBehindHeader),
+            "judul collapsed di atas scrim flat gelap",
+        )
+    }
+
+    /**
+     * 0.6.7 follow-up: subtitle halaman detail Integrasi (Discord, Last.fm /
+     * Libre.fm, Backup, Spotify) memakai komponen bersama yang sama, dan
+     * warnanya putih setengah alpha di atas halaman: 1.07:1 di mode terang.
+     * Kini tinta primer yang ikut mode, sama seperti judul halamannya.
+     */
+    @Test
+    fun integrationPageSubtitles_areReadableInBothModes() {
+        assertReadable(BlossomColors.Ink, BlossomColors.Petal, "subtitle detail Integrasi di halaman terang")
+        assertReadable(BlossomColors.Petal, BlossomColors.Night, "subtitle detail Integrasi di halaman gelap")
     }
 
     /**

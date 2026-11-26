@@ -24,17 +24,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.meowlabs.blossomtune.ui.theme.BlossomInk
 
 private val CardColor = Color(0xFF232323)
 private val CardShape = RoundedCornerShape(16.dp)
 private val IconShape = RoundedCornerShape(8.dp)
 
-/** grey line under a settings page's big title, as in the integrations and discord mocks */
+/** Second line under a settings page's big title, as in the integrations and discord mocks. Ink, like the title: white at half alpha was 1.07:1 on the pale page in light mode. */
 @Composable
 internal fun IntegrationPageSubtitle(text: String) {
     Text(
         text = text,
-        color = Color.White.copy(alpha = 0.5f),
+        color = BlossomInk.Primary,
         fontSize = 15.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(start = 2.dp, bottom = 18.dp),
